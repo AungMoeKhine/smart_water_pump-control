@@ -50,7 +50,7 @@
             width: 100px;
             height: 100px;
             margin-bottom: 15px;
-            object-fit: contain;
+            object-fit: cover;
             border-radius: 50%;
             border: 2px solid #333;
         }
@@ -314,10 +314,21 @@
 
     <div id="loginScreen" class="card">
         <img src="logo.png" alt="Logo" class="logo">
-        <h2 style="color:#03ef;margin-top:0;">💧Smpart Pump Cloud Log-in</h2>
-        <p style="color:#888; font-size:0.9rem; margin-bottom:20px;">Enter Device ID to begin</p>
-        <input type="text" id="devID" placeholder="e.g. 1A2B3D4E5F6G" style="text-transform:uppercase;">
-        <button id="btnLogin" class="btn" onclick="connect()">Connect</button>
+        <h1 style="color:white; margin: 10px 0 5px 0; font-size: 1.6rem; letter-spacing: -0.5px;">
+            Smart-Pump-Cloud-Control</h1>
+        <p style="color:#888; font-size:1.1rem; margin: 0 0 25px 0; font-weight: 300;">Enter Device ID and PIN to begin
+        </p>
+
+        <div style="max-width: 280px; margin: 0 auto;">
+            <div id="loginError"
+                style="color: #ff4d4d; font-size: 0.85rem; margin-bottom: 10px; display: none; font-weight: bold;">
+            </div>
+            <input type="text" id="devID" placeholder="DEVICE ID"
+                style="text-transform:uppercase; letter-spacing: 1px; font-weight: 500;">
+            <input type="password" id="devPin" placeholder="••••••" style="letter-spacing: 4px;">
+            <button id="btnLogin" class="btn btn-blue" onclick="connect()"
+                style="margin-top: 15px; border-radius: 10px; padding: 18px; font-size: 1.2rem; background: #007bff;">Connect</button>
+        </div>
     </div>
 
     <div id="dashboard" style="display:none;">
@@ -329,7 +340,7 @@
 
             <h2 style="color:#03ef;margin-top:0;">
                 <img src="logo.png" alt="Logo" class="logo"
-                    style="width: 80px; margin-bottom: 10px; vertical-align: middle;">
+                    style="width: 80px; height: 80px; margin-bottom: 10px; vertical-align: middle;">
                 <br>💧Smart Pump Control Dashboard
             </h2>
 
@@ -376,11 +387,13 @@
         const USER = "my_switch";
         const PASS = "My_password123";
 
-        let client, deviceID, pollInterval, watchdog;
+        let client, deviceID, devicePin, pollInterval, watchdog;
         let dataReceived = false;
 
         const savedID = localStorage.getItem("cloudPumpID");
         if (savedID) document.getElementById('devID').value = savedID;
+        const savedPin = localStorage.getItem("cloudPumpPin");
+        if (savedPin) document.getElementById('devPin').value = savedPin;
 
         // --- Modal Helper Functions ---
         function showModal(msg) {
@@ -393,12 +406,17 @@
 
         function connect() {
             deviceID = document.getElementById('devID').value.trim().toUpperCase();
+            devicePin = document.getElementById('devPin').value.trim();
             if (deviceID.length < 5) { alert("Invalid ID"); return; }
+            if (devicePin.length < 1) { alert("Enter Device PIN"); return; }
+
             localStorage.setItem("cloudPumpID", deviceID);
+            localStorage.setItem("cloudPumpPin", devicePin);
 
             const btnLogin = document.getElementById('btnLogin');
             btnLogin.innerText = "Connecting...";
             btnLogin.disabled = true;
+            document.getElementById('loginError').style.display = 'none'; // Clear previous errors
 
             const clientID = "Web_" + Math.random().toString(16).substr(2, 8);
             client = new Paho.MQTT.Client(BROKER, PORT, clientID);
@@ -419,9 +437,28 @@
                     const data = JSON.parse(raw);
 
                     // Intercept Safety Alert from ESP32
-                    if (data.alert && data.reason) {
-                        showModal(data.reason);
-                        return; // Stop processing
+                    if (data.alert === "Access Denied") {
+                        if (!dataReceived) {
+                            // If first attempt, stay on login screen and show error
+                            const errorDiv = document.getElementById('loginError');
+                            errorDiv.innerText = data.reason;
+                            errorDiv.style.display = 'block';
+                            const btn = document.getElementById('btnLogin');
+                            btn.innerText = "Connect";
+                            btn.disabled = false;
+                            client.disconnect();
+                        } else {
+                            // If already logged in, show modal and logout
+                            showModal(data.reason);
+                            setTimeout(logout, 3000);
+                        }
+                        return;
+                    }
+
+                    if (!dataReceived) {
+                        // First successful data arrival - switch to dashboard
+                        document.getElementById('loginScreen').style.display = 'none';
+                        document.getElementById('dashboard').style.display = 'block';
                     }
 
                     dataReceived = true;
@@ -441,9 +478,10 @@
             client.connect({
                 useSSL: true, userName: USER, password: PASS,
                 onSuccess: () => {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('dashboard').style.display = 'block';
-                    document.getElementById('statusTxt').innerText = "Checking...";
+                    const btn = document.getElementById('btnLogin');
+                    btn.innerText = "Syncing Data..."; // Changed from "Connecting"
+                    document.getElementById('loginError').style.display = 'none';
+
                     const baseTopic = `smartpump/${deviceID}`;
                     client.subscribe(`${baseTopic}/status`);
                     client.subscribe(`${baseTopic}/online`);
@@ -469,9 +507,8 @@
             if (client && client.isConnected()) {
                 document.getElementById('refreshBtn').classList.add('spinning');
                 document.getElementById('lastMsg').innerText = "Syncing...";
-                const msg = new Paho.MQTT.Message(JSON.stringify({ get: 1 }));
-                msg.destinationName = `smartpump/${deviceID}/set`;
-                client.send(msg);
+                // Use sendCmd to include PIN
+                sendCmd({ get: 1 });
             }
         }
 
@@ -481,6 +518,8 @@
 
         function sendCmd(payload) {
             if (!client || !client.isConnected()) return;
+            // Add PIN to every command
+            payload.pin = devicePin;
             const msg = new Paho.MQTT.Message(JSON.stringify(payload));
             msg.destinationName = `smartpump/${deviceID}/set`;
             client.send(msg);
