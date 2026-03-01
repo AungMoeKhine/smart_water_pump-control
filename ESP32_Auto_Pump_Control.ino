@@ -20,7 +20,6 @@
 #include <ZMPT101B.h>
 #include <Adafruit_NeoPixel.h>
 #include <ESPmDNS.h>
-
 #include "logo.h"
 
 // ============================================================================
@@ -273,7 +272,9 @@ const char settings_html[] PROGMEM = R"rawliteral(
       <div class="lbl-wrap"><label>WiFi SSID</label></div>
       <select name="ssid" required>%WIFI_LIST%</select>
       <div class="lbl-wrap"><label>WiFi Password</label></div>
-      <div class="pass-row"><input type="password" id="p" name="pass" placeholder="Leave empty to keep current"><label class="show-pass"><input type="checkbox" onclick="togglePass()"> Show Password</label></div>
+      <div class="pass-row"><input type="password" id="p" name="pass" placeholder="Leave empty to keep current"><label class="show-pass"><input type="checkbox" onclick="togglePass('p')"> Show WiFi Password</label></div>
+      <div class="lbl-wrap"><label>Device PIN (for Cloud)</label></div>
+      <div class="pass-row"><input type="password" id="pin" name="pin" value="%PIN%" required><label class="show-pass"><input type="checkbox" onclick="togglePass('pin')"> Show PIN</label></div>
       <hr>
       <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select name="uH">%TANK_LIST%</select>
       <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><input type="number" name="vH" value="%VHIGH%" min="230" max="260">
@@ -284,7 +285,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
     <div style="text-align:center;margin-top:15px;"><a href="/" style="color:#888;text-decoration:none;font-size:0.9rem;">← Back to Dashboard</a></div>
   </div>
 <script>
-  function togglePass() { var x = document.getElementById("p"); if (x.type === "password") x.type = "text"; else x.type = "password"; }
+  function togglePass(id) { var x = document.getElementById(id); if (x.type === "password") x.type = "text"; else x.type = "password"; }
 </script></body></html>
 )rawliteral";
 
@@ -934,6 +935,7 @@ void handleSettings() {
   s.replace("%VHIGH%", String(voltageConfig.HIGH_THRESHOLD));
   s.replace("%VLOW%", String(voltageConfig.LOW_THRESHOLD));
   s.replace("%DRY%", String(dryRunConfig.WAIT_SECONDS_SET));
+  s.replace("%PIN%", devicePin);
   server.send(200, "text/html", s);
 }
 
@@ -957,6 +959,10 @@ void handleSave() {
   if (server.hasArg("dD")) {
     dryRunConfig.WAIT_SECONDS_SET = server.arg("dD").toInt();
     preferences.putInt("dryDelay", dryRunConfig.WAIT_SECONDS_SET);
+  }
+  if (server.hasArg("pin")) {
+    devicePin = server.arg("pin");
+    preferences.putString("pin", devicePin);
   }
   preferences.end();
   
@@ -1088,6 +1094,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   if (doc.containsKey("toggle")) {
     
+    // CHECK PIN
+    if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) {
+        Serial.println("MQTT Sync: Wrong or Missing PIN");
+        DynamicJsonDocument resp(256);
+        resp["alert"] = "Access Denied";
+        resp["reason"] = "Wrong or Missing Device PIN!";
+        String respStr;
+        serializeJson(resp, respStr);
+        mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+        return;
+    }
+
     // FIX: Handle Sensor Alarm Silence before Safety Check
     if (currentState == PumpState::SENSOR_ERROR) {
         if (!tankConfig.errorAck) {
@@ -1134,11 +1152,26 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     publishState();
     
   } else if (doc.containsKey("reset")) {
+    // CHECK PIN
+    if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) {
+        return; // Silently ignore reset if no PIN
+    }
     dryRunConfig.error = 0;
     dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
     digitalWrite(BUZZER_PIN, LOW);
     saveMotorStatus();
-  } else if (doc.containsKey("get")) {
     publishState();
+  } else if (doc.containsKey("get")) {
+    if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
+        publishState();
+    } else {
+        Serial.println("MQTT Sync: Unauthorized Status Request");
+        DynamicJsonDocument resp(256);
+        resp["alert"] = "Access Denied";
+        resp["reason"] = "Unauthorized Request - Wrong PIN!";
+        String respStr;
+        serializeJson(resp, respStr);
+        mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+    }
   }
 }
