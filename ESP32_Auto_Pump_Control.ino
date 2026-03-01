@@ -20,6 +20,8 @@
 #include <ZMPT101B.h>
 #include <Adafruit_NeoPixel.h>
 
+const char logo_base64[] PROGMEM = "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";
+
 // ============================================================================
 // CONFIGURATION & PINOUT
 // ============================================================================
@@ -172,6 +174,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <title>Smart Pump Dashboard</title>
 <style>
   body{font-family:sans-serif;background:#121212;color:white;text-align:center;padding:20px;margin:0;}
+  .logo { width: 80px; height: auto; margin-bottom: 10px; border-radius: 50%; border: 2px solid #333; }
   .card{background:#1e1e1e;border-radius:12px;padding:20px;max-width:400px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.5);border:1px solid #333;position:relative;}
   .conn-dot{width:10px;height:10px;background:#28a745;border-radius:50%;display:inline-block;margin-right:5px;}
   .off{background:#dc3545;}
@@ -204,7 +207,10 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div class="card">
     <button id="rfb" class="refresh-btn" onclick="rfr()" title="Refresh Status">🔄</button>
     <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="dot" class="conn-dot"></span><span id="cStat">Device: Online</span></div>
-    <h2 style="color:#03ef;margin-top:0;">💧 Pump Dashboard</h2>
+    <h2 style="color:#03ef;margin-top:0;">
+      <img src="data:image/png;base64,%LOGO_BASE64%" class="logo"><br>
+      💧 Pump Dashboard
+    </h2>
     <div class="tank-wrap"><div class="tank-inner"><div class="tank-fill" id="tankFill"></div></div><div class="tank-ridges"></div><div class="tank-text" id="tankVal">-- %</div></div>
     <div class="row"><span>Voltage:</span><span id="volt">-- V</span></div>
     <div class="row"><span>Volt Status:</span><span id="vstat">--</span></div>
@@ -248,6 +254,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
   .card{background:#1e1e1e;border-radius:12px;padding:20px;max-width:400px;margin:auto;border:1px solid #333;text-align:left;box-shadow: 0 10px 25px rgba(0,0,0,0.5);}
   .lbl-wrap { display: flex; justify-content: space-between; align-items: flex-end; margin: 15px 0 5px; }
   label{font-weight:bold;color:#aaa; font-size: 0.9rem;}
+  .logo { width: 80px; height: auto; margin: 0 auto 15px; display: block; border-radius: 50%; border: 2px solid #333; }
   .range { color: #555; font-size: 0.75rem; font-weight: normal; }
   input, select{width:100%;padding:12px;background:#2a2a2a;border:1px solid #444;color:white;border-radius:6px;box-sizing:border-box; font-size: 1rem;}
   .pass-row { position: relative; }
@@ -259,6 +266,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
   hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
 </style></head><body>
   <div class="card">
+    <img src="data:image/png;base64,%LOGO_BASE64%" class="logo">
     <h2>⚙️ Device Settings</h2>
     <form action="/save" method="POST">
       <div class="lbl-wrap"><label>WiFi SSID</label></div>
@@ -885,7 +893,9 @@ bool reconnectMQTT() {
 }
 
 void handleRoot() {
-  server.send_P(200, "text/html", index_html);
+  String s = index_html;
+  s.replace("%LOGO_BASE64%", logo_base64);
+  server.send(200, "text/html", s);
 }
 
 void handleSettings() {
@@ -911,6 +921,7 @@ void handleSettings() {
   }
 
   String s = settings_html;
+  s.replace("%LOGO_BASE64%", logo_base64);
   s.replace("%WIFI_LIST%", wifiList);
   s.replace("%TANK_LIST%", tankList);
   s.replace("%VHIGH%", String(voltageConfig.HIGH_THRESHOLD));
