@@ -41,6 +41,14 @@
             background: #dc3545;
         }
 
+        .logo {
+            width: 100px;
+            height: auto;
+            margin-bottom: 15px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+
         .refresh-btn {
             position: absolute;
             top: 15px;
@@ -299,6 +307,7 @@
     </div>
 
     <div id="loginScreen" class="card">
+        <img src="logo.png" alt="Logo" class="logo">
         <h2 style="color:#03ef;margin-top:0;">💧 Pump Cloud</h2>
         <p style="color:#888; font-size:0.9rem; margin-bottom:20px;">Enter Device ID to begin</p>
         <input type="text" id="devID" placeholder="e.g. DC581704A7AC" style="text-transform:uppercase;">
@@ -312,7 +321,11 @@
                 <span id="statusDot" class="conn-dot"></span><span id="statusTxt">Connecting...</span>
             </div>
 
-            <h2 style="color:#03ef;margin-top:0;">💧 Pump Dashboard</h2>
+            <h2 style="color:#03ef;margin-top:0;">
+                <img src="logo.png" alt="Logo" class="logo"
+                    style="width: 80px; margin-bottom: 10px; vertical-align: middle;">
+                <br>💧 Pump Dashboard
+            </h2>
 
             <!-- Updated Tank HTML structure -->
             <div class="tank-wrap">
