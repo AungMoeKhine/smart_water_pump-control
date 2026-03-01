@@ -1,22 +1,476 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>ESP32S3 Automatic Pump Control Installer</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f4; }
-    h1 { color: #333; }
-    p { color: #555; max-width: 600px; margin: 20px auto; }
-    .container { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; }
-  </style>
-  <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
+    <title>Smart Pump Control Installer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center;
+            margin-top: 40px;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+
+        h1 {
+            color: #03ef;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: #555;
+            margin-top: 0;
+        }
+
+        p {
+            color: #666;
+            max-width: 600px;
+            margin: 10px auto;
+            line-height: 1.6;
+        }
+
+        .container {
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            max-width: 800px;
+            width: 90%;
+        }
+
+        .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 50%;
+        }
+
+        .button {
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 0;
+            cursor: pointer;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 300px;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        .button:active {
+            transform: scale(0.98);
+        }
+
+        .button-v1 {
+            background-color: #03ef;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            text-align: left;
+            margin-top: 30px;
+        }
+
+        @media(min-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #03ef;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card ol,
+        .card ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+
+        .card li {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        code {
+            background: #f1f3f5;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #d63384;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+    </style>
+    <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
 </head>
+
 <body>
-  <div class="container">
-    <h1>ESP32S3 Automatic Pump Contgrol Web Installer</h1>
-    <p>Connect your ESP32S3 to your computer with a USB cable, then click the button below to install the firmware. You must use a compatible browser like Google Chrome or Microsoft Edge.</p>
-    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
-  </div>
+
+    <div class="container">
+        <!-- Ensure logo.png is in the same folder -->
+        <img src="logo.png" alt="Logo" class="logo">
+
+        <h1>Smart Pump Control</h1>
+        <h2>Premium Version • v1.0.0</h2>
+
+        <p>
+            An advanced Automatic Pump Controller with <b>Voltage Protection</b>, <b>Dry-Run Safety</b>, and <b>Cloud
+                Dashboard</b>.
+        </p>
+
+        <!-- Button for Firmware Installation -->
+        <esp-web-install-button manifest="manifest.json">
+            <button slot="activate" class="button button-v1">CONNECT & INSTALL</button>
+        </esp-web-install-button>
+
+        <p style="font-size: 0.9rem; color: #888;">Compatible with ESP32-S3. Connect via USB.</p>
+
+        <!-- Link to Cloud App -->
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p>Already installed? Access the Cloud Dashboard:</p>
+            <a href="cloud_control.html" class="button" style="background-color: #28a745; max-width: 250px;">OPEN CLOUD
+                APP</a>
+        </div>
+
+        <div class="grid-container">
+
+            <!-- Setup Guide -->
+            <div class="card" style="background: #e3f2fd; border-color: #bbdefb;">
+                <h3>🚀 Quick Setup</h3>
+                <ol>
+                    <li><b>WiFi Setup:</b> Connect to hotspot <code>Auto-Pump-Config</code> (Password:
+                        <code>12345678</code>).
+                    </li>
+                    <li><b>Configure:</b> Open <a href="http://192.168.4.1" target="_blank">192.168.4.1</a> and enter
+                        your Home WiFi details.</li>
+                    <li><b>Access:</b> After reboot, visit the device IP or <code>http://smartpump.local</code> to
+                        access the dashboard.
+                    </li>
+                    <li><b>Settings:</b> Set your <b>Tank Height</b> and <b>Voltage Thresholds</b> in the device
+                        settings menu.</li>
+                </ol>
+            </div>
+
+            <!-- Features -->
+            <div class="card" style="background: #fff3e0; border-color: #ffe0b2;">
+                <h3>🛡️ Safety Features</h3>
+                <ul>
+                    <li><b>Voltage Guard:</b> Automatically stops pump if voltage is unsafe (>250V or <170V).< /li>
+                    <li><b>Dry-Run Protection:</b> Detects lack of water flow and locks the pump to prevent motor
+                        burnout.</li>
+                    <li><b>Precision Sensing:</b> Uses Ultrasonic sensors for accurate water level measurement.</li>
+                    <li><b>Live TFT:</b> High-resolution monitoring right on the device hardware.</li>
+                </ul>
+            </div>
+
+            <!-- Wiring Guide -->
+            <div class="card" style="background: #f1f8e9; border-color: #c5e1a5; grid-column: 1 / -1;">
+                <h3>🔌 Wiring Guide (ESP32-S3)</h3>
+
+                <!-- Wiring Diagram (HTML/CSS Version) -->
+                <div
+                    style="overflow-x: auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e1e4e8; text-align: center; margin-bottom: 25px;">
+                    <style>
+                        .wiring-table {
+                            margin: 0 auto;
+                            border-spacing: 0;
+                            border-collapse: separate;
+                            font-family: monospace;
+                            font-size: 14px;
+                        }
+
+                        .wiring-table td {
+                            padding: 4px 5px;
+                            vertical-align: middle;
+                            height: 32px;
+                            white-space: nowrap;
+                        }
+
+                        /* Component Boxes */
+                        .comp-sensor {
+                            background: #e1f5fe;
+                            border: 2px solid #0288d1;
+                            color: #01579b;
+                            border-radius: 6px;
+                            font-weight: bold;
+                            padding: 6px 10px;
+                            display: inline-block;
+                            width: 110px;
+                            text-align: center;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                        }
+
+                        .comp-actuator {
+                            background: #ffebee;
+                            border: 2px solid #c62828;
+                            color: #c62828;
+                            border-radius: 6px;
+                            font-weight: bold;
+                            padding: 6px 10px;
+                            display: inline-block;
+                            width: 110px;
+                            text-align: center;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                        }
+
+                        /* ESP32 Board Styles */
+                        .board-body-left {
+                            background: #263238;
+                            color: #ffffff;
+                            text-align: left;
+                            border-left: 2px solid #37474f;
+                            padding-left: 15px;
+                            width: 90px;
+                            font-family: Consolas, monospace;
+                        }
+
+                        .board-body-right {
+                            background: #263238;
+                            color: #ffffff;
+                            text-align: right;
+                            border-right: 2px solid #37474f;
+                            padding-right: 15px;
+                            width: 90px;
+                            font-family: Consolas, monospace;
+                        }
+
+                        .board-header {
+                            background: #37474f;
+                            color: white;
+                            text-align: center;
+                            font-weight: bold;
+                            padding: 10px;
+                            font-size: 1.1em;
+                            letter-spacing: 1px;
+                            border-radius: 8px 8px 0 0;
+                        }
+
+                        .board-footer {
+                            background: #37474f;
+                            height: 12px;
+                            border-radius: 0 0 8px 8px;
+                        }
+
+                        /* Connectors */
+                        .wire-line {
+                            height: 2px;
+                            background: #cfd8dc;
+                            width: 20px;
+                            display: inline-block;
+                            vertical-align: middle;
+                            position: relative;
+                        }
+
+                        .wire-dot {
+                            width: 6px;
+                            height: 6px;
+                            background: #b0bec5;
+                            border-radius: 50%;
+                            position: absolute;
+                            top: -2px;
+                        }
+
+                        .dot-left {
+                            right: 0;
+                        }
+
+                        .dot-right {
+                            left: 0;
+                        }
+
+                        .common-rail {
+                            background: #546e7a;
+                            color: white;
+                            writing-mode: vertical-rl;
+                            text-orientation: mixed;
+                            border-radius: 4px;
+                            font-weight: bold;
+                            letter-spacing: 2px;
+                            padding: 10px 4px;
+                            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                        }
+                    </style>
+
+                    <table class="wiring-table">
+                        <!-- Top Header -->
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td colspan="2" class="board-header">ESP32-S3 CORE</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+
+                        <!-- Voltage Sensor / Buzzer -->
+                        <tr>
+                            <td rowspan="4" class="common-rail">SENSORS</td>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                            <td>
+                                <div class="comp-sensor">⚡ Volt Sensor</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 04</td>
+                            <td class="board-body-right">GPIO 07</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-actuator">🔔 Buzzer</div>
+                            </td>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                            <td rowspan="4" class="common-rail">OUTPUTS</td>
+                        </tr>
+                        <!-- Ultrasonic Trig / Motor -->
+                        <tr>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                            <td>
+                                <div class="comp-sensor">📏 Ultra Trig</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 05</td>
+                            <td class="board-body-right">GPIO 08</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-actuator">⚙️ Motor Relay</div>
+                            </td>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                        </tr>
+                        <!-- Ultrasonic Echo / RGB -->
+                        <tr>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                            <td>
+                                <div class="comp-sensor">📏 Ultra Echo</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 06</td>
+                            <td class="board-body-right">GPIO 48</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-actuator">🌈 RGB Status</div>
+                            </td>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                        </tr>
+                        <!-- Flow Sensor / Spare -->
+                        <tr>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                            <td>
+                                <div class="comp-sensor">🌊 Flow Sensor</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 18</td>
+                            <td class="board-body-right">SPI SCK</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-actuator">🖥️ TFT Display</div>
+                            </td>
+                            <td>
+                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td colspan="2" class="board-footer"></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+
+        <p style="margin-top: 30px;">Developed by <strong>Aung Moe Khine</strong></p>
+
+    </div>
+
 </body>
+
 </html>
