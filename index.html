@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32S3 Automatic Pump Control Installer</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f4; }
+    h1 { color: #333; }
+    p { color: #555; max-width: 600px; margin: 20px auto; }
+    .container { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; }
+  </style>
+  <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>ESP32S3 Automatic Pump Contgrol Web Installer</h1>
+    <p>Connect your ESP32S3 to your computer with a USB cable, then click the button below to install the firmware. You must use a compatible browser like Google Chrome or Microsoft Edge.</p>
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+  </div>
+</body>
+</html>
