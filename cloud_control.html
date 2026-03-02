@@ -363,7 +363,7 @@
             <div class="row"><span>System Info:</span> <span id="info">--</span></div>
 
             <div class="row" id="cdRow" style="display:none; color:#ff4d4d; font-weight:bold;">
-                <span>Dry-Run in:</span> <span id="cd">--</span>
+                <span id="cdLabel">System Delay in:</span> <span id="cd">--</span>
             </div>
 
             <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING FOR SYNC...</button>
@@ -440,10 +440,10 @@
                 try {
                     const data = JSON.parse(raw);
 
-                    // Intercept Safety Alert from ESP32
-                    if (data.alert === "Access Denied") {
-                        if (!dataReceived) {
-                            // If first attempt, stay on login screen and show error
+                    // Intercept Any Alert from ESP32
+                    if (data.alert) {
+                        if (data.alert === "Access Denied" && !dataReceived) {
+                            // If first attempt (PIN check), stay on login screen and show error
                             const errorDiv = document.getElementById('loginError');
                             errorDiv.innerText = data.reason;
                             errorDiv.style.display = 'block';
@@ -452,9 +452,11 @@
                             btn.disabled = false;
                             client.disconnect();
                         } else {
-                            // If already logged in, show modal and logout
-                            showModal(data.reason);
-                            setTimeout(logout, 3000);
+                            // Unified alert display for safety blocks or Access Denied
+                            showModal(data.reason || data.alert); 
+                            if (data.alert === "Access Denied") {
+                                setTimeout(logout, 3000); 
+                            }
                         }
                         return;
                     }
@@ -564,10 +566,19 @@
             }
 
             const cdRow = document.getElementById('cdRow');
+            const cdLabel = document.getElementById('cdLabel');
+
             if (d.pStat == "ON" && d.info == "FLOW_CHECKING!") {
+                cdLabel.innerText = "Dry-Run in:";
                 cdRow.style.display = 'flex';
                 document.getElementById('cd').innerText = (d.cd || 0) + "s";
-            } else { cdRow.style.display = 'none'; }
+            } else if (d.vStat && d.vStat.startsWith("DELAY")) {
+                cdLabel.innerText = "Stabilizing in:";
+                cdRow.style.display = 'flex';
+                document.getElementById('cd').innerText = (d.cd || 0) + "s";
+            } else {
+                cdRow.style.display = 'none';
+            }
         }
 
         function logout() { localStorage.removeItem("cloudPumpID"); location.reload(); }
