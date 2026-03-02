@@ -577,7 +577,9 @@ void updatePumpLogic() {
   static bool lastFlow = false;
   static int lastErr = -1;
   static int lastMotorStatus = -1;
-  static bool lastAck = false; // Track Ack state changes
+  static bool lastAck = false; 
+  static int lastRawVolt = -1; // Track raw voltage for real-time push
+  static unsigned long lastPushTime = 0; // Cooldown for value-only updates
   
   pumpConfig.flowDetected = (digitalRead(FLOW_SENSOR_PIN) == LOW);
   bool sensorError = (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT);
@@ -710,8 +712,21 @@ void updatePumpLogic() {
     lastErr = dryRunConfig.error;
     lastMotorStatus = pumpConfig.motorStatus;
     lastAck = tankConfig.errorAck;
+    lastRawVolt = (int)voltageConfig.currentVoltage;
+    lastPushTime = currentMillis;
     
     publishState();
+  } else {
+    // REAL-TIME PUSH: Check for significant voltage change with cooldown
+    int currentVolt = (int)voltageConfig.currentVoltage;
+    if (abs(currentVolt - lastRawVolt) >= 2) { // 2V Threshold
+        if (currentMillis - lastPushTime >= 2000) { // 2.0s Cooldown
+            lastRawVolt = currentVolt;
+            lastPushTime = currentMillis;
+            publishState();
+            Serial.println("MQTT: Real-time Volt Push (" + String(currentVolt) + "V)");
+        }
+    }
   }
 }
 
@@ -1063,7 +1078,7 @@ String generateStatusJson() {
   doc["pStat"] = pumpConfig.isRunning ? "ON" : "OFF";
   doc["info"] = info;
   doc["err"] = dryRunConfig.error;
-  doc["cd"] = dryRunConfig.waitSeconds;
+  doc["cd"] = (currentState == PumpState::VOLTAGE_WAIT) ? voltageConfig.waitSeconds : dryRunConfig.waitSeconds;
   doc["id"] = deviceID;
   doc["ip"] = WiFi.localIP().toString();
   
