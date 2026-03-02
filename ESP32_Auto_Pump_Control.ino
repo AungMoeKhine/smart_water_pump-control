@@ -209,7 +209,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="dot" class="conn-dot"></span><span id="cStat">Device: Online</span></div>
     <h2 style="color:#03ef;margin-top:0;">
       <img src="/logo.png" class="logo"><br>
-      💧Smart Pump Control Dashboard
+      💧Tank Water Level
     </h2>
     <div class="tank-wrap"><div class="tank-inner"><div class="tank-fill" id="tankFill"></div></div><div class="tank-ridges"></div><div class="tank-text" id="tankVal">-- %</div></div>
     <div class="row"><span>Voltage:</span><span id="volt">-- V</span></div>
