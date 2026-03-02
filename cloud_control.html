@@ -363,7 +363,7 @@
             <div class="row"><span>System Info:</span> <span id="info">--</span></div>
 
             <div class="row" id="cdRow" style="display:none; color:#ff4d4d; font-weight:bold;">
-                <span id="cdLabel">System Delay in:</span> <span id="cd">--</span>
+                <span>Dry-Run in:</span> <span id="cd">--</span>
             </div>
 
             <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING FOR SYNC...</button>
@@ -453,9 +453,9 @@
                             client.disconnect();
                         } else {
                             // Unified alert display for safety blocks or Access Denied
-                            showModal(data.reason || data.alert); 
+                            showModal(data.reason || data.alert);
                             if (data.alert === "Access Denied") {
-                                setTimeout(logout, 3000); 
+                                setTimeout(logout, 3000);
                             }
                         }
                         return;
@@ -566,14 +566,7 @@
             }
 
             const cdRow = document.getElementById('cdRow');
-            const cdLabel = document.getElementById('cdLabel');
-
             if (d.pStat == "ON" && d.info == "FLOW_CHECKING!") {
-                cdLabel.innerText = "Dry-Run in:";
-                cdRow.style.display = 'flex';
-                document.getElementById('cd').innerText = (d.cd || 0) + "s";
-            } else if (d.vStat && d.vStat.startsWith("DELAY")) {
-                cdLabel.innerText = "Stabilizing in:";
                 cdRow.style.display = 'flex';
                 document.getElementById('cd').innerText = (d.cd || 0) + "s";
             } else {
