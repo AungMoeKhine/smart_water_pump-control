@@ -241,7 +241,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       if(d.err){rst.style.display='block';btn.style.display='none';} 
       else if(d.sErr && !d.ack){btn.style.display='block';rst.style.display='none';btn.innerText='Reset Alarm';btn.className='btn btn-red';}
       else{rst.style.display='none';btn.style.display='block'; btn.innerText=d.pStat=="ON"?'Stop the Pump':'Start the Pump'; btn.className=d.pStat=="ON"?'btn btn-red':'btn btn-green';}
-      let cd=document.getElementById('cdRow'); if(d.pStat=="ON"&&d.info=="FLOW_CHECKING!"){cd.style.display='flex';document.getElementById('cd').innerText=d.cd+'s';}else{cd.style.display='none';}
+      let cd=document.getElementById('cdRow');
+      if(d.pStat=="ON"&&d.info=="FLOW_CHECKING!"){cd.style.display='flex';document.getElementById('cd').innerText=d.cd+'s';}
+      else{cd.style.display='none';}
     }).catch(e=>{ document.getElementById('dot').className='conn-dot off'; document.getElementById('cStat').innerText='Device: Offline (Connecting...)'; }); }
   setInterval(upd,1000);
 </script></body></html>
