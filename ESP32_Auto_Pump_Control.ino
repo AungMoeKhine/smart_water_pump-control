@@ -20,6 +20,8 @@
 #include <ZMPT101B.h>
 #include <Adafruit_NeoPixel.h>
 #include <ESPmDNS.h>
+#include <HTTPClient.h>
+#include <HTTPUpdate.h>
 #include "logo.h"
 
 // ============================================================================
@@ -41,6 +43,10 @@ const int mqtt_port = 8883;
 const char* mqtt_user = "my_switch";       
 const char* mqtt_pass = "My_password123";  
 
+// --- FIRMWARE VERSIONING ---
+const int FIRMWARE_VERSION = 1; // Current version of this pump control firmware
+const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/";
+// -------------------------
 // Constants
 #define SAMPLE_BUFFER_SIZE 20
 #define MAX_DISTANCE 84
@@ -97,6 +103,21 @@ struct DryRunConfig {
   unsigned long alarmStartTime = 0;
 };
 
+struct OTAConfig {
+  bool updateAvailable;
+  int newVersion;
+  int remoteVersion; // Added to store the version pulled from GitHub for display
+} otaConfig = { false, 0, 0 };
+
+struct ScheduleConfig {
+  int dndStart = 22; // 10 PM
+  int dndEnd = 6;    // 6 AM
+  bool enabled = false;
+  float timezoneOffset = 6.5; // Default to Myanmar
+};
+
+ScheduleConfig scheduleConfig;
+
 enum class PumpState {
   IDLE, PUMPING, DRY_RUN_ALARM, DRY_RUN_LOCKED, SENSOR_ERROR, VOLTAGE_ERROR, VOLTAGE_WAIT
 };
@@ -122,6 +143,7 @@ VoltageConfig voltageConfig;
 TankConfig tankConfig;
 PumpConfig pumpConfig;
 DryRunConfig dryRunConfig;
+// Note: ScheduleConfig and OTAConfig are defined above
 PumpState currentState = PumpState::IDLE;
 
 Preferences preferences;
@@ -138,6 +160,14 @@ String subTopic = "";
 String statusTopic = "";
 String onlineTopic = ""; 
 String devicePin = "123456"; 
+
+// Function Prototypes
+void publishState();
+void updatePumpLogic();
+void saveMotorStatus();
+void checkOTA();
+void startOTA();
+void handleUpdatePage(); // Prototype for the new OTA Update page
 
 WiFiUDP dnsUdp;
 const byte DNS_PORT = 53;
@@ -176,6 +206,14 @@ const char index_html[] PROGMEM = R"rawliteral(
   body{font-family:sans-serif;background:#121212;color:white;text-align:center;padding:20px;margin:0;}
   .logo { width: 80px; height: auto; margin-bottom: 10px; border-radius: 50%; border: 2px solid #333; }
   .card{background:#1e1e1e;border-radius:12px;padding:20px;max-width:400px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.5);border:1px solid #333;position:relative;}
+  
+  /* Top Tab Navigation */
+  .tabs { display: flex; max-width: 440px; margin: 0 auto 15px auto; gap: 10px; }
+  .tab { flex: 1; padding: 12px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; transition: 0.3s; border: 1px solid transparent; }
+  .tab-active { background: #1e1e1e; color: #03ef; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+  .tab-inactive { background: #121212; color: #888; }
+  .tab-inactive:hover { background: #1a1a1a; color: #ccc; }
+
   .conn-dot{width:10px;height:10px;background:#28a745;border-radius:50%;display:inline-block;margin-right:5px;}
   .off{background:#dc3545;}
   .refresh-btn{position:absolute;top:15px;right:15px;background:none;border:none;color:#03ef;font-size:1.2rem;cursor:pointer;padding:5px;}
@@ -194,7 +232,6 @@ const char index_html[] PROGMEM = R"rawliteral(
   .tank-ridges::after { content: ''; position: absolute; left: -4px; right: -4px; top: 25%; height: 2px; background: rgba(0, 0, 0, 0.35); box-shadow: 0 45px 0 rgba(0, 0, 0, 0.35), 0 90px 0 rgba(0, 0, 0, 0.35); }
   .tank-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(90deg, #0277bd 0%, #039be5 50%, #0277bd 100%); transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); height: 0%; }
   .tank-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.6rem; color: #fff; z-index: 4; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
-  a{color:#888;text-decoration:none;font-size:0.9rem;}
   .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
   .modal-content { background-color: #1e1e1e; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; border-left: 5px solid #ff4d4d; border-radius: 8px; width: 85%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: left; box-sizing: border-box; }
   .modal-title { color: #ff4d4d; font-size: 1.3rem; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px; }
@@ -203,7 +240,13 @@ const char index_html[] PROGMEM = R"rawliteral(
   .modal-close:hover { background: #555; }
 </style></head><body>
   <div id="warnModal" class="modal"><div class="modal-content"><h3 class="modal-title"><span>⚠️</span> Action Blocked</h3><div id="warnText" class="modal-text">Safety protocols prevented this action.</div><button class="modal-close" onclick="closeModal()">Understood</button></div></div>
-  <div style="margin-bottom:15px;"><a href="/settings">⚙️ Settings</a></div>
+  
+  <!-- TABS NAV -->
+  <div class="tabs">
+    <a href="/" class="tab tab-active">🏠 Home</a>
+    <a href="/settings" class="tab tab-inactive">⚙️ Settings</a>
+  </div>
+
   <div class="card">
     <button id="rfb" class="refresh-btn" onclick="rfr()" title="Refresh Status">🔄</button>
     <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="dot" class="conn-dot"></span><span id="cStat">Device: Online</span></div>
@@ -217,8 +260,13 @@ const char index_html[] PROGMEM = R"rawliteral(
     <div class="row"><span>Pump:</span><span id="state">--</span></div>
     <div class="row"><span>System Info:</span><span id="info">--</span></div>
     <div class="row" id="cdRow" style="display:none;color:#ff4d4d;font-weight:bold;"><span>Dry-Run in:</span><span id="cd">--</span></div>
+    <div id="otaHub" style="display:none; margin:15px 0; padding:15px; border:1px solid #03ef; border-radius:12px; background:rgba(3,239,98,0.05);">
+        <div style="color:#03ef; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!</div>
+        <button class="btn btn-green" onclick="startOTA()">Update Now</button>
+    </div>
     <button class="btn" id="btnToggle" onclick="togglePump()">PUMP: OFF</button>
     <button class="btn btn-red" id="btnReset" onclick="resetPump()" style="display:none;">Reset Alarm</button>
+    <div style="margin-top:15px;"><button class="refresh-btn" style="position:static; width:auto; font-size:0.8rem; color:#888;" onclick="checkOTA()">Check for Updates</button></div>
   </div>
   <div style="margin-top:25px;color:#666;font-size:0.75rem;">
     <div style="margin-bottom:8px;">Cloud ID: <span id="cid" style="color:#888;">--</span></div>
@@ -229,6 +277,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   function closeModal() { document.getElementById('warnModal').style.display = 'none'; }
   function togglePump() { fetch('/toggle').then(r=>r.json()).then(d=>{ if(d.status === 'blocked') showModal(d.reason); else upd(); }).catch(e=>{}); }
   function resetPump() { fetch('/reset').then(r=>r.json()).then(d=>{ if(d.status === 'blocked') showModal(d.reason); else upd(); }).catch(e=>{}); }
+  function checkOTA() { window.location.href = '/update_github'; }
+  function startOTA() { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating... Please wait.</h2>'; }); }
   function rfr() { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); }
   function upd() { return fetch('/status').then(r=>r.json()).then(d=>{
       document.getElementById('dot').className='conn-dot'; document.getElementById('cStat').innerText='Device: Online';
@@ -237,13 +287,15 @@ const char index_html[] PROGMEM = R"rawliteral(
       document.getElementById('volt').innerText=d.volt+' V'; document.getElementById('vstat').innerText=d.vStat;
       document.getElementById('state').innerText=d.pStat; document.getElementById('info').innerText=d.info;
       let btn=document.getElementById('btnToggle'); let rst=document.getElementById('btnReset');
-      // FIXED: Show "Reset Alarm" for Sensor Error (sErr) if not acknowledged (ack)
       if(d.err){rst.style.display='block';btn.style.display='none';} 
       else if(d.sErr && !d.ack){btn.style.display='block';rst.style.display='none';btn.innerText='Reset Alarm';btn.className='btn btn-red';}
       else{rst.style.display='none';btn.style.display='block'; btn.innerText=d.pStat=="ON"?'Stop the Pump':'Start the Pump'; btn.className=d.pStat=="ON"?'btn btn-red':'btn btn-green';}
       let cd=document.getElementById('cdRow');
       if(d.pStat=="ON"&&d.info=="FLOW_CHECKING!"){cd.style.display='flex';document.getElementById('cd').innerText=d.cd+'s';}
       else{cd.style.display='none';}
+      let ota=document.getElementById('otaHub');
+      if(d.ota){ ota.style.display='block'; document.getElementById('otaMsg').innerText='New Version ' + d.nVer + ' Available!'; }
+      else{ ota.style.display='none'; }
     }).catch(e=>{ document.getElementById('dot').className='conn-dot off'; document.getElementById('cStat').innerText='Device: Offline (Connecting...)'; }); }
   setInterval(upd,1000);
 </script></body></html>
@@ -252,11 +304,27 @@ const char index_html[] PROGMEM = R"rawliteral(
 const char settings_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body{font-family:sans-serif;background:#121212;color:white;padding:15px;text-align:center;}
-  .card{background:#1e1e1e;border-radius:12px;padding:20px;max-width:400px;margin:auto;border:1px solid #333;text-align:left;box-shadow: 0 10px 25px rgba(0,0,0,0.5);}
+  body{font-family:sans-serif;background:#121212;color:white;padding:20px;text-align:center;margin:0;}
+  .card{background:#1e1e1e;border-radius:12px;padding:20px;max-width:400px;margin:auto;border:1px solid #333;text-align:left;box-shadow: 0 10px 25px rgba(0,0,0,0.5); position:relative;}
+  
+  /* Top Tab Navigation */
+  .tabs { display: flex; max-width: 440px; margin: 0 auto 15px auto; gap: 10px; }
+  .tab { flex: 1; padding: 12px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; transition: 0.3s; border: 1px solid transparent; text-align: center; }
+  .tab-active { background: #1e1e1e; color: #fff; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+  .tab-inactive { background: #121212; color: #888; }
+  .tab-inactive:hover { background: #1a1a1a; color: #ccc; }
+
+  /* Status & Refresh UI Styles */
+  .conn-dot{width:10px;height:10px;background:#28a745;border-radius:50%;display:inline-block;margin-right:5px;}
+  .off{background:#dc3545;}
+  .refresh-btn{position:absolute;top:15px;right:15px;background:none;border:none;color:#03ef;font-size:1.2rem;cursor:pointer;padding:5px;}
+  .refresh-btn:active{transform:scale(0.96);opacity:0.85;}
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .spinning { animation: spin 1s linear infinite; opacity: 1 !important; color: #03ef62 !important; }
+
   .lbl-wrap { display: flex; justify-content: space-between; align-items: flex-end; margin: 15px 0 5px; }
   label{font-weight:bold;color:#aaa; font-size: 0.9rem;}
-  .logo { width: 80px; height: auto; margin: 0 auto 15px; display: block; border-radius: 50%; border: 2px solid #333; }
+  .logo { width: 80px; height: auto; margin: 0 auto 20px; display: block; border-radius: 50%; border: 2px solid #333; }
   .range { color: #555; font-size: 0.75rem; font-weight: normal; }
   input, select{width:100%;padding:12px;background:#2a2a2a;border:1px solid #444;color:white;border-radius:6px;box-sizing:border-box; font-size: 1rem;}
   .pass-row { position: relative; }
@@ -264,12 +332,22 @@ const char settings_html[] PROGMEM = R"rawliteral(
   .show-pass input { width: auto; margin-right: 8px; }
   .btn{width:100%;padding:15px;background:#28a745;color:white;border:none;border-radius:8px;margin-top:25px;font-weight:bold;cursor:pointer;font-size:1.1rem;}
   .btn:active { transform: scale(0.98); opacity: 0.9; }
-  h2{color:#03ef;margin:0 0 20px 0;text-align:center; font-size: 1.5rem;}
-  hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
+  hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
 </style></head><body>
+
+  <!-- TABS NAV -->
+  <div class="tabs">
+    <a href="/" class="tab tab-inactive">🏠 Home</a>
+    <a href="/settings" class="tab tab-active">⚙️ Settings</a>
+  </div>
+
   <div class="card">
+    <!-- Status & Refresh Button -->
+    <button id="rfb" class="refresh-btn" onclick="rfr()" title="Refresh Status">🔄</button>
+    <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="dot" class="conn-dot"></span><span id="cStat">Device: Online</span></div>
+
     <img src="/logo.png" class="logo">
-    <h2>⚙️ Device Settings</h2>
+    
     <form action="/save" method="POST">
       <div class="lbl-wrap"><label>WiFi SSID</label></div>
       <select name="ssid" required>%WIFI_LIST%</select>
@@ -282,17 +360,65 @@ const char settings_html[] PROGMEM = R"rawliteral(
       <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><input type="number" name="vH" value="%VHIGH%" min="230" max="260">
       <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><input type="number" name="vL" value="%VLOW%" min="150" max="190">
       <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><input type="number" name="dD" value="%DRY%" min="60" max="180">
+      <hr>
+      <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div>
+      <select name="dndEn"><option value="0" %DND_OFF%>Disabled</option><option value="1" %DND_ON%>Enabled</option></select>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <div style="flex:1;"><label>Start Hour</label><select name="dndS">%START_LIST%</select></div>
+        <div style="flex:1;"><label>End Hour</label><select name="dndE">%END_LIST%</select></div>
+      </div>
+      <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div>
+      <select name="tzOf">%TZ_LIST%</select>
       <button type="submit" class="btn">Save & Reboot</button>
     </form>
-    <div style="text-align:center;margin-top:15px;"><a href="/" style="color:#888;text-decoration:none;font-size:0.9rem;">← Back to Dashboard</a></div>
+    <hr>
+    <div style="text-align:center;">
+      <h3 style="color:#6f42c1; margin:0 0 15px 0;">🛠️ Maintenance</h3>
+      <div id="otaHub" style="display:none; margin-bottom:15px; padding:15px; border:1px solid #6f42c1; border-radius:12px; background:rgba(111, 66, 193, 0.05); text-align:left;">
+          <div style="color:#6f42c1; font-weight:bold; margin-bottom:10px;" id="otaMsg">Update Available!</div>
+          <button class="btn" style="background:#28a745; margin-top:0;" onclick="startOTA()">Update Now</button>
+      </div>
+      <button class="btn" style="background:#6f42c1; margin-top:0;" onclick="checkOTA()">Check for Updates</button>
+      <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: v%VER%</p>
+    </div>
   </div>
+
+  <!-- Device IP & Cloud ID Data -->
+  <div style="margin-top:25px;color:#666;font-size:0.75rem;">
+    <div style="margin-bottom:8px;">Cloud ID: <span id="cid" style="color:#888;">--</span></div>
+    Device IP: <span id="dip">--</span>
+  </div>
+
 <script>
   function togglePass(id) { var x = document.getElementById(id); if (x.type === "password") x.type = "text"; else x.type = "password"; }
+  function checkOTA() { window.location.href = '/update_github'; }
+  function startOTA() { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating...</h2>'; }); }
+  
+  // Script expanded to fetch and populate IP, ID, and connection status
+  function rfr() { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); }
+  function upd() { 
+    return fetch('/status').then(r=>r.json()).then(d=>{
+      document.getElementById('dot').className='conn-dot'; 
+      document.getElementById('cStat').innerText='Device: Online';
+      document.getElementById('dip').innerText = d.ip; 
+      if (document.getElementById('cid')) document.getElementById('cid').innerText = d.id;
+      
+      let ota=document.getElementById('otaHub');
+      if(d.ota){ ota.style.display='block'; document.getElementById('otaMsg').innerText='New Version ' + d.nVer + ' Available!'; }
+      else{ ota.style.display='none'; }
+    }).catch(e=>{ 
+      document.getElementById('dot').className='conn-dot off'; 
+      document.getElementById('cStat').innerText='Device: Offline (Connecting...)'; 
+    }); 
+  }
+  
+  // Matches the 1-second background refresh from the Home dashboard
+  setInterval(upd, 1000); 
+  upd();
 </script></body></html>
 )rawliteral";
 
 // --- Sensor Implementation ---
-
 class NonBlockingUltrasonic {
 private:
   int trigPin, echoPin;
@@ -410,6 +536,11 @@ void setup() {
   ssid_saved = preferences.getString("ssid", "");
   pass_saved = preferences.getString("pass", "");
   pumpConfig.motorStatus = preferences.getInt("motor", 0);
+  
+  scheduleConfig.enabled = preferences.getBool("dndEn", false);
+  scheduleConfig.dndStart = preferences.getInt("dndS", 22);
+  scheduleConfig.dndEnd = preferences.getInt("dndE", 6);
+  scheduleConfig.timezoneOffset = preferences.getFloat("tzOf", 6.5);
   preferences.end();
   
   tankConfig.updateFullThreshold();
@@ -436,7 +567,10 @@ void setup() {
     }
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
-        // FIX: Turn OFF AP Mode after successful connection
+        // Time Sync for Global DND
+        configTime(scheduleConfig.timezoneOffset * 3600, 0, "pool.ntp.org", "time.google.com");
+        Serial.println("NTP Time Sync requested (Offset: " + String(scheduleConfig.timezoneOffset) + ")");
+        
         WiFi.mode(WIFI_STA);
         Serial.println("AP Mode Disabled.");
     }
@@ -457,6 +591,9 @@ void setup() {
   server.on("/settings", handleSettings);
   server.on("/logo.png", handleLogo);
   server.on("/save", HTTP_POST, handleSave);
+  server.on("/update_github", handleUpdatePage); // Added new WebPage Handler
+  server.on("/check-ota", []() { checkOTA(); server.send(200, "application/json", "{\"status\":\"checking\"}"); });
+  server.on("/start-ota", []() { server.send(200, "application/json", "{\"status\":\"starting\"}"); startOTA(); });
   server.onNotFound([]() {
     server.sendHeader("Location", "http://192.168.4.1/", true);
     server.send(302, "text/plain", "Redirect");
@@ -500,6 +637,12 @@ void loop() {
   if (millis() - lastPublish >= 30000) {
     lastPublish = millis();
     publishState();
+  }
+
+  static unsigned long lastOTACheck = 0;
+  if (millis() - lastOTACheck >= 3600000) { // Check every hour
+    lastOTACheck = millis();
+    checkOTA();
   }
 
   updateTFT();
@@ -636,7 +779,22 @@ void updatePumpLogic() {
   }
 
   if (tankConfig.rawUpperPercentage <= TankConfig::LOW_THRESHOLD && !sensorError) {
-    if (voltageConfig.status == 1 && dryRunConfig.error == 0) {
+    bool isDND = false;
+    if (scheduleConfig.enabled) {
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo)) {
+        int hour = timeinfo.tm_hour;
+        if (scheduleConfig.dndStart > scheduleConfig.dndEnd) {
+          // Overnight case (e.g. 22:00 to 06:00)
+          if (hour >= scheduleConfig.dndStart || hour < scheduleConfig.dndEnd) isDND = true;
+        } else {
+          // Same day case (e.g. 14:00 to 16:00)
+          if (hour >= scheduleConfig.dndStart && hour < scheduleConfig.dndEnd) isDND = true;
+        }
+      }
+    }
+
+    if (voltageConfig.status == 1 && dryRunConfig.error == 0 && !isDND) {
       if (pumpConfig.motorStatus == 0) {
         pumpConfig.motorStatus = 1;
         dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
@@ -726,7 +884,7 @@ void updatePumpLogic() {
             lastRawVolt = currentVolt;
             lastPushTime = currentMillis;
             publishState();
-            Serial.println("MQTT: Real-time Volt Push (" + String(currentVolt) + "V)");
+            //Serial.println("MQTT: Real-time Volt Push (" + String(currentVolt) + "V)");
         }
     }
   }
@@ -946,6 +1104,23 @@ void handleSettings() {
     tankList += "<option value='" + String(inches, 1) + "'" + sel + ">" + lbl + " ft</option>";
   }
 
+  String startList = "";
+  String endList = "";
+  for (int i = 0; i < 24; i++) {
+    String hourStr = (i < 10 ? "0" : "") + String(i) + ":00";
+    String selS = (i == scheduleConfig.dndStart) ? " selected" : "";
+    String selE = (i == scheduleConfig.dndEnd) ? " selected" : "";
+    startList += "<option value='" + String(i) + "'" + selS + ">" + hourStr + "</option>";
+    endList += "<option value='" + String(i) + "'" + selE + ">" + hourStr + "</option>";
+  }
+
+  String tzList = "";
+  for (float f = -12.0; f <= 14.0; f += 0.5) {
+    String sel = (abs(scheduleConfig.timezoneOffset - f) < 0.1) ? " selected" : "";
+    String lbl = (f >= 0 ? "+" : "") + (f == (int)f ? String((int)f) : String(f, 1));
+    tzList += "<option value='" + String(f, 1) + "'" + sel + ">GMT " + lbl + "</option>";
+  }
+
   String s = settings_html;
   s.replace("%WIFI_LIST%", wifiList);
   s.replace("%TANK_LIST%", tankList);
@@ -953,6 +1128,12 @@ void handleSettings() {
   s.replace("%VLOW%", String(voltageConfig.LOW_THRESHOLD));
   s.replace("%DRY%", String(dryRunConfig.WAIT_SECONDS_SET));
   s.replace("%PIN%", devicePin);
+  s.replace("%DND_ON%", scheduleConfig.enabled ? "selected" : "");
+  s.replace("%DND_OFF%", !scheduleConfig.enabled ? "selected" : "");
+  s.replace("%START_LIST%", startList);
+  s.replace("%END_LIST%", endList);
+  s.replace("%TZ_LIST%", tzList);
+  s.replace("%VER%", String(FIRMWARE_VERSION));
   server.send(200, "text/html", s);
 }
 
@@ -981,12 +1162,69 @@ void handleSave() {
     devicePin = server.arg("pin");
     preferences.putString("pin", devicePin);
   }
+  if (server.hasArg("dndEn")) {
+    scheduleConfig.enabled = (server.arg("dndEn").toInt() == 1);
+    preferences.putBool("dndEn", scheduleConfig.enabled);
+  }
+  if (server.hasArg("dndS")) {
+    scheduleConfig.dndStart = server.arg("dndS").toInt();
+    preferences.putInt("dndS", scheduleConfig.dndStart);
+  }
+  if (server.hasArg("dndE")) {
+    scheduleConfig.dndEnd = server.arg("dndE").toInt();
+    preferences.putInt("dndE", scheduleConfig.dndEnd);
+  }
+  if (server.hasArg("tzOf")) {
+    scheduleConfig.timezoneOffset = server.arg("tzOf").toFloat();
+    preferences.putFloat("tzOf", scheduleConfig.timezoneOffset);
+  }
   preferences.end();
   
   String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"8;url=/\" ><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Rebooting</title><style>body{background:#121212;color:white;font-family:sans-serif;text-align:center;margin-top:50px;}</style></head><body><h2>Settings Saved!</h2><p>Rebooting device. You will be redirected to the dashboard shortly...</p></body></html>";
   server.send(200, "text/html", html);
   delay(1000);
   ESP.restart();
+}
+
+void handleUpdatePage() {
+  checkOTA(); // Force a fresh check when the page loads
+  
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>OTA Update</title>";
+  html += "<style>";
+  html += "body{font-family:sans-serif; background:#121212; color:white; text-align:center; padding:40px 20px; margin:0;}";
+  html += ".card{background:#1e1e1e; border-radius:12px; padding:30px 20px; max-width:400px; margin:auto; border:1px solid #333; box-shadow:0 10px 25px rgba(0,0,0,0.5);}";
+  html += "h1{font-size:1.8rem; margin:0 0 15px 0; color:#03ef;}";
+  html += "p{font-size:1.1rem; color:#ddd; margin-bottom:10px;}";
+  html += ".info{color:#888; font-size:0.9rem; margin-top:25px; line-height:1.6; padding:15px; background:#121212; border-radius:8px; border:1px solid #333;}";
+  html += ".btn{width:100%; padding:15px; background:#28a745; color:white; border:none; border-radius:8px; margin-top:20px; font-weight:bold; cursor:pointer; font-size:1.1rem;}";
+  html += ".btn:active{transform:scale(0.98); opacity:0.9;}";
+  html += ".back-link{display:inline-block; margin-top:25px; color:#aaa; text-decoration:none; font-size:1rem; padding:10px 20px; border:1px solid #333; border-radius:8px; background:#121212; transition:0.3s;}";
+  html += ".back-link:hover{color:#fff; background:#2a2a2a;}";
+  html += "</style></head><body>";
+  
+  html += "<div class='card'>";
+  
+  if (otaConfig.updateAvailable) {
+    html += "<h1>Update Available!</h1>";
+    html += "<p>A newer version (<strong>v" + String(otaConfig.remoteVersion) + "</strong>) is available.</p>";
+    html += "<p style='font-size:0.95rem; color:#aaa;'>Current version: v" + String(FIRMWARE_VERSION) + "</p>";
+    html += "<button class='btn' onclick=\"fetch('/start-ota').then(()=>document.body.innerHTML='<h2 style=\\'color:white;text-align:center;margin-top:50px;\\'>Updating...<br><span style=\\'font-size:1rem;color:#888;\\'>Please wait, device will reboot.</span></h2>');\">Start Update Now</button>";
+  } else {
+    html += "<h1 style='color:#28a745;'>No Updates</h1>";
+    html += "<p>You are on the latest version (v" + String(FIRMWARE_VERSION) + ").</p>";
+  }
+  
+  html += "<div class='info'>";
+  html += "Remote Version read: " + String(otaConfig.remoteVersion) + "<br>";
+  html += "Raw: " + String(otaConfig.remoteVersion) + "<br>";
+  html += "Free Heap: " + String(ESP.getFreeHeap()) + " bytes<br>";
+  html += "</div>";
+  
+  html += "<a href='/settings' class='back-link'>← Back to Settings</a>";
+  html += "</div>"; // close card
+  html += "</body></html>";
+  
+  server.send(200, "text/html", html);
 }
 
 void handleStatus() {
@@ -1087,6 +1325,10 @@ String generateStatusJson() {
   // NEW: Add Sensor Error status and Ack status for HTML logic
   doc["sErr"] = (currentState == PumpState::SENSOR_ERROR) ? 1 : 0;
   doc["ack"] = tankConfig.errorAck ? 1 : 0;
+  doc["dnd"] = scheduleConfig.enabled ? 1 : 0;
+  doc["ota"] = otaConfig.updateAvailable ? 1 : 0;
+  doc["ver"] = FIRMWARE_VERSION;
+  doc["nVer"] = otaConfig.newVersion;
 
   String json;
   serializeJson(doc, json);
@@ -1168,6 +1410,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     updatePumpLogic();
     publishState();
     
+  } else if (doc.containsKey("otaCheck")) {
+    if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
+        checkOTA();
+    }
+  } else if (doc.containsKey("otaStart")) {
+    if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
+        startOTA();
+    }
   } else if (doc.containsKey("reset")) {
     // CHECK PIN
     if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) {
@@ -1190,5 +1440,96 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         serializeJson(resp, respStr);
         mqttClient.publish(statusTopic.c_str(), respStr.c_str());
     }
+  }
+}
+
+// --- OTA Implementation ---
+void checkOTA() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(10000);
+  HTTPClient http;
+  
+  String verUrl = String(FW_URL_BASE) + "version.txt";
+  Serial.println("Checking for updates: " + verUrl);
+
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  http.setUserAgent("ESP32-Auto-Pump");
+
+  if (http.begin(client, verUrl)) {
+    int httpCode = http.GET();
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      
+      // Filter out non-digits (handle BOM/whitespace)
+      String cleanVer = "";
+      for (int i = 0; i < payload.length(); i++) {
+        if (isdigit(payload[i])) cleanVer += payload[i];
+      }
+      
+      if (cleanVer.length() > 0) {
+        int remoteVer = cleanVer.toInt();
+        otaConfig.remoteVersion = remoteVer; // Added line
+        
+        if (remoteVer > FIRMWARE_VERSION) {
+          otaConfig.updateAvailable = true;
+          otaConfig.newVersion = remoteVer;
+          Serial.println("New update found: " + String(remoteVer));
+        } else {
+          otaConfig.updateAvailable = false;
+          Serial.println("System is up to date.");
+        }
+      }
+      publishState();
+    } else {
+       Serial.println("Update Check Failed, HTTP: " + String(httpCode));
+    }
+    http.end();
+  }
+}
+
+void startOTA() {
+  if (WiFi.status() != WL_CONNECTED || !otaConfig.updateAvailable) return;
+  
+  Serial.println("Starting OTA Update...");
+  
+  // RESOURCE MANAGEMENT: Disconnect MQTT and stop SSL clients to free Heap (~40KB)
+  if (mqttClient.connected()) {
+    mqttClient.disconnect();
+  }
+  // There is no global WiFiClientSecure in this project except in checkOTA (local)
+  // But we ensure heap is clean.
+  
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(15000);
+  
+  // Set update timeout
+  httpUpdate.setLedPin(RGB_LED_PIN, LOW); 
+  
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.drawCentreString("UPDATING SYSTEM", 160, 100, 4);
+  tft.drawCentreString("Please do not turn off power", 160, 140, 2);
+
+  String binUrl = String(FW_URL_BASE) + "firmware.bin";
+  t_httpUpdate_return ret = httpUpdate.update(client, binUrl);
+
+  switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      tft.fillScreen(TFT_RED);
+      tft.drawCentreString("UPDATE FAILED!", 160, 120, 4);
+      delay(5000);
+      ESP.restart();
+      break;
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("HTTP_UPDATE_NO_UPDATES");
+      break;
+    case HTTP_UPDATE_OK:
+      Serial.println("HTTP_UPDATE_OK");
+      break;
   }
 }
