@@ -631,8 +631,18 @@
             client.send(msg);
         }
 
+        // Helper to update field only if not focused
+        function safeUpdate(id, val, isNumeric = false) {
+            const el = document.getElementById(id);
+            if (!el || document.activeElement === el) return;
+            if (isNumeric) el.value = val;
+            else el.value = val || "";
+        }
+
         function updateUI(d) {
-            document.getElementById('tankFill').style.height = (d.tank || 0) + '%';
+            const tankFill = document.getElementById('tankFill');
+            if (!tankFill) return; // Skip if UI is not ready or being replaced
+            tankFill.style.height = (d.tank || 0) + '%';
             document.getElementById('tankVal').innerText = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
             document.getElementById('volt').innerText = (d.volt || "--") + " V";
             document.getElementById('vstat').innerText = d.vStat || "--";
@@ -649,16 +659,17 @@
             if (d.cd && document.getElementById('cd')) document.getElementById('cd').innerText = d.cd + "s";
             [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = 'New Version v' + (d.nVer || "") + ' Available!'; });
-            // Update Settings Fields
-            if (d.uH) document.getElementById('uH').value = d.uH;
-            if (d.vH) document.getElementById('vH').value = d.vH;
-            if (d.vL) document.getElementById('vL').value = d.vL;
-            if (d.dD) document.getElementById('dD').value = d.dD;
-            if (d.ssid) document.getElementById('ssid').value = d.ssid;
-            if (d.dndEn !== undefined) document.getElementById('dndEn').value = d.dndEn;
-            if (d.dndS !== undefined) document.getElementById('dndS').value = d.dndS;
-            if (d.dndE !== undefined) document.getElementById('dndE').value = d.dndE;
-            if (d.tzOf !== undefined) document.getElementById('tzOf').value = d.tzOf;
+
+            // Update Settings Fields (only if not currently being edited)
+            if (d.uH !== undefined) safeUpdate('uH', d.uH);
+            if (d.vH !== undefined) safeUpdate('vH', d.vH);
+            if (d.vL !== undefined) safeUpdate('vL', d.vL);
+            if (d.dD !== undefined) safeUpdate('dD', d.dD);
+            if (d.ssid !== undefined) safeUpdate('ssid', d.ssid);
+            if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn);
+            if (d.dndS !== undefined) safeUpdate('dndS', d.dndS);
+            if (d.dndE !== undefined) safeUpdate('dndE', d.dndE);
+            if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
             if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
         }
 
