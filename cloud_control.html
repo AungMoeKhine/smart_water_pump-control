@@ -529,6 +529,7 @@
 
         let client, deviceID, devicePin, pollInterval, watchdog;
         let dataReceived = false;
+        let activeTab = 'home';
 
         // Populate selects
         const uH = document.getElementById('uH');
@@ -540,6 +541,7 @@
 
         function togglePass(id) { let x = document.getElementById(id); x.type = x.type === "password" ? "text" : "password"; }
         function showTab(t) {
+            activeTab = t;
             document.getElementById('homeView').style.display = t === 'home' ? 'block' : 'none';
             document.getElementById('settingsView').style.display = t === 'settings' ? 'block' : 'none';
             document.getElementById('tabHome').className = 'tab ' + (t === 'home' ? 'tab-active' : 'tab-inactive');
@@ -605,10 +607,13 @@
         }
         function startOTA() { if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
         function sendSave() {
+            const ssid = document.getElementById('ssid').value.trim();
+            if (!ssid) { alert("SSID cannot be empty! Please wait for the dashboard to sync or enter the WiFi name."); return; }
             if (!confirm("Save settings and reboot device?")) return;
+            activeTab = 'saving'; // Lock UI updates
             sendCmd({
                 save: 1,
-                ssid: document.getElementById('ssid').value,
+                ssid: ssid,
                 pass: document.getElementById('wifiPass').value,
                 newPin: document.getElementById('newPin').value || devicePin,
                 uH: parseFloat(document.getElementById('uH').value),
@@ -620,8 +625,8 @@
                 dndE: parseInt(document.getElementById('dndE').value),
                 tzOf: parseFloat(document.getElementById('tzOf').value)
             });
-            document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device. Please wait...</span></h2>';
-            setTimeout(() => location.reload(), 10000);
+            document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device. This may take up to 20 seconds...</span></h2>';
+            setTimeout(() => location.reload(), 20000);
         }
         function sendCmd(p) {
             if (!client || !client.isConnected()) return;
@@ -631,17 +636,19 @@
             client.send(msg);
         }
 
-        // Helper to update field only if not focused
-        function safeUpdate(id, val, isNumeric = false) {
+        // Helper to update field only if not focused OR if it's currently empty
+        function safeUpdate(id, val) {
             const el = document.getElementById(id);
-            if (!el || document.activeElement === el) return;
-            if (isNumeric) el.value = val;
-            else el.value = val || "";
+            if (!el || document.activeElement === el || val === undefined || val === null) return;
+            // Only update if we are NOT on settings OR if the field is currently empty
+            if (activeTab === 'home' || el.value === "") {
+                el.value = val;
+            }
         }
 
         function updateUI(d) {
             const tankFill = document.getElementById('tankFill');
-            if (!tankFill) return; // Skip if UI is not ready or being replaced
+            if (!tankFill || activeTab === 'saving') return;
             tankFill.style.height = (d.tank || 0) + '%';
             document.getElementById('tankVal').innerText = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
             document.getElementById('volt').innerText = (d.volt || "--") + " V";
@@ -660,7 +667,7 @@
             [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = 'New Version v' + (d.nVer || "") + ' Available!'; });
 
-            // Update Settings Fields (only if not currently being edited)
+            // Settings Sync (safeUpdate handles the tab-sensitive logic)
             if (d.uH !== undefined) safeUpdate('uH', d.uH);
             if (d.vH !== undefined) safeUpdate('vH', d.vH);
             if (d.vL !== undefined) safeUpdate('vL', d.vL);
@@ -670,6 +677,7 @@
             if (d.dndS !== undefined) safeUpdate('dndS', d.dndS);
             if (d.dndE !== undefined) safeUpdate('dndE', d.dndE);
             if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
+
             if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
         }
 
