@@ -520,6 +520,8 @@ String pass_saved = "";
 
 void setup() {
   Serial.begin(115200);
+  delay(1000); 
+  Serial.println("\n\n=== SMART WATER PUMP SYSTEM BOOTING ===");
   
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
@@ -565,6 +567,15 @@ void setup() {
     while (wifiMulti.run() != WL_CONNECTED && millis() - startAttempt < 10000) {
       delay(500); Serial.print(".");
     }
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("\nWiFiMulti failed. Trying forced login to: " + ssid_saved);
+        WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
+        unsigned long startWait = millis();
+        while (WiFi.status() != WL_CONNECTED && millis() - startWait < 8000) {
+            delay(500); Serial.print("!");
+        }
+    }
+
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
         // Time Sync for Global DND
@@ -573,8 +584,9 @@ void setup() {
         
         WiFi.mode(WIFI_STA);
         Serial.println("AP Mode Disabled.");
+    } else {
+        Serial.println("\nAll connection attempts failed. Use AP to configure.");
     }
-    else Serial.println("\nFailed to connect saved WiFi.");
   } else {
     Serial.println("\nNo WiFi credentials saved. Use AP to configure.");
   }
@@ -654,6 +666,15 @@ void loop() {
 // ----------------------------------------------------------------------------
 // HELPERS & LOGIC
 // ----------------------------------------------------------------------------
+void rebootSystem() {
+  Serial.println("Rebooting system in 2 seconds...");
+  // Graceful cleanup (No aggressive WiFi.disconnect(true) to avoid NVS erasure)
+  if (mqttClient.connected()) mqttClient.disconnect();
+  server.stop();
+  delay(2000);
+  ESP.restart();
+}
+
 String getDeviceID() {
   uint64_t chipid = ESP.getEfuseMac();
   uint16_t chip = (uint16_t)(chipid >> 32);
@@ -1180,10 +1201,9 @@ void handleSave() {
   }
   preferences.end();
   
-  String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"8;url=/\" ><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Rebooting</title><style>body{background:#121212;color:white;font-family:sans-serif;text-align:center;margin-top:50px;}</style></head><body><h2>Settings Saved!</h2><p>Rebooting device. You will be redirected to the dashboard shortly...</p></body></html>";
+  String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"15;url=/\" ><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Rebooting</title><style>body{background:#121212;color:white;font-family:sans-serif;text-align:center;margin-top:50px;}</style></head><body><h2>Settings Saved!</h2><p>Rebooting device. Please wait about 15 seconds...</p></body></html>";
   server.send(200, "text/html", html);
-  delay(1000);
-  ESP.restart();
+  rebootSystem();
 }
 
 void handleUpdatePage() {
@@ -1465,8 +1485,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     preferences.begin("pump-control", false);
-    if (doc.containsKey("ssid")) preferences.putString("ssid", doc["ssid"].as<String>());
-    if (doc.containsKey("pass") && doc["pass"].as<String>() != "") preferences.putString("pass", doc["pass"].as<String>());
+    if (doc.containsKey("ssid") && doc["ssid"].as<String>() != "") {
+        String newSsid = doc["ssid"].as<String>();
+        preferences.putString("ssid", newSsid);
+        Serial.println("MQTT Save: SSID updated (Length: " + String(newSsid.length()) + ")");
+    }
+    if (doc.containsKey("pass") && doc["pass"].as<String>() != "") {
+        String newPass = doc["pass"].as<String>();
+        preferences.putString("pass", newPass);
+        Serial.println("MQTT Save: Password updated (Length: " + String(newPass.length()) + ")");
+    }
     
     if (doc.containsKey("uH")) {
       float h = doc["uH"].as<float>();
@@ -1507,9 +1535,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     preferences.end();
     
-    Serial.println("MQTT: Settings saved, rebooting...");
-    delay(1000);
-    ESP.restart();
+    Serial.println("MQTT: Settings saved via Cloud.");
+    rebootSystem();
   }
 }
 
