@@ -450,9 +450,6 @@
                     </div>
                     <button class="btn btn-green" onclick="startOTA()">Update Now</button>
                 </div>
-                <div id="dndBadge"
-                    style="display:none; color:#aaa; font-size:0.9rem; margin-bottom:10px; text-align: center;">🌙 Smart
-                    Scheduling Active (DND)</div>
                 <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING SYNC...</button>
                 <button id="btnReset" class="btn btn-red" onclick="sendCmd({reset:1})" style="display:none;">Reset
                     Alarm</button>
@@ -646,7 +643,6 @@
             if (d.cd && document.getElementById('cd')) document.getElementById('cd').innerText = d.cd + "s";
             [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = 'New Version v' + (d.nVer || "") + ' Available!'; });
-            if (document.getElementById('dndBadge')) document.getElementById('dndBadge').style.display = (d.dndEn && d.pStat == "OFF") ? 'block' : 'none';
             // Update Settings Fields
             if (d.uH) document.getElementById('uH').value = d.uH;
             if (d.vH) document.getElementById('vH').value = d.vH;
