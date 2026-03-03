@@ -1322,6 +1322,17 @@ String generateStatusJson() {
   doc["id"] = deviceID;
   doc["ip"] = WiFi.localIP().toString();
   
+  // Settings Sync
+  doc["uH"] = tankConfig.upperHeight;
+  doc["vH"] = voltageConfig.HIGH_THRESHOLD;
+  doc["vL"] = voltageConfig.LOW_THRESHOLD;
+  doc["dD"] = dryRunConfig.WAIT_SECONDS_SET;
+  doc["ssid"] = ssid_saved;
+  doc["dndEn"] = scheduleConfig.enabled ? 1 : 0;
+  doc["dndS"] = scheduleConfig.dndStart;
+  doc["dndE"] = scheduleConfig.dndEnd;
+  doc["tzOf"] = scheduleConfig.timezoneOffset;
+  
   // NEW: Add Sensor Error status and Ack status for HTML logic
   doc["sErr"] = (currentState == PumpState::SENSOR_ERROR) ? 1 : 0;
   doc["ack"] = tankConfig.errorAck ? 1 : 0;
@@ -1440,6 +1451,57 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         serializeJson(resp, respStr);
         mqttClient.publish(statusTopic.c_str(), respStr.c_str());
     }
+  } else if (doc.containsKey("save")) {
+    if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) {
+        return;
+    }
+    
+    preferences.begin("pump-control", false);
+    if (doc.containsKey("ssid")) preferences.putString("ssid", doc["ssid"].as<String>());
+    if (doc.containsKey("pass") && doc["pass"].as<String>() != "") preferences.putString("pass", doc["pass"].as<String>());
+    
+    if (doc.containsKey("uH")) {
+      float h = doc["uH"].as<float>();
+      tankConfig.upperHeight = constrain(h, TankConfig::MIN_HEIGHT, TankConfig::MAX_HEIGHT);
+      preferences.putFloat("upperH", tankConfig.upperHeight);
+    }
+    if (doc.containsKey("vH")) {
+      voltageConfig.HIGH_THRESHOLD = doc["vH"].as<int>();
+      preferences.putInt("vHigh", voltageConfig.HIGH_THRESHOLD);
+    }
+    if (doc.containsKey("vL")) {
+      voltageConfig.LOW_THRESHOLD = doc["vL"].as<int>();
+      preferences.putInt("vLow", voltageConfig.LOW_THRESHOLD);
+    }
+    if (doc.containsKey("dD")) {
+      dryRunConfig.WAIT_SECONDS_SET = doc["dD"].as<int>();
+      preferences.putInt("dryDelay", dryRunConfig.WAIT_SECONDS_SET);
+    }
+    if (doc.containsKey("newPin")) {
+      devicePin = doc["newPin"].as<String>();
+      preferences.putString("pin", devicePin);
+    }
+    if (doc.containsKey("dndEn")) {
+      scheduleConfig.enabled = (doc["dndEn"].as<int>() == 1);
+      preferences.putBool("dndEn", scheduleConfig.enabled);
+    }
+    if (doc.containsKey("dndS")) {
+      scheduleConfig.dndStart = doc["dndS"].as<int>();
+      preferences.putInt("dndS", scheduleConfig.dndStart);
+    }
+    if (doc.containsKey("dndE")) {
+      scheduleConfig.dndEnd = doc["dndE"].as<int>();
+      preferences.putInt("dndE", scheduleConfig.dndEnd);
+    }
+    if (doc.containsKey("tzOf")) {
+      scheduleConfig.timezoneOffset = doc["tzOf"].as<float>();
+      preferences.putFloat("tzOf", scheduleConfig.timezoneOffset);
+    }
+    preferences.end();
+    
+    Serial.println("MQTT: Settings saved, rebooting...");
+    delay(1000);
+    ESP.restart();
   }
 }
 
