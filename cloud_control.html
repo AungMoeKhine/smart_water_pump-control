@@ -28,10 +28,46 @@
             border-radius: 12px;
             padding: 20px;
             max-width: 400px;
-            margin: 50px auto 25px auto;
+            margin: 0 auto 25px auto;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
             border: 1px solid #333;
             position: relative;
+            text-align: left;
+        }
+
+        /* Top Tab Navigation */
+        .tabs {
+            display: flex;
+            max-width: 440px;
+            margin: 0 auto 15px auto;
+            gap: 10px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1.05rem;
+            transition: 0.3s;
+            border: 1px solid transparent;
+            text-align: center;
+            cursor: pointer;
+            color: #888;
+            background: #121212;
+        }
+
+        .tab-active {
+            background: #1e1e1e;
+            color: #fff;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .tab-inactive:hover {
+            background: #1a1a1a;
+            color: #ccc;
         }
 
         .conn-dot {
@@ -48,15 +84,13 @@
         }
 
         .logo {
-            width: 120px;
-            height: 120px;
-            aspect-ratio: 1 / 1;
-            margin-bottom: 15px;
-            object-fit: contain;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px auto;
+            display: block;
             border-radius: 50%;
             border: 2px solid #333;
             background: #1a1a1a;
-            display: inline-block;
         }
 
         .refresh-btn {
@@ -120,6 +154,10 @@
             background: #dc3545;
         }
 
+        .btn-purple {
+            background: #6f42c1;
+        }
+
         /* --- TANK STYLES --- */
         .tank-wrap {
             width: 140px;
@@ -160,7 +198,6 @@
             z-index: 5;
         }
 
-        /* The fix for the rounded corners clipping the water */
         .tank-inner {
             position: absolute;
             top: 0;
@@ -200,9 +237,7 @@
             top: 25%;
             height: 2px;
             background: rgba(0, 0, 0, 0.35);
-            box-shadow:
-                0 45px 0 rgba(0, 0, 0, 0.35),
-                0 90px 0 rgba(0, 0, 0, 0.35);
+            box-shadow: 0 45px 0 rgba(0, 0, 0, 0.35), 0 90px 0 rgba(0, 0, 0, 0.35);
         }
 
         .tank-text {
@@ -217,6 +252,62 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
+        /* --- SETTINGS STYLES --- */
+        .lbl-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin: 15px 0 5px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .range {
+            color: #555;
+            font-size: 0.75rem;
+            font-weight: normal;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        .pass-row {
+            position: relative;
+        }
+
+        .show-pass {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #888;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .show-pass input {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #333;
+            margin: 25px 0;
+        }
+
         .footer {
             margin-top: 25px;
             font-size: 0.75rem;
@@ -226,22 +317,15 @@
 
         #loginScreen {
             margin-top: 10vh;
+            text-align: center;
         }
 
-        input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 15px;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background: #1a1a1a;
-            color: #fff;
+        #loginScreen input {
             text-align: center;
-            font-size: 1.1rem;
             margin-bottom: 15px;
         }
 
-        /* --- MODAL STYLES (Properly Centered) --- */
+        /* --- MODAL STYLES --- */
         .modal {
             display: none;
             position: fixed;
@@ -298,15 +382,10 @@
             font-size: 1.1rem;
             transition: background 0.2s;
         }
-
-        .modal-close:hover {
-            background: #555;
-        }
     </style>
 </head>
 
 <body>
-
     <!-- SAFETY WARNING POPUP -->
     <div id="warnModal" class="modal">
         <div class="modal-content">
@@ -316,13 +395,11 @@
         </div>
     </div>
 
+    <!-- LOGIN SCREEN -->
     <div id="loginScreen" class="card">
         <img src="logo.png" alt="Logo" class="logo">
-        <h1 style="color:white; margin: 10px 0 5px 0; font-size: 1.6rem; letter-spacing: -0.5px;">
-            Smart-Pump-Cloud-Control</h1>
-        <p style="color:#888; font-size:1.1rem; margin: 0 0 25px 0; font-weight: 300;">Enter Device ID and PIN to begin
-        </p>
-
+        <h1 style="color:white; margin: 10px 0 5px 0; font-size: 1.6rem; letter-spacing: -0.5px;">Smart Pump Cloud</h1>
+        <p style="color:#888; font-size:1.1rem; margin: 0 0 25px 0; font-weight: 300;">Enter Device ID and PIN</p>
         <div style="max-width: 280px; margin: 0 auto;">
             <div id="loginError"
                 style="color: #ff4d4d; font-size: 0.85rem; margin-bottom: 10px; display: none; font-weight: bold;">
@@ -330,61 +407,123 @@
             <input type="text" id="devID" placeholder="DEVICE ID"
                 style="text-transform:uppercase; letter-spacing: 1px; font-weight: 500;">
             <input type="password" id="devPin" placeholder="••••••" style="letter-spacing: 4px;">
-            <button id="btnLogin" class="btn btn-blue" onclick="connect()"
+            <button id="btnLogin" class="btn" onclick="connect()"
                 style="margin-top: 15px; border-radius: 10px; padding: 18px; font-size: 1.2rem; background: #007bff;">Connect</button>
         </div>
     </div>
 
+    <!-- DASHBOARD -->
     <div id="dashboard" style="display:none;">
-        <div class="card">
-            <button id="refreshBtn" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
-            <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;">
-                <span id="statusDot" class="conn-dot"></span><span id="statusTxt">Connecting...</span>
-            </div>
+        <div class="tabs">
+            <div id="tabHome" class="tab tab-active" onclick="showTab('home')">🏠 Home</div>
+            <div id="tabSettings" class="tab tab-inactive" onclick="showTab('settings')">⚙️ Settings</div>
+        </div>
 
-            <h2 style="color:#03ef;margin-top:0;">
-                <img src="logo.png" alt="Logo" class="logo"
-                    style="width: 100px; height: 100px; margin-bottom: 10px; vertical-align: middle;">
-                <br>💧Tank Water Level
-            </h2>
-
-            <!-- Updated Tank HTML structure -->
-            <div class="tank-wrap">
-                <div class="tank-inner">
-                    <div id="tankFill" class="tank-fill"></div>
+        <!-- HOME VIEW -->
+        <div id="homeView">
+            <div class="card">
+                <button id="refreshBtn" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
+                <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;">
+                    <span id="statusDot" class="conn-dot"></span><span id="statusTxt">Connecting...</span>
                 </div>
-                <div class="tank-ridges"></div>
-                <div id="tankVal" class="tank-text">-- %</div>
+                <h2 style="color:#03ef;margin:0; text-align: center;">
+                    <img src="logo.png" alt="Logo" class="logo"
+                        style="width: 100px; height: 100px; margin-bottom: 10px;">
+                    <br>💧Tank Water Level
+                </h2>
+                <div class="tank-wrap">
+                    <div class="tank-inner">
+                        <div id="tankFill" class="tank-fill"></div>
+                    </div>
+                    <div class="tank-ridges"></div>
+                    <div id="tankVal" class="tank-text">-- %</div>
+                </div>
+                <div class="row"><span>Voltage:</span> <span id="volt">-- V</span></div>
+                <div class="row"><span>Volt Status:</span> <span id="vstat">--</span></div>
+                <div class="row"><span>Pump:</span> <span id="pstate">--</span></div>
+                <div class="row"><span>System Info:</span> <span id="info">--</span></div>
+                <div class="row" id="cdRow" style="display:none; color:#ff4d4d; font-weight:bold;">
+                    <span>Dry-Run in:</span> <span id="cd">--</span>
+                </div>
+                <div id="otaHub"
+                    style="display:none; margin:15px 0; padding:15px; border:1px solid #03ef; border-radius:12px; background:rgba(3,239,98,0.05);">
+                    <div style="color:#03ef; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!
+                    </div>
+                    <button class="btn btn-green" onclick="startOTA()">Update Now</button>
+                </div>
+                <div id="dndBadge"
+                    style="display:none; color:#aaa; font-size:0.9rem; margin-bottom:10px; text-align: center;">🌙 Smart
+                    Scheduling Active (DND)</div>
+                <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING SYNC...</button>
+                <button id="btnReset" class="btn btn-red" onclick="sendCmd({reset:1})" style="display:none;">Reset
+                    Alarm</button>
             </div>
+        </div>
 
-            <div class="row"><span>Voltage:</span> <span id="volt">-- V</span></div>
-            <div class="row"><span>Volt Status:</span> <span id="vstat">--</span></div>
-            <div class="row"><span>Pump:</span> <span id="pstate">--</span></div>
-            <div class="row"><span>System Info:</span> <span id="info">--</span></div>
-
-            <div class="row" id="cdRow" style="display:none; color:#ff4d4d; font-weight:bold;">
-                <span>Dry-Run in:</span> <span id="cd">--</span>
+        <!-- SETTINGS VIEW -->
+        <div id="settingsView" style="display:none;">
+            <div class="card">
+                <button id="refreshBtnS" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
+                <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;">
+                    <span id="statusDotS" class="conn-dot"></span><span id="statusTxtS">Connecting...</span>
+                </div>
+                <img src="logo.png" class="logo">
+                <div class="lbl-wrap"><label>WiFi SSID</label></div>
+                <input type="text" id="ssid" placeholder="Current WiFi SSID">
+                <div class="lbl-wrap"><label>WiFi Password</label></div>
+                <div class="pass-row"><input type="password" id="wifiPass"
+                        placeholder="Leave empty to keep current"><label class="show-pass"><input type="checkbox"
+                            onclick="togglePass('wifiPass')"> Show WiFi Password</label></div>
+                <div class="lbl-wrap"><label>Device PIN (for Cloud)</label></div>
+                <div class="pass-row"><input type="password" id="newPin" placeholder="••••••"><label
+                        class="show-pass"><input type="checkbox" onclick="togglePass('newPin')"> Show PIN</label></div>
+                <hr>
+                <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div>
+                <select id="uH"></select>
+                <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><input
+                    type="number" id="vH" min="230" max="260">
+                <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><input
+                    type="number" id="vL" min="150" max="190">
+                <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><input
+                    type="number" id="dD" min="60" max="180">
+                <hr>
+                <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div>
+                <select id="dndEn">
+                    <option value="0">Disabled</option>
+                    <option value="1">Enabled</option>
+                </select>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <div style="flex:1;"><label>Start Hour</label><select id="dndS"></select></div>
+                    <div style="flex:1;"><label>End Hour</label><select id="dndE"></select></div>
+                </div>
+                <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div>
+                <select id="tzOf"></select>
+                <button class="btn btn-green" onclick="sendSave()">Save & Reboot</button>
+                <hr>
+                <div style="text-align:center;">
+                    <h3 style="color:#6f42c1; margin:0 0 15px 0;">🛠️ Maintenance</h3>
+                    <div id="otaHubS"
+                        style="display:none; margin-bottom:15px; padding:15px; border:1px solid #6f42c1; border-radius:12px; background:rgba(111, 66, 193, 0.05); text-align:left;">
+                        <div style="color:#6f42c1; font-weight:bold; margin-bottom:10px;" id="otaMsgS">Update Available!
+                        </div>
+                        <button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">Update Now</button>
+                    </div>
+                    <button class="btn btn-purple" style="margin-top:0;" onclick="checkOTA()">Check for Updates</button>
+                    <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: <span
+                            id="curVer">--</span></p>
+                </div>
             </div>
-
-            <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING FOR SYNC...</button>
-            <button id="btnReset" class="btn btn-red" onclick="sendCmd({reset:1})" style="display:none;">Reset
-                Alarm</button>
         </div>
 
         <div class="footer">
             <div id="lastMsg" style="margin-bottom:8px;">Waiting for first sync...</div>
+            <span>Cloud ID: <span id="dispCid">--</span></span><br>
             <span>Device IP: <span id="dispIp">--</span></span>
         </div>
     </div>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('SW Registered', reg))
-                    .catch(err => console.log('SW Failed', err));
-            });
-        }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js'); }); }
 
         const BROKER = "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
         const PORT = 8884;
@@ -394,208 +533,141 @@
         let client, deviceID, devicePin, pollInterval, watchdog;
         let dataReceived = false;
 
-        const savedID = localStorage.getItem("cloudPumpID");
+        // Populate selects
+        const uH = document.getElementById('uH');
+        for (let i = 12; i <= 84; i += 6) { let opt = document.createElement('option'); opt.value = i; opt.innerText = (i / 12).toFixed(1) + " ft"; uH.appendChild(opt); }
+        const dndS = document.getElementById('dndS'), dndE = document.getElementById('dndE');
+        for (let i = 0; i < 24; i++) { let h = (i < 10 ? '0' : '') + i + ':00';[dndS, dndE].forEach(s => { let opt = document.createElement('option'); opt.value = i; opt.innerText = h; s.appendChild(opt); }); }
+        const tz = document.getElementById('tzOf');
+        for (let i = -12; i <= 14; i += 0.5) { let opt = document.createElement('option'); opt.value = i; opt.innerText = "GMT " + (i >= 0 ? "+" : "") + (i == 0 ? "0" : i); tz.appendChild(opt); }
+
+        function togglePass(id) { let x = document.getElementById(id); x.type = x.type === "password" ? "text" : "password"; }
+        function showTab(t) {
+            document.getElementById('homeView').style.display = t === 'home' ? 'block' : 'none';
+            document.getElementById('settingsView').style.display = t === 'settings' ? 'block' : 'none';
+            document.getElementById('tabHome').className = 'tab ' + (t === 'home' ? 'tab-active' : 'tab-inactive');
+            document.getElementById('tabSettings').className = 'tab ' + (t === 'settings' ? 'tab-active' : 'tab-inactive');
+        }
+
+        const savedID = localStorage.getItem("cloudPumpID"), savedPin = localStorage.getItem("cloudPumpPin");
         if (savedID) document.getElementById('devID').value = savedID;
-        const savedPin = localStorage.getItem("cloudPumpPin");
         if (savedPin) document.getElementById('devPin').value = savedPin;
 
-        // --- Modal Helper Functions ---
-        function showModal(msg) {
-            document.getElementById('warnText').innerText = msg;
-            document.getElementById('warnModal').style.display = 'block';
-        }
-        function closeModal() {
-            document.getElementById('warnModal').style.display = 'none';
-        }
+        function showModal(msg) { document.getElementById('warnText').innerText = msg; document.getElementById('warnModal').style.display = 'block'; }
+        function closeModal() { document.getElementById('warnModal').style.display = 'none'; }
 
         function connect() {
             deviceID = document.getElementById('devID').value.trim().toUpperCase();
             devicePin = document.getElementById('devPin').value.trim();
             if (deviceID.length < 5) { alert("Invalid ID"); return; }
-            if (devicePin.length < 1) { alert("Enter Device PIN"); return; }
-
             localStorage.setItem("cloudPumpID", deviceID);
             localStorage.setItem("cloudPumpPin", devicePin);
-
             const btnLogin = document.getElementById('btnLogin');
-            btnLogin.innerText = "Connecting...";
-            btnLogin.disabled = true;
-            document.getElementById('loginError').style.display = 'none'; // Clear previous errors
-
-            const clientID = "Web_" + Math.random().toString(16).substr(2, 8);
-            client = new Paho.MQTT.Client(BROKER, PORT, clientID);
-
+            btnLogin.innerText = "Connecting..."; btnLogin.disabled = true;
+            client = new Paho.MQTT.Client(BROKER, PORT, "Web_" + Math.random().toString(16).substr(2, 8));
             client.onMessageArrived = (msg) => {
-                const topic = msg.destinationName;
-                const raw = msg.payloadString;
-
-                if (topic.endsWith("/online")) {
-                    updateOnlineStatus(raw === "1");
-                    return;
-                }
-
-                document.getElementById('refreshBtn').classList.remove('spinning');
+                const topic = msg.destinationName, raw = msg.payloadString;
+                if (topic.endsWith("/online")) { updateOnlineStatus(raw === "1"); return; }
+                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.remove('spinning'));
                 document.getElementById('lastMsg').innerText = "Last sync: " + formatTime();
-
                 try {
                     const data = JSON.parse(raw);
-
-                    // Intercept Any Alert from ESP32
                     if (data.alert) {
                         if (data.alert === "Access Denied" && !dataReceived) {
-                            // If first attempt (PIN check), stay on login screen and show error
-                            const errorDiv = document.getElementById('loginError');
-                            errorDiv.innerText = data.reason;
-                            errorDiv.style.display = 'block';
-                            const btn = document.getElementById('btnLogin');
-                            btn.innerText = "Connect";
-                            btn.disabled = false;
-                            client.disconnect();
-                        } else {
-                            // Unified alert display for safety blocks or Access Denied
-                            showModal(data.reason || data.alert);
-                            if (data.alert === "Access Denied") {
-                                setTimeout(logout, 3000);
-                            }
-                        }
+                            const err = document.getElementById('loginError'); err.innerText = data.reason; err.style.display = 'block';
+                            btnLogin.innerText = "Connect"; btnLogin.disabled = false; client.disconnect();
+                        } else { showModal(data.reason || data.alert); if (data.alert === "Access Denied") setTimeout(() => location.reload(), 3000); }
                         return;
                     }
-
-                    if (!dataReceived) {
-                        // First successful data arrival - switch to dashboard
-                        document.getElementById('loginScreen').style.display = 'none';
-                        document.getElementById('dashboard').style.display = 'block';
-                    }
-
-                    dataReceived = true;
-                    updateUI(data);
-                    resetWatchdog();
-                    if (pollInterval) clearInterval(pollInterval);
-                } catch (e) { console.error("Parse Error:", e); }
+                    if (!dataReceived) { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; }
+                    dataReceived = true; updateUI(data); resetWatchdog();
+                    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+                } catch (e) { console.error(e); }
             };
-
-            client.onConnectionLost = (e) => {
-                document.getElementById('statusDot').className = 'conn-dot off';
-                document.getElementById('statusTxt').innerText = "Device: Offline (Connecting...)";
-                dataReceived = false;
-                if (e.errorCode !== 0) setTimeout(connect, 3000);
-            };
-
+            client.onConnectionLost = (e) => { updateOnlineStatus(false); dataReceived = false; if (e.errorCode !== 0) setTimeout(connect, 3000); };
             client.connect({
                 useSSL: true, userName: USER, password: PASS,
                 onSuccess: () => {
-                    const btn = document.getElementById('btnLogin');
-                    btn.innerText = "Syncing Data..."; // Changed from "Connecting"
-                    document.getElementById('loginError').style.display = 'none';
-
+                    btnLogin.innerText = "Syncing...";
                     const baseTopic = `smartpump/${deviceID}`;
-                    client.subscribe(`${baseTopic}/status`);
-                    client.subscribe(`${baseTopic}/online`);
-
-                    dataReceived = false;
-                    resetWatchdog();
-                    setTimeout(requestData, 500);
-                    if (pollInterval) clearInterval(pollInterval);
-                    pollInterval = setInterval(() => {
-                        if (!dataReceived) requestData();
-                        else clearInterval(pollInterval);
-                    }, 2000);
+                    client.subscribe(`${baseTopic}/status`); client.subscribe(`${baseTopic}/online`);
+                    dataReceived = false; resetWatchdog(); setTimeout(requestData, 500);
+                    pollInterval = setInterval(() => { if (!dataReceived) requestData(); else clearInterval(pollInterval); }, 2000);
                 },
-                onFailure: (e) => {
-                    alert("Cloud Error: " + e.errorMessage);
-                    btnLogin.innerText = "Connect";
-                    btnLogin.disabled = false;
-                }
+                onFailure: (e) => { alert(e.errorMessage); btnLogin.innerText = "Connect"; btnLogin.disabled = false; }
             });
         }
 
-        function requestData() {
-            if (client && client.isConnected()) {
-                document.getElementById('refreshBtn').classList.add('spinning');
-                document.getElementById('lastMsg').innerText = "Syncing...";
-                // Use sendCmd to include PIN
-                sendCmd({ get: 1 });
-            }
+        function requestData() { if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } }
+        function sendToggle() { sendCmd({ toggle: 1 }); }
+        function checkOTA() { sendCmd({ otaCheck: 1 }); alert("Sent Check Update command."); }
+        function startOTA() { if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
+        function sendSave() {
+            if (!confirm("Save settings and reboot device?")) return;
+            sendCmd({
+                save: 1,
+                ssid: document.getElementById('ssid').value,
+                pass: document.getElementById('wifiPass').value,
+                newPin: document.getElementById('newPin').value || devicePin,
+                uH: parseFloat(document.getElementById('uH').value),
+                vH: parseInt(document.getElementById('vH').value),
+                vL: parseInt(document.getElementById('vL').value),
+                dD: parseInt(document.getElementById('dD').value),
+                dndEn: parseInt(document.getElementById('dndEn').value),
+                dndS: parseInt(document.getElementById('dndS').value),
+                dndE: parseInt(document.getElementById('dndE').value),
+                tzOf: parseFloat(document.getElementById('tzOf').value)
+            });
+            document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device. Please wait...</span></h2>';
+            setTimeout(() => location.reload(), 10000);
         }
-
-        function sendToggle() {
-            sendCmd({ toggle: 1 });
-        }
-
-        function sendCmd(payload) {
+        function sendCmd(p) {
             if (!client || !client.isConnected()) return;
-            // Add PIN to every command
-            payload.pin = devicePin;
-            const msg = new Paho.MQTT.Message(JSON.stringify(payload));
+            p.pin = devicePin;
+            let msg = new Paho.MQTT.Message(JSON.stringify(p));
             msg.destinationName = `smartpump/${deviceID}/set`;
             client.send(msg);
         }
 
         function updateUI(d) {
-            document.getElementById('tankFill').style.height = (d.tank !== undefined ? d.tank : 0) + '%';
+            document.getElementById('tankFill').style.height = (d.tank || 0) + '%';
             document.getElementById('tankVal').innerText = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
-            document.getElementById('volt').innerText = (d.volt !== undefined ? d.volt : "--") + " V";
+            document.getElementById('volt').innerText = (d.volt || "--") + " V";
             document.getElementById('vstat').innerText = d.vStat || "--";
             document.getElementById('pstate').innerText = d.pStat || "--";
             document.getElementById('info').innerText = d.info || "--";
             document.getElementById('dispIp').innerText = d.ip || "---";
-
+            document.getElementById('dispCid').innerText = d.id || "---";
             updateOnlineStatus(true);
-
-            const btn = document.getElementById('btnToggle');
-            const rst = document.getElementById('btnReset');
-
-            if (d.err) {
-                // Dry Run Lockout
-                btn.style.display = 'none';
-                rst.style.display = 'block';
-            }
-            // FIXED: Handle Sensor Error (sErr) that needs Silence (ack=0)
-            else if (d.sErr && !d.ack) {
-                btn.style.display = 'block';
-                rst.style.display = 'none';
-                btn.innerText = "Reset Alarm"; // Red button to silence
-                btn.className = "btn btn-red";
-            }
-            else {
-                // Normal or Silenced
-                btn.style.display = 'block';
-                rst.style.display = 'none';
-                btn.innerText = d.pStat == "ON" ? 'Stop the Pump' : 'Start the Pump';
-                btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green");
-            }
-
-            const cdRow = document.getElementById('cdRow');
-            if (d.pStat == "ON" && d.info == "FLOW_CHECKING!") {
-                cdRow.style.display = 'flex';
-                document.getElementById('cd').innerText = (d.cd || 0) + "s";
-            } else {
-                cdRow.style.display = 'none';
-            }
+            const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset');
+            if (d.err) { btn.style.display = 'none'; rst.style.display = 'block'; }
+            else if (d.sErr && !d.ack) { btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = "Reset Alarm"; btn.className = "btn btn-red"; }
+            else { btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = d.pStat == "ON" ? 'Stop Pump' : 'Start Pump'; btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green"); }
+            if (document.getElementById('cdRow')) document.getElementById('cdRow').style.display = (d.pStat == "ON" && d.info == "FLOW_CHECKING!") ? 'flex' : 'none';
+            if (d.cd && document.getElementById('cd')) document.getElementById('cd').innerText = d.cd + "s";
+            [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
+            [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = 'New Version v' + (d.nVer || "") + ' Available!'; });
+            if (document.getElementById('dndBadge')) document.getElementById('dndBadge').style.display = (d.dndEn && d.pStat == "OFF") ? 'block' : 'none';
+            // Update Settings Fields
+            if (d.uH) document.getElementById('uH').value = d.uH;
+            if (d.vH) document.getElementById('vH').value = d.vH;
+            if (d.vL) document.getElementById('vL').value = d.vL;
+            if (d.dD) document.getElementById('dD').value = d.dD;
+            if (d.ssid) document.getElementById('ssid').value = d.ssid;
+            if (d.dndEn !== undefined) document.getElementById('dndEn').value = d.dndEn;
+            if (d.dndS !== undefined) document.getElementById('dndS').value = d.dndS;
+            if (d.dndE !== undefined) document.getElementById('dndE').value = d.dndE;
+            if (d.tzOf !== undefined) document.getElementById('tzOf').value = d.tzOf;
+            if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
         }
 
-        function logout() { localStorage.removeItem("cloudPumpID"); location.reload(); }
-
-        function formatTime() {
-            const now = new Date();
-            return now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        function formatTime() { let n = new Date(); return n.getHours().toString().padStart(2, '0') + ":" + n.getMinutes().toString().padStart(2, '0'); }
+        function updateOnlineStatus(o) {
+            [document.getElementById('statusDot'), document.getElementById('statusDotS')].forEach(d => { if (d) d.className = "conn-dot " + (o ? "" : "off"); });
+            [document.getElementById('statusTxt'), document.getElementById('statusTxtS')].forEach(t => { if (t) t.innerText = o ? "Device: Online" : "Device: Offline"; });
+            if (o) resetWatchdog();
         }
-
-        function updateOnlineStatus(isOnline) {
-            const dot = document.getElementById('statusDot');
-            const txt = document.getElementById('statusTxt');
-            dot.className = "conn-dot " + (isOnline ? "" : "off");
-            txt.innerText = isOnline ? "Device: Online" : "Device: Offline";
-            if (isOnline) resetWatchdog();
-        }
-
-        function resetWatchdog() {
-            if (watchdog) clearTimeout(watchdog);
-            watchdog = setTimeout(() => {
-                document.getElementById('statusDot').className = "conn-dot off";
-                document.getElementById('statusTxt').innerText = "Device: Unresponsive";
-            }, 60000);
-        }
+        function resetWatchdog() { if (watchdog) clearTimeout(watchdog); watchdog = setTimeout(() => updateOnlineStatus(false), 60000); }
     </script>
 </body>
 
