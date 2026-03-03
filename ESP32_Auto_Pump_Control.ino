@@ -1424,6 +1424,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   } else if (doc.containsKey("otaCheck")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
         checkOTA();
+        if (!otaConfig.updateAvailable) {
+            DynamicJsonDocument resp(256);
+            resp["alert"] = "System Up to Date";
+            resp["reason"] = "You are already using the latest version: v" + String(FIRMWARE_VERSION);
+            String respStr;
+            serializeJson(resp, respStr);
+            mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+        }
     }
   } else if (doc.containsKey("otaStart")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
