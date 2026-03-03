@@ -504,7 +504,8 @@
                         </div>
                         <button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">Update Now</button>
                     </div>
-                    <button class="btn btn-purple" style="margin-top:0;" onclick="checkOTA()">Check for Updates</button>
+                    <button class="btn btn-purple" style="margin-top:0;" onclick="checkOTA(this)">Check for
+                        Updates</button>
                     <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: <span
                             id="curVer">--</span></p>
                 </div>
@@ -596,7 +597,12 @@
 
         function requestData() { if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } }
         function sendToggle() { sendCmd({ toggle: 1 }); }
-        function checkOTA() { sendCmd({ otaCheck: 1 }); alert("Sent Check Update command."); }
+        function checkOTA(btn) {
+            const oldText = btn ? btn.innerText : "Check for Updates";
+            if (btn) { btn.innerText = "Checking..."; btn.disabled = true; }
+            sendCmd({ otaCheck: 1 });
+            setTimeout(() => { if (btn) { btn.innerText = oldText; btn.disabled = false; } }, 4000);
+        }
         function startOTA() { if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
         function sendSave() {
             if (!confirm("Save settings and reboot device?")) return;
