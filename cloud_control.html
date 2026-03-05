@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Smart Pump Dashboard</title>
+    <title>Smart Pump Cloud</title>
     <link rel="icon" type="image/png" sizes="32x32" href="icon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
@@ -429,6 +429,10 @@
                 <h2 style="color:#03ef;margin:0; text-align: center;">
                     <img src="logo.png" alt="Logo" class="logo">
                     <br>💧Tank Water Level
+                    <div id="dndBadgeC"
+                        style="display:none; font-size: 0.9rem; background: #6f42c1; color: white; padding: 4px 10px; border-radius: 12px; margin: 10px auto 0 auto; width: fit-content;">
+                        🌙 DND Active
+                    </div>
                 </h2>
                 <div class="tank-wrap">
                     <div class="tank-inner">
@@ -544,15 +548,13 @@
         // Populate selects
         const uH = document.getElementById('uH');
         for (let i = 12; i <= 84; i += 6) { let opt = document.createElement('option'); opt.value = i; opt.innerText = (i / 12).toFixed(1) + " ft"; uH.appendChild(opt); }
-
         const vH = document.getElementById('vH');
         for (let i = 230; i <= 260; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vH.appendChild(opt); }
-
         const vL = document.getElementById('vL');
         for (let i = 150; i <= 190; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vL.appendChild(opt); }
-
         const dD = document.getElementById('dD');
         for (let i = 60; i <= 180; i += 5) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Seconds"; dD.appendChild(opt); }
+
         const dndS = document.getElementById('dndS'), dndE = document.getElementById('dndE');
         for (let i = 0; i < 24; i++) { let h = (i < 10 ? '0' : '') + i + ':00';[dndS, dndE].forEach(s => { let opt = document.createElement('option'); opt.value = i; opt.innerText = h; s.appendChild(opt); }); }
         const tz = document.getElementById('tzOf');
@@ -678,6 +680,11 @@
         }
 
         function updateUI(d) {
+            // Update DND Badge Status
+            if (document.getElementById('dndBadgeC')) {
+                document.getElementById('dndBadgeC').style.display = d.dndAct ? 'block' : 'none';
+            }
+
             const tankFill = document.getElementById('tankFill');
             if (!tankFill || activeTab === 'saving') return;
             tankFill.style.height = (d.tank || 0) + '%';
@@ -697,7 +704,6 @@
             // UI Local Countdown logic to avoid MQTT Flooding
             const cdRow = document.getElementById('cdRow');
             if (cdRow) {
-                // If error is 2 (Locked) AND auto-retry is enabled (>0)
                 if (d.err == 2 && d.rM > 0) {
                     cdRow.style.display = 'flex';
                     cdRow.children[0].innerText = 'Retry in:';
