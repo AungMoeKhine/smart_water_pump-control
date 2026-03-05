@@ -150,11 +150,11 @@
         <img src="logo.png" alt="Logo" class="logo">
 
         <h1>Smart Pump Control</h1>
-        <h2>Premium Version • v1.0.0</h2>
+        <h2>Premium Version • v1.1.0</h2>
 
         <p>
-            An advanced Automatic Pump Controller with <b>Voltage Protection</b>, <b>Dry-Run Safety</b>, and <b>Cloud
-                Dashboard</b>.
+            An advanced Automatic Pump Controller with <b>Voltage Protection</b>, <b>Dry-Run Auto-Retry</b>, <b>LCD
+                Dashboard</b>, and <b>Cloud Control</b>.
         </p>
 
         <!-- Button for Firmware Installation -->
@@ -185,20 +185,20 @@
                     <li><b>Access:</b> After reboot, visit the device IP or <code>http://smartpump.local</code> to
                         access the dashboard.
                     </li>
-                    <li><b>Settings:</b> Set your <b>Tank Height</b> and <b>Voltage Thresholds</b> in the device
-                        settings menu.</li>
+                    <li><b>Settings:</b> Set your Tank Height, Voltage Limits, and Auto-Retry logic in the settings
+                        menu.</li>
                 </ol>
             </div>
 
             <!-- Features -->
             <div class="card" style="background: #fff3e0; border-color: #ffe0b2;">
-                <h3>🛡️ Safety Features</h3>
+                <h3>🛡️ Safety & Features</h3>
                 <ul>
-                    <li><b>Voltage Guard:</b> Automatically stops pump if voltage is unsafe (>250V or <170V).< /li>
-                    <li><b>Dry-Run Protection:</b> Detects lack of water flow and locks the pump to prevent motor
-                        burnout.</li>
-                    <li><b>Precision Sensing:</b> Uses Ultrasonic sensors for accurate water level measurement.</li>
-                    <li><b>Live TFT:</b> High-resolution monitoring right on the device hardware.</li>
+                    <li><b>Voltage Guard:</b> Automatic cut-off (>250V or <170V).< /li>
+                    <li><b>Dry-Run System:</b> Smart flow detection with configurable <b>Auto-Retry</b> or <b>Lock</b>
+                        modes.</li>
+                    <li><b>LCD Dashboard:</b> Live status on I2C LCD (2004 or 1602).</li>
+                    <li><b>Hybrid Control:</b> Control via Cloud, Local WiFi, or Physical Button.</li>
                 </ul>
             </div>
 
@@ -234,7 +234,7 @@
                             font-weight: bold;
                             padding: 6px 10px;
                             display: inline-block;
-                            width: 110px;
+                            width: 120px;
                             text-align: center;
                             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                         }
@@ -247,7 +247,33 @@
                             font-weight: bold;
                             padding: 6px 10px;
                             display: inline-block;
-                            width: 110px;
+                            width: 120px;
+                            text-align: center;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                        }
+
+                        .comp-display {
+                            background: #e0f2f1;
+                            border: 2px solid #00695c;
+                            color: #00695c;
+                            border-radius: 6px;
+                            font-weight: bold;
+                            padding: 6px 10px;
+                            display: inline-block;
+                            width: 120px;
+                            text-align: center;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                        }
+
+                        .comp-input {
+                            background: #eeeeee;
+                            border: 2px solid #616161;
+                            color: #424242;
+                            border-radius: 6px;
+                            font-weight: bold;
+                            padding: 6px 10px;
+                            display: inline-block;
+                            width: 120px;
                             text-align: center;
                             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                         }
@@ -316,40 +342,25 @@
                         .dot-right {
                             left: 0;
                         }
-
-                        .common-rail {
-                            background: #546e7a;
-                            color: white;
-                            writing-mode: vertical-rl;
-                            text-orientation: mixed;
-                            border-radius: 4px;
-                            font-weight: bold;
-                            letter-spacing: 2px;
-                            padding: 10px 4px;
-                            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
-                        }
                     </style>
 
                     <table class="wiring-table">
                         <!-- Top Header -->
                         <tr>
+                            <!-- Empty space for Left Component & Wire -->
                             <td></td>
                             <td></td>
-                            <td></td>
-                            <td></td>
-                            <td colspan="2" class="board-header">ESP32-S3 CORE</td>
-                            <td></td>
-                            <td></td>
+
+                            <!-- Header spans the 2 GPIO columns -->
+                            <td colspan="2" class="board-header">ESP32-S3</td>
+
+                            <!-- Empty space for Right Wire & Component -->
                             <td></td>
                             <td></td>
                         </tr>
 
-                        <!-- Voltage Sensor / Buzzer -->
+                        <!-- Row 1: Voltage / Buzzer -->
                         <tr>
-                            <td rowspan="4" class="common-rail">SENSORS</td>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
                             <td>
                                 <div class="comp-sensor">⚡ Volt Sensor</div>
                             </td>
@@ -368,16 +379,10 @@
                             <td>
                                 <div class="comp-actuator">🔔 Buzzer</div>
                             </td>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
-                            <td rowspan="4" class="common-rail">OUTPUTS</td>
                         </tr>
-                        <!-- Ultrasonic Trig / Motor -->
+
+                        <!-- Row 2: Trig / Motor -->
                         <tr>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
                             <td>
                                 <div class="comp-sensor">📏 Ultra Trig</div>
                             </td>
@@ -396,15 +401,10 @@
                             <td>
                                 <div class="comp-actuator">⚙️ Motor Relay</div>
                             </td>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
                         </tr>
-                        <!-- Ultrasonic Echo / RGB -->
+
+                        <!-- Row 3: Echo / RGB -->
                         <tr>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
                             <td>
                                 <div class="comp-sensor">📏 Ultra Echo</div>
                             </td>
@@ -423,15 +423,10 @@
                             <td>
                                 <div class="comp-actuator">🌈 RGB Status</div>
                             </td>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
                         </tr>
-                        <!-- Flow Sensor / Spare -->
+
+                        <!-- Row 4: Flow / Manual Button -->
                         <tr>
-                            <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
-                            </td>
                             <td>
                                 <div class="comp-sensor">🌊 Flow Sensor</div>
                             </td>
@@ -441,17 +436,36 @@
                                 </div>
                             </td>
                             <td class="board-body-left">GPIO 18</td>
-                            <td class="board-body-right">SPI SCK</td>
+                            <td class="board-body-right">GPIO 09</td>
                             <td>
                                 <div class="wire-line">
                                     <div class="wire-dot dot-right"></div>
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-actuator">🖥️ TFT Display</div>
+                                <div class="comp-input">🔘 Manual Btn</div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 5: LCD I2C -->
+                        <tr>
+                            <td>
+                                <div class="comp-display">🖥️ LCD (SDA)</div>
                             </td>
                             <td>
-                                <div class="wire-line" style="width:15px; background:#b0bec5;"></div>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 01</td>
+                            <td class="board-body-right">GPIO 02</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-display">🖥️ LCD (SCL)</div>
                             </td>
                         </tr>
 
@@ -459,11 +473,7 @@
                         <tr>
                             <td></td>
                             <td></td>
-                            <td></td>
-                            <td></td>
                             <td colspan="2" class="board-footer"></td>
-                            <td></td>
-                            <td></td>
                             <td></td>
                             <td></td>
                         </tr>
