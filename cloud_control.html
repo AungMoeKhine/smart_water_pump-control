@@ -476,12 +476,20 @@
                 <hr>
                 <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div>
                 <select id="uH"></select>
-                <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><input
-                    type="number" id="vH" min="230" max="260">
-                <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><input
-                    type="number" id="vL" min="150" max="190">
-                <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><input
-                    type="number" id="dD" min="60" max="180">
+                <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div>
+                <select id="vH"></select>
+                <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div>
+                <select id="vL"></select>
+                <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div>
+                <select id="dD"></select>
+
+                <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div>
+                <select id="rM">
+                    <option value="0">Disabled</option>
+                    <option value="30">30 Minutes</option>
+                    <option value="60">60 Minutes</option>
+                </select>
+
                 <hr>
                 <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div>
                 <select id="dndEn">
@@ -530,10 +538,21 @@
         let client, deviceID, devicePin, pollInterval, watchdog;
         let dataReceived = false;
         let activeTab = 'home';
+        let localRetryCd = 0;
+        let localCdInterval = null;
 
         // Populate selects
         const uH = document.getElementById('uH');
         for (let i = 12; i <= 84; i += 6) { let opt = document.createElement('option'); opt.value = i; opt.innerText = (i / 12).toFixed(1) + " ft"; uH.appendChild(opt); }
+
+        const vH = document.getElementById('vH');
+        for (let i = 230; i <= 260; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vH.appendChild(opt); }
+
+        const vL = document.getElementById('vL');
+        for (let i = 150; i <= 190; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vL.appendChild(opt); }
+
+        const dD = document.getElementById('dD');
+        for (let i = 60; i <= 180; i += 5) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Seconds"; dD.appendChild(opt); }
         const dndS = document.getElementById('dndS'), dndE = document.getElementById('dndE');
         for (let i = 0; i < 24; i++) { let h = (i < 10 ? '0' : '') + i + ':00';[dndS, dndE].forEach(s => { let opt = document.createElement('option'); opt.value = i; opt.innerText = h; s.appendChild(opt); }); }
         const tz = document.getElementById('tzOf');
@@ -620,6 +639,7 @@
                 vH: parseInt(document.getElementById('vH').value),
                 vL: parseInt(document.getElementById('vL').value),
                 dD: parseInt(document.getElementById('dD').value),
+                rM: parseInt(document.getElementById('rM').value),
                 dndEn: parseInt(document.getElementById('dndEn').value),
                 dndS: parseInt(document.getElementById('dndS').value),
                 dndE: parseInt(document.getElementById('dndE').value),
@@ -637,10 +657,21 @@
         }
 
         // Helper to update field only if not focused OR if it's currently empty
-        function safeUpdate(id, val) {
+        function safeUpdate(id, val, suffix) {
             const el = document.getElementById(id);
             if (!el || document.activeElement === el || val === undefined || val === null) return;
-            // Only update if we are NOT on settings OR if the field is currently empty
+
+            // Auto-inject missing dropdown values so custom numbers don't break the UI
+            if (el.tagName === 'SELECT') {
+                let exists = Array.from(el.options).some(opt => opt.value == val);
+                if (!exists) {
+                    let opt = document.createElement('option');
+                    opt.value = val;
+                    opt.innerText = val + (suffix ? " " + suffix : "");
+                    el.appendChild(opt);
+                }
+            }
+
             if (activeTab === 'home' || el.value === "") {
                 el.value = val;
             }
@@ -662,16 +693,47 @@
             if (d.err) { btn.style.display = 'none'; rst.style.display = 'block'; }
             else if (d.sErr && !d.ack) { btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = "Reset Alarm"; btn.className = "btn btn-red"; }
             else { btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = d.pStat == "ON" ? 'Stop Pump' : 'Start Pump'; btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green"); }
-            if (document.getElementById('cdRow')) document.getElementById('cdRow').style.display = (d.pStat == "ON" && d.info == "FLOW_CHECKING!") ? 'flex' : 'none';
-            if (d.cd && document.getElementById('cd')) document.getElementById('cd').innerText = d.cd + "s";
+
+            // UI Local Countdown logic to avoid MQTT Flooding
+            const cdRow = document.getElementById('cdRow');
+            if (cdRow) {
+                // If error is 2 (Locked) AND auto-retry is enabled (>0)
+                if (d.err == 2 && d.rM > 0) {
+                    cdRow.style.display = 'flex';
+                    cdRow.children[0].innerText = 'Retry in:';
+                    localRetryCd = d.rCd;
+                    let m = Math.floor(localRetryCd / 60); let s = localRetryCd % 60;
+                    document.getElementById('cd').innerText = m + 'm ' + s + 's';
+
+                    if (!localCdInterval) {
+                        localCdInterval = setInterval(() => {
+                            if (localRetryCd > 0) {
+                                localRetryCd--;
+                                let cm = Math.floor(localRetryCd / 60); let cs = localRetryCd % 60;
+                                document.getElementById('cd').innerText = cm + 'm ' + cs + 's';
+                            }
+                        }, 1000);
+                    }
+                } else if (d.pStat == "ON" && d.info == "FLOW_CHECKING!") {
+                    if (localCdInterval) { clearInterval(localCdInterval); localCdInterval = null; }
+                    cdRow.style.display = 'flex';
+                    cdRow.children[0].innerText = 'Dry-Run in:';
+                    document.getElementById('cd').innerText = d.cd + "s";
+                } else {
+                    if (localCdInterval) { clearInterval(localCdInterval); localCdInterval = null; }
+                    cdRow.style.display = 'none';
+                }
+            }
+
             [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = 'New Version v' + (d.nVer || "") + ' Available!'; });
 
             // Settings Sync (safeUpdate handles the tab-sensitive logic)
             if (d.uH !== undefined) safeUpdate('uH', d.uH);
-            if (d.vH !== undefined) safeUpdate('vH', d.vH);
-            if (d.vL !== undefined) safeUpdate('vL', d.vL);
-            if (d.dD !== undefined) safeUpdate('dD', d.dD);
+            if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts");
+            if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts");
+            if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds");
+            if (d.rM !== undefined) safeUpdate('rM', d.rM);
             if (d.ssid !== undefined) safeUpdate('ssid', d.ssid);
             if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn);
             if (d.dndS !== undefined) safeUpdate('dndS', d.dndS);
