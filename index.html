@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Smart Pump Control Installer</title>
+    <title>Smart Switch (License Version) Installer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
@@ -12,12 +12,13 @@
             text-align: center;
             margin: 0;
             padding: 20px 10px;
+            /* Add padding for mobile background */
             background-color: #f4f6f9;
             color: #333;
         }
 
         h1 {
-            color: #03ef;
+            color: #2c3e50;
             margin-bottom: 10px;
             font-size: 1.8rem;
         }
@@ -79,10 +80,10 @@
         }
 
         .button-v1 {
-            background-color: #03ef;
+            background-color: #007bff;
         }
 
-        /* --- GRID LAYOUT (The Fix) --- */
+        /* --- GRID LAYOUT (The Mobile Fix) --- */
         .grid-container {
             display: grid;
             grid-template-columns: 1fr;
@@ -114,13 +115,13 @@
             flex-direction: column;
             width: 100%;
             box-sizing: border-box;
-            /* CRITICAL FIX: This prevents the wide table from breaking the grid on mobile */
             min-width: 0;
+            /* CRITICAL FIX: Allows grid to handle scrollable table */
         }
 
         .card h3 {
             margin-top: 0;
-            color: #03ef;
+            color: #0d47a1;
             font-size: 1.1rem;
             display: flex;
             align-items: center;
@@ -181,35 +182,23 @@
             font-weight: bold;
             padding: 6px 4px;
             display: inline-block;
-            width: 90px;
+            width: 80px;
             /* Compact width */
             text-align: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             font-size: 11px;
         }
 
-        .comp-sensor {
-            background: #e1f5fe;
-            border: 2px solid #0288d1;
-            color: #01579b;
+        .comp-btn {
+            background: #fff9c4;
+            border: 2px solid #fbc02d;
+            color: #f57f17;
         }
 
-        .comp-actuator {
+        .comp-relay {
             background: #ffebee;
             border: 2px solid #c62828;
             color: #c62828;
-        }
-
-        .comp-display {
-            background: #e0f2f1;
-            border: 2px solid #00695c;
-            color: #00695c;
-        }
-
-        .comp-input {
-            background: #eeeeee;
-            border: 2px solid #616161;
-            color: #424242;
         }
 
         /* ESP32 Board Styles */
@@ -219,8 +208,9 @@
             text-align: left;
             border-left: 2px solid #37474f;
             padding-left: 5px;
-            width: 60px;
+            width: 65px;
             font-family: Consolas, monospace;
+            font-size: 12px;
         }
 
         .board-body-right {
@@ -229,8 +219,9 @@
             text-align: right;
             border-right: 2px solid #37474f;
             padding-right: 5px;
-            width: 60px;
+            width: 65px;
             font-family: Consolas, monospace;
+            font-size: 12px;
         }
 
         .board-header {
@@ -246,7 +237,7 @@
 
         .board-footer {
             background: #37474f;
-            height: 8px;
+            height: 10px;
             border-radius: 0 0 8px 8px;
         }
 
@@ -276,6 +267,20 @@
         .dot-right {
             left: 0;
         }
+
+        /* Common Rail */
+        .common-rail {
+            background: #546e7a;
+            color: white;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            border-radius: 4px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            padding: 10px 4px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+        }
     </style>
     <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
 </head>
@@ -286,12 +291,11 @@
         <!-- Ensure logo.png is in the same folder -->
         <img src="logo.png" alt="Logo" class="logo">
 
-        <h1>Smart Pump Control</h1>
-        <h2>Premium Version • v1.1.0</h2>
+        <h1>Smart Switch Control</h1>
+        <h2>License Version • v2.0</h2>
 
         <p>
-            An advanced Automatic Pump Controller with <b>Voltage Protection</b>, <b>Dry-Run Auto-Retry</b>, <b>LCD
-                Dashboard</b>, and <b>Cloud Control</b>.
+            An advanced WiFi Smart Switch with <b>Usage Validity System</b>, Customizable UI, and OTA Updates.
         </p>
 
         <!-- Button for Firmware Installation -->
@@ -299,7 +303,7 @@
             <button slot="activate" class="button button-v1">CONNECT & INSTALL</button>
         </esp-web-install-button>
 
-        <p style="font-size: 0.9rem; color: #888;">Compatible with ESP32-S3. Connect via USB.</p>
+        <p style="font-size: 0.9rem; color: #888;">Compatible with ESP32 Dev Module. Connect via USB.</p>
 
         <!-- Link to Cloud App -->
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
@@ -314,51 +318,255 @@
             <div class="card" style="background: #e3f2fd; border-color: #bbdefb;">
                 <h3>🚀 Quick Setup</h3>
                 <ol>
-                    <li><b>WiFi Setup:</b> Connect to hotspot <code>Auto-Pump-Config</code> (Password:
+                    <li><b>WiFi Setup:</b> Connect to hotspot <code>ESP32-Relay-Config</code> (Password:
                         <code>12345678</code>).
                     </li>
                     <li><b>Configure:</b> Open <a href="http://192.168.4.1" target="_blank">192.168.4.1</a> and enter
                         your Home WiFi details.</li>
-                    <li><b>Access:</b> After reboot, visit the device IP or <code>http://smartpump.local</code> to
-                        access the dashboard.
+                    <li><b>Access:</b> After reboot, clear browser cache or use Incognito mode to visit <a
+                            href="http://smart-switch-control.local" target="_blank">smart-switch-control.local</a>.
                     </li>
-                    <li><b>Settings:</b> Set your Tank Height, Voltage Limits, and Auto-Retry logic in the settings
-                        menu.</li>
+                    <li><b>Activation:</b> The license <b>activates automatically</b> on the first internet connection
+                        (10 Days Trial).</li>
                 </ol>
             </div>
 
-            <!-- Features -->
+            <!-- License Management -->
             <div class="card" style="background: #fff3e0; border-color: #ffe0b2;">
-                <h3>🛡️ Safety & Features</h3>
+                <h3>🔑 License & Maintenance</h3>
                 <ul>
-                    <li><b>Voltage Guard:</b> Automatic cut-off (>250V or <170V).< /li>
-                    <li><b>Dry-Run System:</b> Smart flow detection with configurable <b>Auto-Retry</b> or <b>Lock</b>
-                        modes.</li>
-                    <li><b>LCD Dashboard:</b> Live status on I2C LCD (2004 or 1602).</li>
-                    <li><b>Hybrid Control:</b> Control via Cloud, Local WiFi, or Physical Button.</li>
+                    <li><b>Expiration:</b> Default validity is <b>10 Days</b>. You will see a warning 7 days before
+                        expiry.</li>
+                    <li><b>Extend Validity:</b>
+                        <ol style="margin-top:5px; font-size:0.9rem;">
+                            <li>Get a <code>.key</code> file from the admin.</li>
+                            <li>Go to <b>Settings</b> &rarr; <b>Maintenance</b>.</li>
+                            <li>Upload the file under "Extend License".</li>
+                        </ol>
+                    </li>
+                    <li><b>Firmware Update:</b> You can update the device wirelessly (OTA) from the same Maintenance
+                        menu.</li>
                 </ul>
             </div>
 
             <!-- Wiring Guide -->
             <div class="card" style="background: #f1f8e9; border-color: #c5e1a5; grid-column: 1 / -1;">
-                <h3>🔌 Wiring Guide (ESP32-S3)</h3>
+                <h3>🔌 Wiring Guide</h3>
 
-                <!-- Wiring Diagram (HTML/CSS Version) -->
+                <!-- Wiring Diagram -->
                 <div class="wiring-wrapper">
                     <table class="wiring-table">
                         <!-- Top Header -->
                         <tr>
+                            <td></td> <!-- GND Rail Spacer -->
                             <td></td>
                             <td></td>
-                            <td colspan="2" class="board-header">ESP32-S3</td>
+                            <td></td>
+                            <td colspan="2" class="board-header">ESP32 BOARD</td>
                             <td></td>
                             <td></td>
+                            <td></td>
+                            <td></td> <!-- (-) Rail Spacer -->
                         </tr>
 
-                        <!-- Row 1: Voltage / Buzzer -->
+                        <!-- R1 / B1 -->
+                        <tr>
+                            <td rowspan="8" class="common-rail">COMMON GND</td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B1</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 32</td>
+                            <td class="board-body-right">GPIO 23</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 1</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td rowspan="8" class="common-rail">COMMON GND</td>
+                        </tr>
+                        <!-- R2 / B2 -->
                         <tr>
                             <td>
-                                <div class="comp-base comp-sensor">⚡ Volt Sensor</div>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B2</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 33</td>
+                            <td class="board-body-right">GPIO 22</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 2</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                        </tr>
+                        <!-- R3 / B3 -->
+                        <tr>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B3</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 25</td>
+                            <td class="board-body-right">GPIO 21</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 3</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                        </tr>
+                        <!-- R4 / B4 -->
+                        <tr>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B4</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 26</td>
+                            <td class="board-body-right">GPIO 19</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 4</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                        </tr>
+                        <!-- R5 / B5 -->
+                        <tr>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B5</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 27</td>
+                            <td class="board-body-right">GPIO 18</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 5</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                        </tr>
+                        <!-- R6 / B6 -->
+                        <tr>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B6</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 14</td>
+                            <td class="board-body-right">GPIO 05</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 6</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                        </tr>
+                        <!-- R7 / B7 -->
+                        <tr>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B7</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 13</td>
+                            <td class="board-body-right">GPIO 17</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-relay">🔌 Relay 7</div>
+                            </td>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                        </tr>
+                        <!-- R8 / B8 -->
+                        <tr>
+                            <td>
+                                <div class="wire-line"></div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-btn">🔘 B8</div>
                             </td>
                             <td>
                                 <div class="wire-line">
@@ -366,102 +574,17 @@
                                 </div>
                             </td>
                             <td class="board-body-left">GPIO 04</td>
-                            <td class="board-body-right">GPIO 07</td>
+                            <td class="board-body-right">GPIO 16</td>
                             <td>
                                 <div class="wire-line">
                                     <div class="wire-dot dot-right"></div>
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-base comp-actuator">🔔 Buzzer</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 2: Trig / Motor -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">📏 Ultra Trig</div>
+                                <div class="comp-base comp-relay">🔌 Relay 8</div>
                             </td>
                             <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 05</td>
-                            <td class="board-body-right">GPIO 08</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">⚙️ Motor</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 3: Echo / RGB -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">📏 Ultra Echo</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 06</td>
-                            <td class="board-body-right">GPIO 48</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">🌈 RGB LED</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 4: Flow / Manual Button -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">🌊 Flow Sens</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 18</td>
-                            <td class="board-body-right">GPIO 09</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-input">🔘 Manual Btn</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 5: LCD I2C -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-display">🖥️ LCD (SDA)</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 01</td>
-                            <td class="board-body-right">GPIO 02</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-display">🖥️ LCD (SCL)</div>
+                                <div class="wire-line"></div>
                             </td>
                         </tr>
 
@@ -469,7 +592,11 @@
                         <tr>
                             <td></td>
                             <td></td>
+                            <td></td>
+                            <td></td>
                             <td colspan="2" class="board-footer"></td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                             <td></td>
                         </tr>
