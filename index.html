@@ -6,10 +6,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+        /* --- GLOBAL STYLES --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             text-align: center;
-            margin-top: 40px;
+            margin: 0;
+            padding: 20px 10px;
             background-color: #f4f6f9;
             color: #333;
         }
@@ -17,10 +19,11 @@
         h1 {
             color: #03ef;
             margin-bottom: 10px;
+            font-size: 1.8rem;
         }
 
         h2 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #555;
             margin-top: 0;
         }
@@ -32,25 +35,28 @@
             line-height: 1.6;
         }
 
+        /* --- MAIN CONTAINER --- */
         .container {
-            padding: 30px;
+            padding: 20px 15px;
+            /* Compact padding for mobile */
             background-color: #fff;
             border-radius: 16px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             display: block;
-            margin: 20px auto;
+            margin: 0 auto;
             max-width: 800px;
-            width: 95%;
+            width: 100%;
             box-sizing: border-box;
         }
 
         .logo {
-            width: 120px;
+            width: 100px;
             height: auto;
             margin-bottom: 20px;
             border-radius: 50%;
         }
 
+        /* --- BUTTONS --- */
         .button {
             border: none;
             color: white;
@@ -76,17 +82,26 @@
             background-color: #03ef;
         }
 
+        /* --- GRID LAYOUT (The Fix) --- */
         .grid-container {
             display: grid;
             grid-template-columns: 1fr;
+            /* Default to 1 column (Mobile) */
             gap: 20px;
             text-align: left;
             margin-top: 30px;
+            width: 100%;
         }
 
         @media(min-width: 768px) {
             .grid-container {
                 grid-template-columns: 1fr 1fr;
+                /* 2 columns on Desktop */
+            }
+
+            .container {
+                padding: 40px;
+                /* More padding on Desktop */
             }
         }
 
@@ -97,9 +112,10 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            align-items: stretch;
             width: 100%;
             box-sizing: border-box;
+            /* CRITICAL FIX: This prevents the wide table from breaking the grid on mobile */
+            min-width: 0;
         }
 
         .card h3 {
@@ -128,16 +144,137 @@
             border-radius: 4px;
             font-family: monospace;
             color: #d63384;
+            word-wrap: break-word;
         }
 
-        .badge {
-            display: inline-block;
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 2px 8px;
+        /* --- WIRING TABLE STYLES --- */
+        .wiring-wrapper {
+            overflow-x: auto;
+            /* Scroll horizontally if too wide */
+            background: white;
+            padding: 15px 5px;
             border-radius: 12px;
-            font-size: 0.8rem;
+            border: 1px solid #e1e4e8;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .wiring-table {
+            margin: 0 auto;
+            border-spacing: 0;
+            border-collapse: separate;
+            font-family: monospace;
+            font-size: 12px;
+            /* Smaller font for mobile */
+        }
+
+        .wiring-table td {
+            padding: 4px 2px;
+            vertical-align: middle;
+            height: 32px;
+            white-space: nowrap;
+        }
+
+        /* Component Boxes */
+        .comp-base {
+            border-radius: 6px;
             font-weight: bold;
+            padding: 6px 4px;
+            display: inline-block;
+            width: 90px;
+            /* Compact width */
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            font-size: 11px;
+        }
+
+        .comp-sensor {
+            background: #e1f5fe;
+            border: 2px solid #0288d1;
+            color: #01579b;
+        }
+
+        .comp-actuator {
+            background: #ffebee;
+            border: 2px solid #c62828;
+            color: #c62828;
+        }
+
+        .comp-display {
+            background: #e0f2f1;
+            border: 2px solid #00695c;
+            color: #00695c;
+        }
+
+        .comp-input {
+            background: #eeeeee;
+            border: 2px solid #616161;
+            color: #424242;
+        }
+
+        /* ESP32 Board Styles */
+        .board-body-left {
+            background: #263238;
+            color: #ffffff;
+            text-align: left;
+            border-left: 2px solid #37474f;
+            padding-left: 5px;
+            width: 60px;
+            font-family: Consolas, monospace;
+        }
+
+        .board-body-right {
+            background: #263238;
+            color: #ffffff;
+            text-align: right;
+            border-right: 2px solid #37474f;
+            padding-right: 5px;
+            width: 60px;
+            font-family: Consolas, monospace;
+        }
+
+        .board-header {
+            background: #37474f;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            font-size: 1em;
+            letter-spacing: 1px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .board-footer {
+            background: #37474f;
+            height: 8px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        /* Connectors */
+        .wire-line {
+            height: 2px;
+            background: #cfd8dc;
+            width: 10px;
+            display: inline-block;
+            vertical-align: middle;
+            position: relative;
+        }
+
+        .wire-dot {
+            width: 4px;
+            height: 4px;
+            background: #b0bec5;
+            border-radius: 50%;
+            position: absolute;
+            top: -1px;
+        }
+
+        .dot-left {
+            right: 0;
+        }
+
+        .dot-right {
+            left: 0;
         }
     </style>
     <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
@@ -207,154 +344,13 @@
                 <h3>🔌 Wiring Guide (ESP32-S3)</h3>
 
                 <!-- Wiring Diagram (HTML/CSS Version) -->
-                <div
-                    style="overflow-x: auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e1e4e8; text-align: center; margin-bottom: 25px;">
-                    <style>
-                        .wiring-table {
-                            margin: 0 auto;
-                            border-spacing: 0;
-                            border-collapse: separate;
-                            font-family: monospace;
-                            font-size: 14px;
-                        }
-
-                        .wiring-table td {
-                            padding: 4px 5px;
-                            vertical-align: middle;
-                            height: 32px;
-                            white-space: nowrap;
-                        }
-
-                        /* Component Boxes */
-                        .comp-sensor {
-                            background: #e1f5fe;
-                            border: 2px solid #0288d1;
-                            color: #01579b;
-                            border-radius: 6px;
-                            font-weight: bold;
-                            padding: 6px 10px;
-                            display: inline-block;
-                            width: 120px;
-                            text-align: center;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                        }
-
-                        .comp-actuator {
-                            background: #ffebee;
-                            border: 2px solid #c62828;
-                            color: #c62828;
-                            border-radius: 6px;
-                            font-weight: bold;
-                            padding: 6px 10px;
-                            display: inline-block;
-                            width: 120px;
-                            text-align: center;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                        }
-
-                        .comp-display {
-                            background: #e0f2f1;
-                            border: 2px solid #00695c;
-                            color: #00695c;
-                            border-radius: 6px;
-                            font-weight: bold;
-                            padding: 6px 10px;
-                            display: inline-block;
-                            width: 120px;
-                            text-align: center;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                        }
-
-                        .comp-input {
-                            background: #eeeeee;
-                            border: 2px solid #616161;
-                            color: #424242;
-                            border-radius: 6px;
-                            font-weight: bold;
-                            padding: 6px 10px;
-                            display: inline-block;
-                            width: 120px;
-                            text-align: center;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                        }
-
-                        /* ESP32 Board Styles */
-                        .board-body-left {
-                            background: #263238;
-                            color: #ffffff;
-                            text-align: left;
-                            border-left: 2px solid #37474f;
-                            padding-left: 15px;
-                            width: 90px;
-                            font-family: Consolas, monospace;
-                        }
-
-                        .board-body-right {
-                            background: #263238;
-                            color: #ffffff;
-                            text-align: right;
-                            border-right: 2px solid #37474f;
-                            padding-right: 15px;
-                            width: 90px;
-                            font-family: Consolas, monospace;
-                        }
-
-                        .board-header {
-                            background: #37474f;
-                            color: white;
-                            text-align: center;
-                            font-weight: bold;
-                            padding: 10px;
-                            font-size: 1.1em;
-                            letter-spacing: 1px;
-                            border-radius: 8px 8px 0 0;
-                        }
-
-                        .board-footer {
-                            background: #37474f;
-                            height: 12px;
-                            border-radius: 0 0 8px 8px;
-                        }
-
-                        /* Connectors */
-                        .wire-line {
-                            height: 2px;
-                            background: #cfd8dc;
-                            width: 20px;
-                            display: inline-block;
-                            vertical-align: middle;
-                            position: relative;
-                        }
-
-                        .wire-dot {
-                            width: 6px;
-                            height: 6px;
-                            background: #b0bec5;
-                            border-radius: 50%;
-                            position: absolute;
-                            top: -2px;
-                        }
-
-                        .dot-left {
-                            right: 0;
-                        }
-
-                        .dot-right {
-                            left: 0;
-                        }
-                    </style>
-
+                <div class="wiring-wrapper">
                     <table class="wiring-table">
                         <!-- Top Header -->
                         <tr>
-                            <!-- Empty space for Left Component & Wire -->
                             <td></td>
                             <td></td>
-
-                            <!-- Header spans the 2 GPIO columns -->
                             <td colspan="2" class="board-header">ESP32-S3</td>
-
-                            <!-- Empty space for Right Wire & Component -->
                             <td></td>
                             <td></td>
                         </tr>
@@ -362,7 +358,7 @@
                         <!-- Row 1: Voltage / Buzzer -->
                         <tr>
                             <td>
-                                <div class="comp-sensor">⚡ Volt Sensor</div>
+                                <div class="comp-base comp-sensor">⚡ Volt Sensor</div>
                             </td>
                             <td>
                                 <div class="wire-line">
@@ -377,14 +373,14 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-actuator">🔔 Buzzer</div>
+                                <div class="comp-base comp-actuator">🔔 Buzzer</div>
                             </td>
                         </tr>
 
                         <!-- Row 2: Trig / Motor -->
                         <tr>
                             <td>
-                                <div class="comp-sensor">📏 Ultra Trig</div>
+                                <div class="comp-base comp-sensor">📏 Ultra Trig</div>
                             </td>
                             <td>
                                 <div class="wire-line">
@@ -399,14 +395,14 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-actuator">⚙️ Motor Relay</div>
+                                <div class="comp-base comp-actuator">⚙️ Motor</div>
                             </td>
                         </tr>
 
                         <!-- Row 3: Echo / RGB -->
                         <tr>
                             <td>
-                                <div class="comp-sensor">📏 Ultra Echo</div>
+                                <div class="comp-base comp-sensor">📏 Ultra Echo</div>
                             </td>
                             <td>
                                 <div class="wire-line">
@@ -421,14 +417,14 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-actuator">🌈 RGB Status</div>
+                                <div class="comp-base comp-actuator">🌈 RGB LED</div>
                             </td>
                         </tr>
 
                         <!-- Row 4: Flow / Manual Button -->
                         <tr>
                             <td>
-                                <div class="comp-sensor">🌊 Flow Sensor</div>
+                                <div class="comp-base comp-sensor">🌊 Flow Sens</div>
                             </td>
                             <td>
                                 <div class="wire-line">
@@ -443,14 +439,14 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-input">🔘 Manual Btn</div>
+                                <div class="comp-base comp-input">🔘 Manual Btn</div>
                             </td>
                         </tr>
 
                         <!-- Row 5: LCD I2C -->
                         <tr>
                             <td>
-                                <div class="comp-display">🖥️ LCD (SDA)</div>
+                                <div class="comp-base comp-display">🖥️ LCD (SDA)</div>
                             </td>
                             <td>
                                 <div class="wire-line">
@@ -465,7 +461,7 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-display">🖥️ LCD (SCL)</div>
+                                <div class="comp-base comp-display">🖥️ LCD (SCL)</div>
                             </td>
                         </tr>
 
