@@ -76,9 +76,9 @@ const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_
 struct VoltageConfig {
   int HIGH_THRESHOLD = 250;
   int LOW_THRESHOLD = 170;
-  const int WAIT_SECONDS_SET = 10; // Fixed 10s
+  const int WAIT_SECONDS_SET = 10; 
   int waitSeconds = 10;
-  int status = 1;  // 1 = normal, 0 = abnormal
+  int status = 1;  
   float currentVoltage = 0.0f;
   unsigned long lastCheck = 0;
 };
@@ -95,8 +95,8 @@ struct TankConfig {
   float upperDistance = 0;
   int upperInvalidCount = 0;
   static const int MAX_INVALID_COUNT = 10;
-  bool errorAck = false;         // Tracks if sensor alarm was silenced
-  bool firstReadingDone = false; // Prevents auto-start before sensor boots
+  bool errorAck = false;         
+  bool firstReadingDone = false; 
 
   void updateFullThreshold() {
     float effectiveHeight = upperHeight + BUFFER_HEIGHT;
@@ -118,8 +118,6 @@ struct DryRunConfig {
   int error = 0;  // 0 = No error, 1 = Alarm, 2 = Locked
   unsigned long lastUpdate = 0;
   unsigned long alarmStartTime = 0;
-  
-  // Auto-Retry features
   int autoRetryMinutes = 30; // 0 = Disabled
   int retryCountdown = 0; 
   unsigned long lastRetryUpdate = 0;
@@ -132,10 +130,10 @@ struct OTAConfig {
 } otaConfig = { false, 0, 0 };
 
 struct ScheduleConfig {
-  int dndStart = 22;  // 10 PM
-  int dndEnd = 6;     // 6 AM
+  int dndStart = 22;  
+  int dndEnd = 6;     
   bool enabled = false;
-  float timezoneOffset = 6.5;  // Default to Myanmar
+  float timezoneOffset = 6.5;  
 };
 
 ScheduleConfig scheduleConfig;
@@ -151,7 +149,7 @@ enum class PumpState {
 };
 
 // ============================================================================
-// GLOBAL OBJECTS
+// GLOBAL OBJECTS & PROTOTYPES
 // ============================================================================
 
 VoltageConfig voltageConfig;
@@ -159,7 +157,7 @@ TankConfig tankConfig;
 PumpConfig pumpConfig;
 DryRunConfig dryRunConfig;
 PumpState currentState = PumpState::IDLE;
-bool currentDndActive = false; // Global DND Status
+bool currentDndActive = false; 
 
 Preferences preferences;
 WiFiMulti wifiMulti;
@@ -174,12 +172,12 @@ String subTopic = "";
 String statusTopic = "";
 String onlineTopic = "";
 String devicePin = "123456";
-
-// Web Popup Variables
 String webAlertMsg = "";
 unsigned long webAlertTime = 0;
+WiFiUDP dnsUdp;
+const byte DNS_PORT = 53;
 
-// Function Prototypes
+// Explicit Function Prototypes to prevent IDE Compilation Errors
 void publishState();
 void updatePumpLogic();
 void saveMotorStatus();
@@ -187,12 +185,27 @@ void checkOTA();
 void startOTA();
 void handleUpdatePage();  
 void mqttCallback(char* topic, byte* payload, unsigned int length); 
-
-WiFiUDP dnsUdp;
-const byte DNS_PORT = 53;
+void handleRoot();
+void handleSettings();
+void handleSave();
+void handleStatus();
+void handleToggle();
+void handleReset();
+void handleScan();
+void handleLogo();
+String generateStatusJson();
+bool reconnectMQTT();
+void updateLCD();
+void updateLEDStatus();
+void monitorSensors();
+void monitorButton();
+String processManualToggle();
 
 // --- WiFi & DNS Helper ---
 void processDNS() {
+  // Fix: Stop processing DNS if we aren't an AP anymore to prevent crash
+  if (WiFi.getMode() == WIFI_STA) return;
+
   int packetSize = dnsUdp.parsePacket();
   if (packetSize > 0) {
     unsigned char buf[512];
@@ -342,7 +355,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       if(d.ota){ ota.style.display='block'; document.getElementById('otaMsg').innerText='New Version ' + d.nVer + ' Available!'; }
       else{ ota.style.display='none'; }
 
-      // Physical Button Alert Popup Listener
       if(d.alertMsg && d.alertMsg !== lastWebAlert) {
          showModal(d.alertMsg);
          lastWebAlert = d.alertMsg;
@@ -490,7 +502,8 @@ private:
   int trigPin, echoPin;
   static const int NUM_SAMPLES = 10;
   static const unsigned long SAMPLE_INTERVAL_MS = 60;
-  static const unsigned long MAX_PULSE_DURATION = 70000;
+  static const unsigned long MAX_PULSE_DURATION = 20000; 
+  
   float samples[NUM_SAMPLES];
   int sampleIndex = 0;
   unsigned long lastSampleTime = 0;
@@ -573,7 +586,7 @@ void monitorSensors() {
   if (!upperSensor.isBusy() && now - lastScan >= ULTRASONIC_INTERVAL) {
     float dist = upperSensor.getDistance();
     if (dist > 0) {
-      tankConfig.firstReadingDone = true; // Tell the system it has a real reading
+      tankConfig.firstReadingDone = true; 
       tankConfig.upperDistance = dist;
       tankConfig.upperInvalidCount = 0;
       tankConfig.errorAck = false;
@@ -590,17 +603,12 @@ void monitorSensors() {
   }
 
   static unsigned long lastVoltSample = 0;
-  // Read voltage every 500ms to prevent CPU starvation
   if (now - lastVoltSample >= 500) {
     float v = voltageSensor.getRmsVoltage();
-    
-    // Filter out crazy hardware spikes that happen right when WiFi connects
     if (v > 50.0 && v < 300.0) {
-      // If system just booted (voltage is 0), instantly set it so it doesn't slowly ramp up
       if (voltageConfig.currentVoltage < 50.0f) {
         voltageConfig.currentVoltage = v;
       } else {
-        // Normal smooth filtering
         voltageConfig.currentVoltage = (0.2 * v) + (0.8 * voltageConfig.currentVoltage);
       }
     }
@@ -620,7 +628,7 @@ void setup() {
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(FLOW_SENSOR_PIN, INPUT_PULLUP);
-  pinMode(MANUAL_BTN_PIN, INPUT_PULLUP);  // Physical Button Config
+  pinMode(MANUAL_BTN_PIN, INPUT_PULLUP);  
   
   digitalWrite(MOTOR_PIN, LOW);
   digitalWrite(BUZZER_PIN, LOW);
@@ -637,7 +645,7 @@ void setup() {
   ssid_saved = preferences.getString("ssid", "");
   pass_saved = preferences.getString("pass", "");
   pumpConfig.motorStatus = preferences.getInt("motor", 0);
-  pumpConfig.manualOverride = preferences.getBool("override", false); // Load override state
+  pumpConfig.manualOverride = preferences.getBool("override", false);
 
   scheduleConfig.enabled = preferences.getBool("dndEn", false);
   scheduleConfig.dndStart = preferences.getInt("dndS", 22);
@@ -650,6 +658,13 @@ void setup() {
   rgbLed.begin();
   rgbLed.setBrightness(30);
   voltageSensor.setSensitivity(526.25);
+
+  Serial.println("Running Initial Hardware Safety Check...");
+  for(int i=0; i<10; i++) { 
+    monitorSensors(); 
+    delay(50); 
+  }
+  updatePumpLogic(); 
 
   Wire.begin(SDA_PIN, SCL_PIN);
   lcd.init();
@@ -703,6 +718,7 @@ void setup() {
       Serial.println("NTP Time Sync requested (Offset: " + String(scheduleConfig.timezoneOffset) + ")");
 
       WiFi.mode(WIFI_STA);
+      dnsUdp.stop(); 
       Serial.println("AP Mode Disabled.");
     } else {
       Serial.println("\nAll connection attempts failed. Use AP to configure.");
@@ -743,16 +759,15 @@ void setup() {
     Serial.println("mDNS responder started: http://smartpump.local");
   }
 
-  // --- NEW AGGRESSIVE TIMEOUT SETTINGS TO PREVENT FREEZING ---
   espClient.setInsecure();
-  espClient.setHandshakeTimeout(30); // Give up TLS handshake after 30 seconds
-  espClient.setTimeout(30);          // Give up TCP connection after 30 seconds
+  espClient.setHandshakeTimeout(20); 
+  espClient.setTimeout(20);          
+
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
   mqttClient.setBufferSize(2048);
-
-  mqttClient.setKeepAlive(60);       // Tell HiveMQ to keep connection alive
-  mqttClient.setSocketTimeout(60);   // Give PubSubClient 60s to wait for Cloud response
+  mqttClient.setKeepAlive(60);       
+  mqttClient.setSocketTimeout(60);   
 
   Serial.println("System Initialized. Device ID: " + deviceID);
 }
@@ -805,15 +820,15 @@ String processManualToggle() {
     dryRunConfig.error = 0;
     dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
     pumpConfig.motorStatus = 1;
-    pumpConfig.manualOverride = false; // Clear override
+    pumpConfig.manualOverride = false; 
   } else {
     pumpConfig.motorStatus = !pumpConfig.motorStatus;
 
     if (pumpConfig.motorStatus == 1) {
       dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
-      pumpConfig.manualOverride = false; // User wants it ON
+      pumpConfig.manualOverride = false; 
     } else {
-      pumpConfig.manualOverride = true;  // User wants it OFF (Override Auto-Start)
+      pumpConfig.manualOverride = true;  
     }
   }
 
@@ -831,18 +846,15 @@ void monitorButton() {
   
   int reading = digitalRead(MANUAL_BTN_PIN);
   
-  // If the switch changed, reset the debounce timer
   if (reading != lastReading) {
     lastDebounceTime = millis();
   }
   
-  // Once the reading has been stable for 20ms (instant to a human)
   if ((millis() - lastDebounceTime) > 20) {  
     static int buttonState = HIGH;
     if (reading != buttonState) {
       buttonState = reading;
       
-      // Action happens the exact millisecond the button goes LOW
       if (buttonState == LOW) { 
         Serial.println("Physical Manual Button Pressed!");
         String res = processManualToggle();
@@ -883,12 +895,11 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     if (!mqttClient.connected()) {
       static unsigned long lastReconnectAttempt = 0;
-      // Wait 10 seconds between attempts so the system can run smoothly
       if (millis() - lastReconnectAttempt > 10000) {
         if (reconnectMQTT()) {
            lastReconnectAttempt = 0; 
         } else {
-           lastReconnectAttempt = millis(); // Reset timer AFTER the attempt finishes
+           lastReconnectAttempt = millis(); 
         }
       }
     } else {
@@ -936,7 +947,7 @@ String getDeviceID() {
 void saveMotorStatus() {
   preferences.begin("pump-control", false);
   preferences.putInt("motor", pumpConfig.motorStatus);
-  preferences.putBool("override", pumpConfig.manualOverride); // Save the override state
+  preferences.putBool("override", pumpConfig.manualOverride); 
   preferences.end();
 }
 
@@ -974,7 +985,6 @@ void updateLEDStatus() {
 void updatePumpLogic() {
   unsigned long currentMillis = millis();
 
-  // --- DND STATE CALCULATION ---
   currentDndActive = false;
   if (scheduleConfig.enabled) {
     struct tm timeinfo;
@@ -987,7 +997,6 @@ void updatePumpLogic() {
       }
     }
   }
-  // -----------------------------
 
   static PumpState lastState = PumpState::IDLE;
   static int lastPercentage = -1;
@@ -1015,7 +1024,6 @@ void updatePumpLogic() {
   } 
   else if (voltageConfig.status == 0) {
     if (currentMillis - voltageConfig.lastCheck >= GENERAL_INTERVAL) {
-      // Calculate how many actual seconds passed (fixes the bug if the loop ever freezes)
       int secondsPassed = (currentMillis - voltageConfig.lastCheck) / 1000;
       voltageConfig.waitSeconds -= secondsPassed;
       voltageConfig.lastCheck = currentMillis;
@@ -1040,21 +1048,17 @@ void updatePumpLogic() {
     }
   }
 
-  // Safety Off Logic 
   if (tankConfig.rawUpperPercentage >= tankConfig.FULL_THRESHOLD || sensorError || voltageConfig.status == 0) {
     if (pumpConfig.motorStatus == 1) {
       pumpConfig.motorStatus = 0;
       saveMotorStatus();
     }
-    // If the tank fills up, clear the manual override so normal automatic cycles can resume later
     if (tankConfig.rawUpperPercentage >= tankConfig.FULL_THRESHOLD && pumpConfig.manualOverride) {
       pumpConfig.manualOverride = false;
       saveMotorStatus();
     }
   }
 
-  // Auto Start Logic
-  // Check if first reading is done AND check if user manually forced it OFF
   if (tankConfig.firstReadingDone && tankConfig.rawUpperPercentage <= TankConfig::LOW_THRESHOLD && !sensorError) {
     if (voltageConfig.status == 1 && dryRunConfig.error == 0 && !currentDndActive && !pumpConfig.manualOverride) {
       if (pumpConfig.motorStatus == 0) {
@@ -1115,7 +1119,6 @@ void updatePumpLogic() {
       pumpConfig.isRunning = false;
       digitalWrite(BUZZER_PIN, LOW);
 
-      // If the tank fills up (e.g., rain) while waiting, cancel the timer immediately.
       if (tankConfig.rawUpperPercentage >= tankConfig.FULL_THRESHOLD) {
         dryRunConfig.error = 0;             
         dryRunConfig.retryCountdown = 0;    
@@ -1125,12 +1128,10 @@ void updatePumpLogic() {
         break;                              
       }
       
-      // ONLY run countdown if Auto-Retry is enabled (>0)
       if (dryRunConfig.autoRetryMinutes > 0 && currentMillis - dryRunConfig.lastRetryUpdate >= 1000) {
         dryRunConfig.retryCountdown--;
         dryRunConfig.lastRetryUpdate = currentMillis;
         
-        // When timer hits 0, safely auto-restart
         if (dryRunConfig.retryCountdown <= 0) {
           dryRunConfig.error = 0;
           dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
@@ -1184,46 +1185,16 @@ void updatePumpLogic() {
   }
 }
 
-void custom0(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(8); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(1);
-}
-void custom1(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(32); lcd.write(32); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(32); lcd.write(32); lcd.write(1);
-}
-void custom2(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(5); lcd.write(3); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(6);
-}
-void custom3(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(5); lcd.write(3); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(7); lcd.write(6); lcd.write(1);
-}
-void custom4(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(6); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(32); lcd.write(32); lcd.write(1);
-}
-void custom5(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(4);
-  lcd.setCursor(col, r + 1); lcd.write(7); lcd.write(6); lcd.write(1);
-}
-void custom6(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(4);
-  lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(1);
-}
-void custom7(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(8); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(32); lcd.write(32); lcd.write(1);
-}
-void custom8(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(1);
-}
-void custom9(int col, int r) {
-  lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(1);
-  lcd.setCursor(col, r + 1); lcd.write(7); lcd.write(6); lcd.write(1);
-}
+void custom0(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(8); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(1); }
+void custom1(int col, int r) { lcd.setCursor(col, r); lcd.write(32); lcd.write(32); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(32); lcd.write(32); lcd.write(1); }
+void custom2(int col, int r) { lcd.setCursor(col, r); lcd.write(5); lcd.write(3); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(6); }
+void custom3(int col, int r) { lcd.setCursor(col, r); lcd.write(5); lcd.write(3); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(7); lcd.write(6); lcd.write(1); }
+void custom4(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(6); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(32); lcd.write(32); lcd.write(1); }
+void custom5(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(4); lcd.setCursor(col, r + 1); lcd.write(7); lcd.write(6); lcd.write(1); }
+void custom6(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(4); lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(1); }
+void custom7(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(8); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(32); lcd.write(32); lcd.write(1); }
+void custom8(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(2); lcd.write(6); lcd.write(1); }
+void custom9(int col, int r) { lcd.setCursor(col, r); lcd.write(2); lcd.write(3); lcd.write(1); lcd.setCursor(col, r + 1); lcd.write(7); lcd.write(6); lcd.write(1); }
 
 void printNumber(int value, int col, int r) {
   switch (value) {
@@ -1272,7 +1243,6 @@ void updateLCD() {
     if (dryRunConfig.autoRetryMinutes == 0) {
       info = " LOCKED   ";
     } else {
-      // Show Minutes only (round up)
       int m = (dryRunConfig.retryCountdown + 59) / 60; 
       char buf[11];
       snprintf(buf, sizeof(buf), "WAIT %02d M", m);
@@ -1286,16 +1256,15 @@ void updateLCD() {
   while(info.length() < 10) info += " ";
   lcd.setCursor(10, 1); lcd.print(info.substring(0, 10));
 
-  // --- CLOUD STATUS DISPLAY (Stable, no blank spaces to cause flickering) ---
+  // --- CLOUD STATUS DISPLAY ---
   lcd.setCursor(10, 2); 
   if (WiFi.status() != WL_CONNECTED) {
-    lcd.print(" OFFLINE  ");
+    lcd.print(" NO WIFI  ");   // Exactly 10 chars
   } else if (!mqttClient.connected()) {
-    lcd.print(" WAITING  ");
+    lcd.print(" WAITING  ");   // Exactly 10 chars
   } else {
-    lcd.print(" ONLINE   ");
+    lcd.print(" ONLINE   ");   // Exactly 10 chars
   }
-  // -------------------------------------------------------------------------
 
   lcd.setCursor(10, 3); 
   if (voltAbnormal) {
@@ -1312,14 +1281,20 @@ void updateLCD() {
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
 
-  // We are using setInsecure(), so NTP time is NOT required for the TLS handshake.
-  // Removing the anti-freeze time check so it connects immediately.
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo, 0) || timeinfo.tm_year < 120) {
+    Serial.println("MQTT Wait: Syncing internet time (Currently 1970)...");
+    return false; 
+  }
 
   String clientId = "Pump-" + getDeviceID();
   
-  // Attempt to connect
-  if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass, onlineTopic.c_str(), 1, true, "0")) {
-    Serial.println("MQTT Connected");
+  disableLoopWDT(); 
+  bool isConnected = mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass, onlineTopic.c_str(), 1, true, "0");
+  enableLoopWDT();
+
+  if (isConnected) {
+    Serial.println("MQTT Connected Successfully!");
     mqttClient.publish(onlineTopic.c_str(), "1", true);
     mqttClient.subscribe(subTopic.c_str());
     publishState();
@@ -1345,8 +1320,6 @@ void handleLogo() {
 }
 
 void handleRoot() {
-  // If no scan results are stored, start a background scan now
-  // so the list is ready if the user clicks 'Settings'
   if (WiFi.scanComplete() == -2) {
     WiFi.scanNetworks(true);
   }
@@ -1355,7 +1328,10 @@ void handleRoot() {
 
 void handleSettings() {
   Serial.println("Settings Page Request...");
+  
   String wifiList = "";
+  wifiList.reserve(512);
+  
   int n = WiFi.scanComplete();
   Serial.print("Scan Result Code: "); Serial.println(n);
 
@@ -1376,6 +1352,7 @@ void handleSettings() {
   }
 
   String tankList = "";
+  tankList.reserve(512);
   for (float f = 1.0; f <= 7.01; f += 0.5) {
     float inches = f * 12.0;
     String sel = (abs(tankConfig.upperHeight - inches) < 0.1) ? " selected" : "";
@@ -1384,7 +1361,9 @@ void handleSettings() {
   }
 
   String startList = "";
+  startList.reserve(512);
   String endList = "";
+  endList.reserve(512);
   for (int i = 0; i < 24; i++) {
     String hourStr = (i < 10 ? "0" : "") + String(i) + ":00";
     String selS = (i == scheduleConfig.dndStart) ? " selected" : "";
@@ -1394,24 +1373,29 @@ void handleSettings() {
   }
 
   String tzList = "";
+  tzList.reserve(256);
   for (float f = -12.0; f <= 14.0; f += 0.5) {
     String sel = (abs(scheduleConfig.timezoneOffset - f) < 0.1) ? " selected" : "";
     String lbl = (f >= 0 ? "+" : "") + (f == (int)f ? String((int)f) : String(f, 1));
     tzList += "<option value='" + String(f, 1) + "'" + sel + ">GMT " + lbl + "</option>";
   }
 
-  // Generate Voltage and Second Lists
   String vHList = "";
+  vHList.reserve(256);
   for (int i = 230; i <= 260; i++) {
     String sel = (i == voltageConfig.HIGH_THRESHOLD) ? " selected" : "";
     vHList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Volts</option>";
   }
+  
   String vLList = "";
+  vLList.reserve(256);
   for (int i = 150; i <= 190; i++) {
     String sel = (i == voltageConfig.LOW_THRESHOLD) ? " selected" : "";
     vLList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Volts</option>";
   }
+  
   String dryList = "";
+  dryList.reserve(256);
   for (int i = 60; i <= 180; i += 5) {
     String sel = (i == dryRunConfig.WAIT_SECONDS_SET) ? " selected" : "";
     dryList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Seconds</option>";
@@ -1629,12 +1613,11 @@ String generateStatusJson() {
   doc["ver"] = FIRMWARE_VERSION;
   doc["nVer"] = otaConfig.newVersion;
 
-  // INCLUDE ANY TRANSIENT ALERTS FOR THE WEB UI (Keeps active for 4s after button press)
   if (webAlertMsg != "") {
     if (millis() - webAlertTime < 4000) {
       doc["alertMsg"] = webAlertMsg;
     } else {
-      webAlertMsg = ""; // clear after 4s
+      webAlertMsg = ""; 
     }
   }
 
