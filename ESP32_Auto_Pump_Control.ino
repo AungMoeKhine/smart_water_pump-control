@@ -95,7 +95,8 @@ struct TankConfig {
   float upperDistance = 0;
   int upperInvalidCount = 0;
   static const int MAX_INVALID_COUNT = 10;
-  bool errorAck = false;  // Tracks if sensor alarm was silenced
+  bool errorAck = false;         // Tracks if sensor alarm was silenced
+  bool firstReadingDone = false; // Prevents auto-start before sensor boots
 
   void updateFullThreshold() {
     float effectiveHeight = upperHeight + BUFFER_HEIGHT;
@@ -185,7 +186,7 @@ void saveMotorStatus();
 void checkOTA();
 void startOTA();
 void handleUpdatePage();  
-void mqttCallback(char* topic, byte* payload, unsigned int length); // Explicit prototype
+void mqttCallback(char* topic, byte* payload, unsigned int length); 
 
 WiFiUDP dnsUdp;
 const byte DNS_PORT = 53;
@@ -572,6 +573,7 @@ void monitorSensors() {
   if (!upperSensor.isBusy() && now - lastScan >= ULTRASONIC_INTERVAL) {
     float dist = upperSensor.getDistance();
     if (dist > 0) {
+      tankConfig.firstReadingDone = true; // Tell the system it has a real reading
       tankConfig.upperDistance = dist;
       tankConfig.upperInvalidCount = 0;
       tankConfig.errorAck = false;
@@ -588,9 +590,20 @@ void monitorSensors() {
   }
 
   static unsigned long lastVoltSample = 0;
-  if (now - lastVoltSample >= 2) {
+  // Read voltage every 500ms to prevent CPU starvation
+  if (now - lastVoltSample >= 500) {
     float v = voltageSensor.getRmsVoltage();
-    voltageConfig.currentVoltage = (0.2 * v) + (0.8 * voltageConfig.currentVoltage);
+    
+    // Filter out crazy hardware spikes that happen right when WiFi connects
+    if (v > 50.0 && v < 300.0) {
+      // If system just booted (voltage is 0), instantly set it so it doesn't slowly ramp up
+      if (voltageConfig.currentVoltage < 50.0f) {
+        voltageConfig.currentVoltage = v;
+      } else {
+        // Normal smooth filtering
+        voltageConfig.currentVoltage = (0.2 * v) + (0.8 * voltageConfig.currentVoltage);
+      }
+    }
     lastVoltSample = now;
   }
 }
@@ -624,6 +637,7 @@ void setup() {
   ssid_saved = preferences.getString("ssid", "");
   pass_saved = preferences.getString("pass", "");
   pumpConfig.motorStatus = preferences.getInt("motor", 0);
+  pumpConfig.manualOverride = preferences.getBool("override", false); // Load override state
 
   scheduleConfig.enabled = preferences.getBool("dndEn", false);
   scheduleConfig.dndStart = preferences.getInt("dndS", 22);
@@ -729,10 +743,16 @@ void setup() {
     Serial.println("mDNS responder started: http://smartpump.local");
   }
 
+  // --- NEW AGGRESSIVE TIMEOUT SETTINGS TO PREVENT FREEZING ---
   espClient.setInsecure();
+  espClient.setHandshakeTimeout(30); // Give up TLS handshake after 30 seconds
+  espClient.setTimeout(30);          // Give up TCP connection after 30 seconds
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
   mqttClient.setBufferSize(2048);
+
+  mqttClient.setKeepAlive(60);       // Tell HiveMQ to keep connection alive
+  mqttClient.setSocketTimeout(60);   // Give PubSubClient 60s to wait for Cloud response
 
   Serial.println("System Initialized. Device ID: " + deviceID);
 }
@@ -785,11 +805,15 @@ String processManualToggle() {
     dryRunConfig.error = 0;
     dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
     pumpConfig.motorStatus = 1;
+    pumpConfig.manualOverride = false; // Clear override
   } else {
     pumpConfig.motorStatus = !pumpConfig.motorStatus;
 
     if (pumpConfig.motorStatus == 1) {
       dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
+      pumpConfig.manualOverride = false; // User wants it ON
+    } else {
+      pumpConfig.manualOverride = true;  // User wants it OFF (Override Auto-Start)
     }
   }
 
@@ -800,21 +824,25 @@ String processManualToggle() {
   return "Success";
 }
 
-// --- Physical Button Debouncing & Execution ---
+// --- Physical Button Debouncing & Execution (HYPER RESPONSIVE) ---
 void monitorButton() {
-  static int buttonState = HIGH;
   static int lastReading = HIGH;
   static unsigned long lastDebounceTime = 0;
   
   int reading = digitalRead(MANUAL_BTN_PIN);
+  
+  // If the switch changed, reset the debounce timer
   if (reading != lastReading) {
     lastDebounceTime = millis();
   }
   
-  if ((millis() - lastDebounceTime) > 50) {  
+  // Once the reading has been stable for 20ms (instant to a human)
+  if ((millis() - lastDebounceTime) > 20) {  
+    static int buttonState = HIGH;
     if (reading != buttonState) {
       buttonState = reading;
       
+      // Action happens the exact millisecond the button goes LOW
       if (buttonState == LOW) { 
         Serial.println("Physical Manual Button Pressed!");
         String res = processManualToggle();
@@ -824,9 +852,7 @@ void monitorButton() {
           Serial.println("Manual Action Blocked: " + reason);
           
           setLedColor(255, 0, 0); 
-          delay(200); 
-
-          // 1. PUSH POPUP TO MQTT (Cloud App)
+          
           if (mqttClient.connected()) {
             DynamicJsonDocument resp(256);
             resp["alert"] = "Action Blocked (Device Button)";
@@ -836,7 +862,6 @@ void monitorButton() {
             mqttClient.publish(statusTopic.c_str(), respStr.c_str());
           }
 
-          // 2. FLAG POPUP FOR LOCAL WEB DASHBOARD
           webAlertMsg = "Device Button: " + reason;
           webAlertTime = millis();
         }
@@ -858,10 +883,13 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     if (!mqttClient.connected()) {
       static unsigned long lastReconnectAttempt = 0;
-      unsigned long now = millis();
-      if (now - lastReconnectAttempt > 5000) {
-        lastReconnectAttempt = now;
-        if (reconnectMQTT()) lastReconnectAttempt = 0;
+      // Wait 10 seconds between attempts so the system can run smoothly
+      if (millis() - lastReconnectAttempt > 10000) {
+        if (reconnectMQTT()) {
+           lastReconnectAttempt = 0; 
+        } else {
+           lastReconnectAttempt = millis(); // Reset timer AFTER the attempt finishes
+        }
       }
     } else {
       mqttClient.loop();
@@ -908,6 +936,7 @@ String getDeviceID() {
 void saveMotorStatus() {
   preferences.begin("pump-control", false);
   preferences.putInt("motor", pumpConfig.motorStatus);
+  preferences.putBool("override", pumpConfig.manualOverride); // Save the override state
   preferences.end();
 }
 
@@ -986,8 +1015,12 @@ void updatePumpLogic() {
   } 
   else if (voltageConfig.status == 0) {
     if (currentMillis - voltageConfig.lastCheck >= GENERAL_INTERVAL) {
-      voltageConfig.waitSeconds--;
+      // Calculate how many actual seconds passed (fixes the bug if the loop ever freezes)
+      int secondsPassed = (currentMillis - voltageConfig.lastCheck) / 1000;
+      voltageConfig.waitSeconds -= secondsPassed;
       voltageConfig.lastCheck = currentMillis;
+
+      if (voltageConfig.waitSeconds < 0) voltageConfig.waitSeconds = 0;
 
       publishState(); 
 
@@ -1013,12 +1046,17 @@ void updatePumpLogic() {
       pumpConfig.motorStatus = 0;
       saveMotorStatus();
     }
+    // If the tank fills up, clear the manual override so normal automatic cycles can resume later
+    if (tankConfig.rawUpperPercentage >= tankConfig.FULL_THRESHOLD && pumpConfig.manualOverride) {
+      pumpConfig.manualOverride = false;
+      saveMotorStatus();
+    }
   }
 
   // Auto Start Logic
-  if (tankConfig.rawUpperPercentage <= TankConfig::LOW_THRESHOLD && !sensorError) {
-    // Check DND Active Status here
-    if (voltageConfig.status == 1 && dryRunConfig.error == 0 && !currentDndActive) {
+  // Check if first reading is done AND check if user manually forced it OFF
+  if (tankConfig.firstReadingDone && tankConfig.rawUpperPercentage <= TankConfig::LOW_THRESHOLD && !sensorError) {
+    if (voltageConfig.status == 1 && dryRunConfig.error == 0 && !currentDndActive && !pumpConfig.manualOverride) {
       if (pumpConfig.motorStatus == 0) {
         pumpConfig.motorStatus = 1;
         dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
@@ -1076,6 +1114,16 @@ void updatePumpLogic() {
       digitalWrite(MOTOR_PIN, LOW);
       pumpConfig.isRunning = false;
       digitalWrite(BUZZER_PIN, LOW);
+
+      // If the tank fills up (e.g., rain) while waiting, cancel the timer immediately.
+      if (tankConfig.rawUpperPercentage >= tankConfig.FULL_THRESHOLD) {
+        dryRunConfig.error = 0;             
+        dryRunConfig.retryCountdown = 0;    
+        dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET; 
+        saveMotorStatus();                  
+        publishState();                     
+        break;                              
+      }
       
       // ONLY run countdown if Auto-Retry is enabled (>0)
       if (dryRunConfig.autoRetryMinutes > 0 && currentMillis - dryRunConfig.lastRetryUpdate >= 1000) {
@@ -1238,7 +1286,16 @@ void updateLCD() {
   while(info.length() < 10) info += " ";
   lcd.setCursor(10, 1); lcd.print(info.substring(0, 10));
 
-  lcd.setCursor(10, 2); lcd.print("          ");
+  // --- CLOUD STATUS DISPLAY (Stable, no blank spaces to cause flickering) ---
+  lcd.setCursor(10, 2); 
+  if (WiFi.status() != WL_CONNECTED) {
+    lcd.print(" OFFLINE  ");
+  } else if (!mqttClient.connected()) {
+    lcd.print(" WAITING  ");
+  } else {
+    lcd.print(" ONLINE   ");
+  }
+  // -------------------------------------------------------------------------
 
   lcd.setCursor(10, 3); 
   if (voltAbnormal) {
@@ -1249,20 +1306,29 @@ void updateLCD() {
   } else {
       lcd.print(" NORMAL   ");
   }
-
 }
 
 // --- MQTT & Web Callbacks ---
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
+
+  // We are using setInsecure(), so NTP time is NOT required for the TLS handshake.
+  // Removing the anti-freeze time check so it connects immediately.
+
   String clientId = "Pump-" + getDeviceID();
+  
+  // Attempt to connect
   if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass, onlineTopic.c_str(), 1, true, "0")) {
     Serial.println("MQTT Connected");
     mqttClient.publish(onlineTopic.c_str(), "1", true);
     mqttClient.subscribe(subTopic.c_str());
     publishState();
     return true;
+  } else {
+    Serial.print("MQTT Connect Failed, rc=");
+    Serial.println(mqttClient.state());
   }
+  
   return false;
 }
 
