@@ -4,7 +4,7 @@ An advanced Automatic Pump Controller with Voltage Protection, Dry-Run Safety, a
 
 ## 🚀 One-Click Web Installer
 You can install the firmware directly from your browser:
-**[👉 Launch Web Installer](https://aungmoekhine.github.io/smart_water_pump-control/)**
+**[👉 Launch Web Installer]([https://aungmoekhine.github.io/smart_water_pump-control/](https://aungmoekhine.github.io/smart_water_pump-control/))**
 *(Note: Replace the link above with your actual GitHub Pages URL once enabled)*
 
 ## 📑 Project Features
@@ -30,4 +30,5 @@ You can install the firmware directly from your browser:
 
 ## 📄 License
 This project is provided for personal and educational use. Developed by **Aung Moe Khine**.
+
 
