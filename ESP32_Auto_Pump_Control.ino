@@ -2,7 +2,9 @@
  * Automatic Pump Control System (ESP32-S3)
  * Features: LCD (I2C), Local Web Control, Cloud Control (MQTT), Physical Button
  * 
- * Target Hardware: ESP32-S3, LCD 2004/1602, Ultrasonic, Flow Sensor
+ * FIXES APPLIED:
+ * 1. NTP Time Sync (Working)
+ * 2. MQTT Handshake Timeout Increased to 60s (Fixes rc=-2 SSL Generic Error)
  */
 
 #include <Arduino.h>
@@ -62,7 +64,7 @@ const char* mqtt_pass = "My_password123";
 // --- FIRMWARE VERSIONING ---
 const int FIRMWARE_VERSION = 1;  
 const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/";
-// -------------------------
+
 // Constants
 #define SAMPLE_BUFFER_SIZE 20
 #define MAX_DISTANCE 84
@@ -177,7 +179,7 @@ unsigned long webAlertTime = 0;
 WiFiUDP dnsUdp;
 const byte DNS_PORT = 53;
 
-// Explicit Function Prototypes to prevent IDE Compilation Errors
+// Explicit Function Prototypes
 void publishState();
 void updatePumpLogic();
 void saveMotorStatus();
@@ -200,10 +202,34 @@ void updateLEDStatus();
 void monitorSensors();
 void monitorButton();
 String processManualToggle();
+void setLedColor(uint8_t r, uint8_t g, uint8_t b);
+
+// --- Time Sync Helper Function ---
+void waitForTimeSync() {
+  Serial.println("Syncing Time via NTP...");
+  configTime(scheduleConfig.timezoneOffset * 3600, 0, "pool.ntp.org", "time.google.com", "time.nist.gov");
+  
+  time_t now = time(nullptr);
+  int retry = 0;
+  while (now < 1600000000 && retry < 25) { 
+    delay(400);
+    Serial.print(".");
+    now = time(nullptr);
+    retry++;
+  }
+  Serial.println();
+  
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo)) {
+    Serial.print("Time Synced: ");
+    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+  } else {
+    Serial.println("Time Sync Failed (Timeout). Proceeding...");
+  }
+}
 
 // --- WiFi & DNS Helper ---
 void processDNS() {
-  // Fix: Stop processing DNS if we aren't an AP anymore to prevent crash
   if (WiFi.getMode() == WIFI_STA) return;
 
   int packetSize = dnsUdp.parsePacket();
@@ -578,6 +604,7 @@ void monitorSensors() {
   static unsigned long lastScan = 0;
   unsigned long now = millis();
 
+  // --- Ultrasonic Sensor Logic ---
   if (now - lastScan >= ULTRASONIC_INTERVAL) {
     if (!upperSensor.isBusy()) upperSensor.start();
   }
@@ -602,16 +629,29 @@ void monitorSensors() {
     lastScan = now;
   }
 
+  // --- Voltage Sensor Logic (FIXED) ---
   static unsigned long lastVoltSample = 0;
   if (now - lastVoltSample >= 500) {
     float v = voltageSensor.getRmsVoltage();
-    if (v > 50.0 && v < 300.0) {
-      if (voltageConfig.currentVoltage < 50.0f) {
-        voltageConfig.currentVoltage = v;
-      } else {
-        voltageConfig.currentVoltage = (0.2 * v) + (0.8 * voltageConfig.currentVoltage);
-      }
+
+    // 1. Noise Filter: If voltage is noise (< 40V), force it to 0.0V
+    if (v < 40.0f) {
+      v = 0.0f;
     }
+    
+    // 2. Glitch Filter: If reading is absurdly high (> 350V), ignore it.
+    if (v < 350.0f) {
+        
+        // 3. Fast Response: If we were at 0V and power comes back, jump immediately
+        if (voltageConfig.currentVoltage < 10.0f && v > 50.0f) {
+            voltageConfig.currentVoltage = v;
+        } 
+        // 4. Smooth Response: Otherwise, use the average (allows value to drop to 0)
+        else {
+            voltageConfig.currentVoltage = (0.2f * v) + (0.8f * voltageConfig.currentVoltage);
+        }
+    }
+    
     lastVoltSample = now;
   }
 }
@@ -714,8 +754,9 @@ void setup() {
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
-      configTime(scheduleConfig.timezoneOffset * 3600, 0, "pool.ntp.org", "time.google.com");
-      Serial.println("NTP Time Sync requested (Offset: " + String(scheduleConfig.timezoneOffset) + ")");
+      
+      // FIX: Wait for NTP sync immediately after WiFi Connects
+      waitForTimeSync(); 
 
       WiFi.mode(WIFI_STA);
       dnsUdp.stop(); 
@@ -759,17 +800,27 @@ void setup() {
     Serial.println("mDNS responder started: http://smartpump.local");
   }
 
+  // --- MQTT TIMEOUT ADJUSTMENTS ---
   espClient.setInsecure();
-  espClient.setHandshakeTimeout(20); 
-  espClient.setTimeout(20);          
+  espClient.setHandshakeTimeout(60); // INCREASED to 60s
+  espClient.setTimeout(60000);       // INCREASED to 60s
+  // --------------------------------
 
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
-  mqttClient.setBufferSize(2048);
+  
+  // FIX: Increased Buffer Size for HiveMQ Cloud (Important!)
+  mqttClient.setBufferSize(4096); 
+  
+  // FIX: Increase Socket Timeout in PubSubClient
+  mqttClient.setSocketTimeout(60);
   mqttClient.setKeepAlive(60);       
-  mqttClient.setSocketTimeout(60);   
 
   Serial.println("System Initialized. Device ID: " + deviceID);
+
+  // ADD THIS LINE HERE:
+  Serial.println("Stabilizing Network before MQTT...");
+  delay(3000); // Wait 3 seconds to let WiFi/SSL stack settle
 }
 
 // ----------------------------------------------------------------------------
@@ -981,7 +1032,6 @@ void updateLEDStatus() {
 }
 
 // --- Pump Controller Implementation ---
-
 void updatePumpLogic() {
   unsigned long currentMillis = millis();
 
@@ -1245,7 +1295,7 @@ void updateLCD() {
     } else {
       int m = (dryRunConfig.retryCountdown + 59) / 60; 
       char buf[11];
-      snprintf(buf, sizeof(buf), "WAIT %02d M", m);
+      snprintf(buf, sizeof(buf), " WAIT %02d M", m);
       info = String(buf);
     }
   }
@@ -1281,27 +1331,49 @@ void updateLCD() {
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
 
+  // Check and Sync Time before Secure Connection
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo, 0) || timeinfo.tm_year < 120) {
-    Serial.println("MQTT Wait: Syncing internet time (Currently 1970)...");
-    return false; 
+    Serial.println("MQTT Blocked: System time invalid (1970). Forcing Sync...");
+    waitForTimeSync(); // Try to sync again
+    
+    // Check again after forced sync
+    if (!getLocalTime(&timeinfo, 0) || timeinfo.tm_year < 120) {
+       Serial.println("MQTT Failed: Time still invalid.");
+       return false;
+    }
   }
 
   String clientId = "Pump-" + getDeviceID();
   
+  Serial.print("Attempting MQTT connection to HiveMQ... ");
+
+  // Ensure any previous half-open connections are closed
+  espClient.stop(); 
+
   disableLoopWDT(); 
   bool isConnected = mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass, onlineTopic.c_str(), 1, true, "0");
   enableLoopWDT();
 
   if (isConnected) {
-    Serial.println("MQTT Connected Successfully!");
+    Serial.println("Connected!");
     mqttClient.publish(onlineTopic.c_str(), "1", true);
     mqttClient.subscribe(subTopic.c_str());
     publishState();
     return true;
   } else {
-    Serial.print("MQTT Connect Failed, rc=");
-    Serial.println(mqttClient.state());
+    Serial.print("Failed, rc=");
+    Serial.print(mqttClient.state());
+    
+    // DEBUG: Print underlying SSL Error
+    char errBuf[128];
+    int err = espClient.lastError(errBuf, sizeof(errBuf));
+    if(err != 0) {
+      Serial.print(" SSL Error: ");
+      Serial.println(errBuf);
+    } else {
+      Serial.println(" (Unknown Reason)");
+    }
   }
   
   return false;
