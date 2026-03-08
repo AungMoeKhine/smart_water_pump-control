@@ -2,6 +2,7 @@
  * Automatic Pump Control System (ESP32-S3) - DUAL CORE FINAL EDITION
  * Features: LCD (I2C), Local Web Control, Cloud Control (MQTT), Physical Button
  * Added: License System (File Upload + Text Paste + Admin Backdoor)
+ * Update: Added License Banners to Settings Page.
  * 
  * Core 1 (Main Loop): Real-time Hardware Control (Sensors, Pump, Button, LCD)
  * Core 0 (Task):      Network Control (WiFi, HiveMQ MQTT, OTA)
@@ -447,6 +448,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 </script></body></html>
 )rawliteral";
 
+
 const char settings_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
@@ -478,6 +480,13 @@ const char settings_html[] PROGMEM = R"rawliteral(
   .btn:active { transform: scale(0.98); opacity: 0.9; }
   hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
 </style></head><body>
+
+  <div id="expiryBanner" style="display:none; background:#dc3545; color:white; padding:12px; border-radius:12px; margin-bottom:15px; font-weight:bold; max-width:440px; margin:0 auto 15px auto;">
+      ⚠️ SYSTEM EXPIRED ⚠️<br><span style="font-size:0.8rem; font-weight:normal">Pump operations are disabled.</span>
+  </div>
+  <div id="warnBanner" style="display:none; background:#ffc107; color:#333; padding:12px; border-radius:12px; margin-bottom:15px; font-weight:bold; max-width:440px; margin:0 auto 15px auto;">
+      ⚠️ SUBSCRIPTION ENDING SOON ⚠️<br><span style="font-size:0.8rem; font-weight:normal" id="warnMsg"></span>
+  </div>
 
   <div class="tabs">
     <a href="/" class="tab tab-inactive">🏠 Home</a>
@@ -589,6 +598,21 @@ const char settings_html[] PROGMEM = R"rawliteral(
       let ota=document.getElementById('otaHub');
       if(d.ota){ ota.style.display='block'; document.getElementById('otaMsg').innerText='New Version ' + d.nVer + ' Available!'; }
       else{ ota.style.display='none'; }
+
+      // Banner Logic Added Here
+      if(d.expired) {
+          document.getElementById('expiryBanner').style.display = 'block';
+          document.getElementById('warnBanner').style.display = 'none';
+      } else {
+          document.getElementById('expiryBanner').style.display = 'none';
+          if(d.daysLeft <= 7 && d.daysLeft >= 0) {
+              document.getElementById('warnBanner').style.display = 'block';
+              document.getElementById('warnMsg').innerText = d.daysLeft + " days remaining.";
+          } else {
+              document.getElementById('warnBanner').style.display = 'none';
+          }
+      }
+
     }).catch(e=>{ 
       document.getElementById('dot').className='conn-dot off'; 
       document.getElementById('cStat').innerText='Device: Offline (Connecting...)'; 
