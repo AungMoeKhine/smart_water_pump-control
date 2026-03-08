@@ -158,6 +158,12 @@
             background: #6f42c1;
         }
 
+        .btn-grey {
+            background: #555;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+
         /* --- TANK STYLES --- */
         .tank-wrap {
             width: 140px;
@@ -382,6 +388,28 @@
             font-size: 1.1rem;
             transition: background 0.2s;
         }
+
+        /* Banners */
+        .banner {
+            padding: 12px;
+            border-radius: 12px;
+            margin: 0 auto 15px auto;
+            font-weight: bold;
+            max-width: 400px;
+            display: none;
+        }
+
+        .banner-red {
+            background: #dc3545;
+            color: white;
+            border: 2px solid #ff6b6b;
+        }
+
+        .banner-yellow {
+            background: #ffc107;
+            color: #333;
+            border: 2px solid #ffca2c;
+        }
     </style>
 </head>
 
@@ -414,6 +442,16 @@
 
     <!-- DASHBOARD -->
     <div id="dashboard" style="display:none;">
+
+        <!-- LICENSE BANNERS -->
+        <div id="expiryBanner" class="banner banner-red">
+            ⚠️ SYSTEM EXPIRED ⚠️<br><span style="font-size:0.8rem; font-weight:normal">Pump operations are
+                disabled.</span>
+        </div>
+        <div id="warnBanner" class="banner banner-yellow">
+            ⚠️ SUBSCRIPTION ENDING SOON ⚠️<br><span style="font-size:0.8rem; font-weight:normal" id="warnMsg"></span>
+        </div>
+
         <div class="tabs">
             <div id="tabHome" class="tab tab-active" onclick="showTab('home')">🏠 Home</div>
             <div id="tabSettings" class="tab tab-inactive" onclick="showTab('settings')">⚙️ Settings</div>
@@ -508,6 +546,28 @@
                 <select id="tzOf"></select>
                 <button class="btn btn-green" onclick="sendSave()">Save & Reboot</button>
                 <hr>
+
+                <!-- LICENSE MANAGEMENT -->
+                <div
+                    style="background:rgba(3,239,98,0.05); border:1px solid #28a745; border-radius:12px; padding:15px; margin-bottom:20px;">
+                    <h3 style="color:#28a745; margin:0 0 10px 0;">🔑 License Management</h3>
+                    <div style="font-size:0.8rem; margin-bottom:10px; color:#aaa;">Status: <span id="licStat"
+                            style="color:white; font-weight:bold;">Unknown</span></div>
+
+                    <div class="lbl-wrap"><label>Upload Token File (.key)</label></div>
+                    <input type="file" id="licFile" accept=".key,.txt"
+                        style="padding:8px; font-size:0.9rem; background:#121212; border:1px solid #333; margin-bottom:5px;">
+                    <button class="btn btn-green" style="margin-top:5px; padding:10px;"
+                        onclick="uploadLicenseFile()">Upload File</button>
+
+                    <div style="color:#666; margin:10px 0; font-size:0.9rem;">- OR -</div>
+
+                    <div class="lbl-wrap"><label>Paste Token String</label></div>
+                    <input type="text" id="licText" placeholder="Paste MTc... string here" style="margin-bottom:5px;">
+                    <button class="btn btn-purple" style="margin-top:5px; padding:10px;"
+                        onclick="uploadLicenseText()">Activate via Text</button>
+                </div>
+
                 <div style="text-align:center;">
                     <h3 style="color:#6f42c1; margin:0 0 15px 0;">🛠️ Maintenance</h3>
                     <div id="otaHubS"
@@ -544,6 +604,7 @@
         let activeTab = 'home';
         let localRetryCd = 0;
         let localCdInterval = null;
+        let isExpired = false;
 
         // Populate selects
         const uH = document.getElementById('uH');
@@ -628,6 +689,7 @@
         }
         function startOTA() { if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
         function sendSave() {
+            if (isExpired) { showModal("License Expired. Cannot save settings."); return; }
             const ssid = document.getElementById('ssid').value.trim();
             if (!ssid) { alert("SSID cannot be empty! Please wait for the dashboard to sync or enter the WiFi name."); return; }
             if (!confirm("Save settings and reboot device?")) return;
@@ -650,6 +712,40 @@
             document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device. This may take up to 20 seconds...</span></h2>';
             setTimeout(() => location.reload(), 20000);
         }
+
+        function uploadLicenseFile() {
+            const fileInput = document.getElementById('licFile');
+            if (fileInput.files.length === 0) { alert("Please select a .key file first."); return; }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const token = e.target.result.trim();
+                sendLicense(token);
+            };
+            reader.readAsText(file);
+        }
+
+        function uploadLicenseText() {
+            const val = document.getElementById('licText').value.trim();
+            if (val.length < 10) { alert("Invalid token string."); return; }
+            sendLicense(val);
+        }
+
+        function sendLicense(token) {
+            if (token.length > 10) {
+                sendCmd({ lic: token });
+                alert("License Token Sent! The device will send back a confirmation shortly.");
+                // Clear inputs after a short delay
+                setTimeout(() => {
+                    document.getElementById('licFile').value = "";
+                    document.getElementById('licText').value = "";
+                }, 500);
+            } else {
+                alert("Invalid license content.");
+            }
+        }
+
         function sendCmd(p) {
             if (!client || !client.isConnected()) return;
             p.pin = devicePin;
@@ -685,6 +781,27 @@
                 document.getElementById('dndBadgeC').style.display = d.dndAct ? 'block' : 'none';
             }
 
+            // License Logic
+            isExpired = d.expired ? true : false;
+            const expBanner = document.getElementById('expiryBanner');
+            const warnBanner = document.getElementById('warnBanner');
+            const licStat = document.getElementById('licStat');
+
+            if (isExpired) {
+                expBanner.style.display = 'block';
+                warnBanner.style.display = 'none';
+                licStat.innerHTML = '<span style="color:#ff4d4d">EXPIRED</span>';
+            } else {
+                expBanner.style.display = 'none';
+                if (d.daysLeft <= 7 && d.daysLeft >= 0) {
+                    warnBanner.style.display = 'block';
+                    document.getElementById('warnMsg').innerText = d.daysLeft + " days remaining.";
+                } else {
+                    warnBanner.style.display = 'none';
+                }
+                licStat.innerHTML = '<span style="color:#28a745">Active (' + d.daysLeft + ' days left)</span>';
+            }
+
             const tankFill = document.getElementById('tankFill');
             if (!tankFill || activeTab === 'saving') return;
             tankFill.style.height = (d.tank || 0) + '%';
@@ -699,7 +816,19 @@
             const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset');
             if (d.err) { btn.style.display = 'none'; rst.style.display = 'block'; }
             else if (d.sErr && !d.ack) { btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = "Reset Alarm"; btn.className = "btn btn-red"; }
-            else { btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = d.pStat == "ON" ? 'Stop Pump' : 'Start Pump'; btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green"); }
+            else {
+                btn.style.display = 'block';
+                rst.style.display = 'none';
+                if (isExpired) {
+                    btn.innerText = "LICENSE EXPIRED";
+                    btn.className = "btn btn-grey";
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                    btn.innerText = d.pStat == "ON" ? 'Stop Pump' : 'Start Pump';
+                    btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green");
+                }
+            }
 
             // UI Local Countdown logic to avoid MQTT Flooding
             const cdRow = document.getElementById('cdRow');
