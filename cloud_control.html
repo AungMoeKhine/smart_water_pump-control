@@ -351,7 +351,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             padding: 25px;
-            border-left: 5px solid #ff4d4d;
+            border-left: 5px solid #ffc107;
+            /* Updated to yellow */
             border-radius: 8px;
             width: 85%;
             max-width: 320px;
@@ -361,7 +362,8 @@
         }
 
         .modal-title {
-            color: #ff4d4d;
+            color: #ffc107;
+            /* Updated to yellow */
             font-size: 1.3rem;
             margin: 0 0 10px 0;
             display: flex;
@@ -414,11 +416,11 @@
 </head>
 
 <body>
-    <!-- SAFETY WARNING POPUP -->
+    <!-- SYSTEM NOTICE POPUP -->
     <div id="warnModal" class="modal">
         <div class="modal-content">
-            <h3 class="modal-title"><span>⚠️</span> Action Blocked</h3>
-            <div id="warnText" class="modal-text">Safety protocols prevented this action.</div>
+            <h3 class="modal-title"><span>🔔</span> System Notice</h3>
+            <div id="warnText" class="modal-text">System processing...</div>
             <button class="modal-close" onclick="closeModal()">Understood</button>
         </div>
     </div>
