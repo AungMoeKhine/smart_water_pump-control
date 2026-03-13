@@ -335,7 +335,12 @@ const char index_html[] PROGMEM = R"rawliteral(
   .tank-inner { position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 10px; overflow: hidden; z-index: 2; }
   .tank-ridges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
   .tank-ridges::after { content: ''; position: absolute; left: -4px; right: -4px; top: 25%; height: 2px; background: rgba(0, 0, 0, 0.35); box-shadow: 0 45px 0 rgba(0, 0, 0, 0.35), 0 90px 0 rgba(0, 0, 0, 0.35); }
-  .tank-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(90deg, #0277bd 0%, #039be5 50%, #0277bd 100%); transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); height: 0%; }
+  .tank-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: #039be5; transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); height: 0%; overflow: visible; }
+  .tank-fill::before, .tank-fill::after { content: ''; position: absolute; left: 0; width: 200%; height: 25px; opacity: 0; transition: opacity 0.5s; background-repeat: repeat-x; background-size: 50% 100%; top: -15px; }
+  .tank-fill::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2387CEFA' opacity='0.7'/%3E%3C/svg%3E"); animation: wave 4s linear infinite; z-index: 1; }
+  .tank-fill::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23039be5'/%3E%3C/svg%3E"); animation: wave 3s linear infinite reverse; z-index: 2; margin-top: 2px; }
+  .tank-fill.pumping::before, .tank-fill.pumping::after { opacity: 1; }
+  @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   .tank-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.6rem; color: #fff; z-index: 4; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
   
   .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
@@ -387,16 +392,16 @@ const char index_html[] PROGMEM = R"rawliteral(
     Device IP: <span id="dip">--</span>
   </div>
 <script>
-  function showModal(msg) { document.getElementById('warnText').innerText = msg; document.getElementById('warnModal').style.display = 'block'; }
-  function closeModal() { document.getElementById('warnModal').style.display = 'none'; }
-  function togglePump() { fetch('/toggle').then(r=>r.json()).then(d=>{ if(d.status === 'blocked') showModal(d.reason); else upd(); }).catch(e=>{}); }
-  function resetPump() { fetch('/reset').then(r=>r.json()).then(d=>{ if(d.status === 'blocked') showModal(d.reason); else upd(); }).catch(e=>{}); }
-  function checkOTA() { window.location.href = '/update_github'; }
-  function startOTA() { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating... Please wait.</h2>'; }); }
-  function rfr() { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); }
+  const showModal = (msg) => { document.getElementById('warnText').innerText = msg; document.getElementById('warnModal').style.display = 'block'; };
+  const closeModal = () => { document.getElementById('warnModal').style.display = 'none'; };
+  const togglePump = () => { fetch('/toggle').then(r=>r.json()).then(d=>{ if(d.status === 'blocked') showModal(d.reason); else upd(); }).catch(e=>{}); };
+  const resetPump = () => { fetch('/reset').then(r=>r.json()).then(d=>{ if(d.status === 'blocked') showModal(d.reason); else upd(); }).catch(e=>{}); };
+  const checkOTA = () => { window.location.href = '/update_github'; };
+  const startOTA = () => { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating... Please wait.</h2>'; }); };
+  const rfr = () => { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); };
   
   let lastWebAlert = ""; 
-  function upd() { return fetch('/status').then(r=>r.json()).then(d=>{
+  const upd = () => { return fetch('/status').then(r=>r.json()).then(d=>{
       document.getElementById('dot').className='conn-dot'; document.getElementById('cStat').innerText='Device: Online';
       document.getElementById('dip').innerText = d.ip; document.getElementById('tankFill').style.height = d.tank + '%';
       document.getElementById('tankVal').innerText = d.tStr; if (document.getElementById('cid')) document.getElementById('cid').innerText = d.id;
@@ -407,6 +412,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       if(d.err){rst.style.display='block';btn.style.display='none';} 
       else if(d.sErr && !d.ack){btn.style.display='block';rst.style.display='none';btn.innerText='Reset Alarm';btn.className='btn btn-red';}
       else{rst.style.display='none';btn.style.display='block'; btn.innerText=d.pStat=="ON"?'Stop the Pump':'Start the Pump'; btn.className=d.pStat=="ON"?'btn btn-red':'btn btn-green';}
+      
+      let tf = document.getElementById('tankFill');
+      if (d.pStat == "ON") tf.classList.add('pumping'); else tf.classList.remove('pumping');
       
       let cd=document.getElementById('cdRow');
       if(d.err == 2 && d.rM > 0) {
@@ -569,14 +577,14 @@ const char settings_html[] PROGMEM = R"rawliteral(
   </div>
 
 <script>
-  function togglePass(id) { var x = document.getElementById(id); if (x.type === "password") x.type = "text"; else x.type = "password"; }
-  function chSS(s) { var m = document.getElementById('mi'); if(s.value === '__man__') { m.style.display='block'; m.required=true; } else { m.style.display='none'; m.required=false; } }
-  function scn() { if(!confirm('Scan for WiFi networks?')) return; fetch('/scan').then(()=>alert('Scan started. This takes about 5-10 seconds. Refreshing list...')).then(()=>setTimeout(()=>location.reload(),6000)); }
-  function checkOTA() { window.location.href = '/update_github'; }
-  function startOTA() { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating...</h2>'; }); }
+  const togglePass = (id) => { var x = document.getElementById(id); if (x.type === "password") x.type = "text"; else x.type = "password"; };
+  const chSS = (s) => { var m = document.getElementById('mi'); if(s.value === '__man__') { m.style.display='block'; m.required=true; } else { m.style.display='none'; m.required=false; } };
+  const scn = () => { if(!confirm('Scan for WiFi networks?')) return; fetch('/scan').then(()=>alert('Scan started. This takes about 5-10 seconds. Refreshing list...')).then(()=>setTimeout(()=>location.reload(),6000)); };
+  const checkOTA = () => { window.location.href = '/update_github'; };
+  const startOTA = () => { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating...</h2>'; }); };
   
-  function rfr() { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); }
-  function upd() { 
+  const rfr = () => { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); };
+  const upd = () => { 
     return fetch('/status').then(r=>r.json()).then(d=>{
       document.getElementById('dot').className='conn-dot'; 
       document.getElementById('cStat').innerText='Device: Online';
@@ -722,23 +730,37 @@ void monitorSensors() {
     lastScan = now;
   }
 
+  // --- Read AC Voltage ---
   static unsigned long lastVoltSample = 0;
   if (now - lastVoltSample >= 500) {
     float v = voltageSensor.getRmsVoltage();
-    if (v < 40.0f) v = 0.0f;
-    if (v < 350.0f) {
-      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-        if (voltageConfig.currentVoltage < 10.0f && v > 50.0f) {
-          voltageConfig.currentVoltage = v;
+
+    // 1. Safety Catch: If the pin is floating/unplugged and math fails, force it to 0
+    if (isnan(v)) {
+      v = 0.0f;
+    }
+
+    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+
+      if (v < 40.0f) {
+        // 2. Instant Drop: If power is cut or unplugged, snap instantly to 0V.
+        // Do not use the moving average filter, trigger the "UNDER" alarm immediately!
+        voltageConfig.currentVoltage = 0.0f;
+      } else if (v < 350.0f) {
+        // 3. Normal Operation: Apply the smooth filter
+        if (voltageConfig.currentVoltage < 10.0f) {
+          voltageConfig.currentVoltage = v;  // Snap up instantly when power returns
         } else {
           voltageConfig.currentVoltage = (0.2f * v) + (0.8f * voltageConfig.currentVoltage);
         }
-        xSemaphoreGiveRecursive(systemMutex);
       }
+
+      xSemaphoreGiveRecursive(systemMutex);
     }
     lastVoltSample = now;
   }
 }
+
 
 // ============================================================================
 // SYSTEM SETUP
@@ -790,7 +812,7 @@ void setup() {
 
   rgbLed.begin();
   rgbLed.setBrightness(30);
-  voltageSensor.setSensitivity(473.5f);
+  voltageSensor.setSensitivity(526.2500000000f);
 
   Serial.println("Running Initial Hardware Safety Check...");
   for (int i = 0; i < 10; i++) {
