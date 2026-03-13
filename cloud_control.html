@@ -220,9 +220,45 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background: linear-gradient(90deg, #0277bd 0%, #039be5 50%, #0277bd 100%);
+            background: #039be5;
             transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
             height: 0%;
+            overflow: visible;
+        }
+
+        .tank-fill::before, .tank-fill::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 200%;
+            height: 25px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            background-repeat: repeat-x;
+            background-size: 50% 100%;
+            top: -15px;
+        }
+
+        .tank-fill::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2387CEFA' opacity='0.7'/%3E%3C/svg%3E");
+            animation: wave 4s linear infinite;
+            z-index: 1;
+        }
+
+        .tank-fill::after {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23039be5'/%3E%3C/svg%3E");
+            animation: wave 3s linear infinite reverse;
+            z-index: 2;
+            margin-top: 2px;
+        }
+        
+        .tank-fill.pumping::before, .tank-fill.pumping::after {
+            opacity: 1;
+        }
+        
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         .tank-ridges {
@@ -807,6 +843,8 @@
             const tankFill = document.getElementById('tankFill');
             if (!tankFill || activeTab === 'saving') return;
             tankFill.style.height = (d.tank || 0) + '%';
+            if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');
+            
             document.getElementById('tankVal').innerText = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
             document.getElementById('volt').innerText = (d.volt || "--") + " V";
             document.getElementById('vstat').innerText = d.vStat || "--";
