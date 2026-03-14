@@ -341,7 +341,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   .tank-fill::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23039be5'/%3E%3C/svg%3E"); animation: wave 3s linear infinite reverse; z-index: 2; margin-top: 2px; }
   .tank-fill.pumping::before, .tank-fill.pumping::after { opacity: 1; }
   @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-  .tank-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.6rem; color: #fff; z-index: 4; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+  .tank-glaze { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%); border-radius: 10px; }
+  .tank-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.6rem; color: #fff; z-index: 6; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
   
   .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
   .modal-content { background-color: #1e1e1e; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; border-left: 5px solid #ffc107; border-radius: 8px; width: 85%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: left; box-sizing: border-box; }
@@ -374,7 +375,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         🌙 DND Active
       </div>
     </h2>
-    <div class="tank-wrap"><div class="tank-inner"><div class="tank-fill" id="tankFill"></div></div><div class="tank-ridges"></div><div class="tank-text" id="tankVal">-- %</div></div>
+    <div class="tank-wrap"><div class="tank-inner"><div class="tank-fill" id="tankFill"></div><div class="tank-glaze"></div></div><div class="tank-ridges"></div><div class="tank-text" id="tankVal">-- %</div></div>
     <div class="row"><span>Voltage:</span><span id="volt">-- V</span></div>
     <div class="row"><span>Volt Status:</span><span id="vstat">--</span></div>
     <div class="row"><span>Pump:</span><span id="state">--</span></div>
@@ -483,6 +484,21 @@ const char settings_html[] PROGMEM = R"rawliteral(
   .btn{width:100%;padding:15px;background:#28a745;color:white;border:none;border-radius:8px;margin-top:25px;font-weight:bold;cursor:pointer;font-size:1.1rem;}
   .btn:active { transform: scale(0.98); opacity: 0.9; }
   hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
+  
+  /* --- TANK STYLES (MATCH HOME) --- */
+  .tank-wrap { width: 140px; height: 180px; border: 4px solid #333; border-radius: 15px; margin: 30px auto; position: relative; background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%); overflow: visible; }
+  .tank-wrap::before { content: ''; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 80px; height: 14px; background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%); border-left: 4px solid #333; border-right: 4px solid #333; z-index: 1; }
+  .tank-wrap::after { content: ''; position: absolute; top: -24px; left: 50%; transform: translateX(-50%); width: 100px; height: 10px; background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%); border: 3px solid #333; border-radius: 4px; z-index: 5; }
+  .tank-inner { position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 10px; overflow: hidden; z-index: 2; }
+  .tank-ridges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+  .tank-ridges::after { content: ''; position: absolute; left: -4px; right: -4px; top: 25%; height: 2px; background: rgba(0, 0, 0, 0.35); box-shadow: 0 45px 0 rgba(0, 0, 0, 0.35), 0 90px 0 rgba(0, 0, 0, 0.35); }
+  .tank-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: #039be5; transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); height: 0%; overflow: visible; }
+  .tank-fill::before, .tank-fill::after { content: ''; position: absolute; left: 0; width: 200%; height: 25px; opacity: 0; transition: opacity 0.5s; background-repeat: repeat-x; background-size: 50% 100%; top: -15px; }
+  .tank-fill::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2387CEFA' opacity='0.7'/%3E%3C/svg%3E"); animation: wave 4s linear infinite; z-index: 1; }
+  .tank-fill::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23039be5'/%3E%3C/svg%3E"); animation: wave 3s linear infinite reverse; z-index: 2; margin-top: 2px; }
+  @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .tank-glaze { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%); border-radius: 10px; }
+  .tank-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.6rem; color: #fff; z-index: 6; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
 </style></head><body>
 
   <div id="expiryBanner" style="display:none; background:#dc3545; color:white; padding:12px; border-radius:12px; margin-bottom:15px; font-weight:bold; max-width:440px; margin:0 auto 15px auto;">
@@ -537,6 +553,8 @@ const char settings_html[] PROGMEM = R"rawliteral(
       <select name="tzOf">%TZ_LIST%</select>
       <button type="submit" class="btn">Save & Reboot</button>
     </form>
+    <hr>
+    <div class="tank-wrap"><div class="tank-inner"><div class="tank-fill" id="tankFill"></div><div class="tank-glaze"></div></div><div class="tank-ridges"></div><div class="tank-text" id="tankVal">-- %</div></div>
     <hr>
     
     <div style="text-align:center;">
@@ -622,7 +640,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
 class NonBlockingUltrasonic {
 private:
   int trigPin, echoPin;
-  static const int NUM_SAMPLES = 10;
+  static const int NUM_SAMPLES = 20;
   static const unsigned long SAMPLE_INTERVAL_MS = 60;
   static const unsigned long MAX_PULSE_DURATION = 20000;
 
@@ -712,13 +730,26 @@ void monitorSensors() {
 
     if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
       if (dist > 0) {
-        tankConfig.firstReadingDone = true;
-        tankConfig.upperDistance = dist;
         tankConfig.upperInvalidCount = 0;
         tankConfig.errorAck = false;
+        
+        // --- Adaptive Snap with True Deadzone ---
+        // 1. If the change is small (< 0.3"), it's likely noise or dummy-load jitter.
+        //    We do NOT update the value at all, keeping it 100% frozen.
+        // 2. If the change is large (> 0.3"), we snap to the new value instantly (Alpha 0.9).
+        float diff = abs(dist - tankConfig.upperDistance);
+        
+        if (!tankConfig.firstReadingDone) {
+          tankConfig.upperDistance = dist;
+          tankConfig.firstReadingDone = true;
+        } else if (diff > 0.3f) {
+           // Significant change detected -> Snap quickly
+          tankConfig.upperDistance = (0.9f * dist) + (0.1f * tankConfig.upperDistance);
+        }
+        // Else: No update. Distance stays exactly the same as previous (Rock Solid stability).
 
         float effectiveHeight = tankConfig.upperHeight + TankConfig::BUFFER_HEIGHT;
-        tankConfig.rawUpperPercentage = ((effectiveHeight - dist) * 100) / effectiveHeight;
+        tankConfig.rawUpperPercentage = ((effectiveHeight - tankConfig.upperDistance) * 100) / effectiveHeight;
         tankConfig.rawUpperPercentage = constrain(tankConfig.rawUpperPercentage, 0, 100);
         tankConfig.displayUpperPercentage = map(tankConfig.rawUpperPercentage, 0, tankConfig.FULL_THRESHOLD, 0, 100);
         tankConfig.displayUpperPercentage = constrain(tankConfig.displayUpperPercentage, 0, 100);
