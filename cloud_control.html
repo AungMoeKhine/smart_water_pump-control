@@ -261,6 +261,18 @@
             100% { transform: translateX(-50%); }
         }
 
+        .tank-glaze {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+            border-radius: 10px;
+        }
+
         .tank-ridges {
             position: absolute;
             top: 0;
@@ -290,7 +302,7 @@
             font-weight: bold;
             font-size: 1.6rem;
             color: #fff;
-            z-index: 4;
+            z-index: 6;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
@@ -513,6 +525,7 @@
                 <div class="tank-wrap">
                     <div class="tank-inner">
                         <div id="tankFill" class="tank-fill"></div>
+                        <div class="tank-glaze"></div>
                     </div>
                     <div class="tank-ridges"></div>
                     <div id="tankVal" class="tank-text">-- %</div>
