@@ -639,6 +639,9 @@
             <div id="lastMsg" style="margin-bottom:8px;">Waiting for first sync...</div>
             <span>Cloud ID: <span id="dispCid">--</span></span><br>
             <span>Device IP: <span id="dispIp">--</span></span>
+            <div style="margin-top: 15px;">
+                <button class="btn" style="padding: 10px 20px; font-size: 0.95rem; width: auto; min-width: 120px; background: #007bff;" onclick="logout()">Logout</button>
+            </div>
         </div>
     </div>
 
@@ -652,6 +655,7 @@
 
         let client, deviceID, devicePin, pollInterval, watchdog;
         let dataReceived = false;
+        let isConnecting = false;
         let activeTab = 'home';
         let localRetryCd = 0;
         let localCdInterval = null;
@@ -689,9 +693,11 @@
         function closeModal() { document.getElementById('warnModal').style.display = 'none'; }
 
         function connect() {
+            if (isConnecting) return;
+            isConnecting = true;
             deviceID = document.getElementById('devID').value.trim().toUpperCase();
             devicePin = document.getElementById('devPin').value.trim();
-            if (deviceID.length < 5) { alert("Invalid ID"); return; }
+            if (deviceID.length < 5) { alert("Invalid ID"); isConnecting = false; return; }
             localStorage.setItem("cloudPumpID", deviceID);
             localStorage.setItem("cloudPumpPin", devicePin);
             const btnLogin = document.getElementById('btnLogin');
@@ -709,6 +715,7 @@
                             const err = document.getElementById('loginError'); err.innerText = data.reason; err.style.display = 'block';
                             btnLogin.innerText = "Connect"; btnLogin.disabled = false; client.disconnect();
                         } else { showModal(data.reason || data.alert); if (data.alert === "Access Denied") setTimeout(() => location.reload(), 3000); }
+                        isConnecting = false;
                         return;
                     }
                     if (!dataReceived) { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; }
@@ -716,21 +723,54 @@
                     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
                 } catch (e) { console.error(e); }
             };
-            client.onConnectionLost = (e) => { updateOnlineStatus(false); dataReceived = false; if (e.errorCode !== 0) setTimeout(connect, 3000); };
+            client.onConnectionLost = (e) => { 
+                updateOnlineStatus(false); 
+                dataReceived = false; 
+                isConnecting = false; 
+                if (e.errorCode !== 0) {
+                    console.log("Connection lost. Retrying in 3s...");
+                    setTimeout(connect, 3000); 
+                }
+            };
             client.connect({
                 useSSL: true, userName: USER, password: PASS,
                 onSuccess: () => {
+                    isConnecting = false;
                     btnLogin.innerText = "Syncing...";
                     const baseTopic = `smartpump/${deviceID}`;
                     client.subscribe(`${baseTopic}/status`); client.subscribe(`${baseTopic}/online`);
                     dataReceived = false; resetWatchdog(); setTimeout(requestData, 500);
                     pollInterval = setInterval(() => { if (!dataReceived) requestData(); else clearInterval(pollInterval); }, 2000);
                 },
-                onFailure: (e) => { alert(e.errorMessage); btnLogin.innerText = "Connect"; btnLogin.disabled = false; }
+                onFailure: (e) => { 
+                    isConnecting = false;
+                    alert("Connection failed: " + e.errorMessage); 
+                    btnLogin.innerText = "Connect"; btnLogin.disabled = false; 
+                    [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.remove('spinning'));
+                }
             });
         }
 
-        function requestData() { if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } }
+        function requestData() {
+            if (client && client.isConnected()) {
+                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning'));
+                sendCmd({ get: 1 });
+            } else {
+                // Not connected? Attempt to reconnect
+                console.log("Offline. Attempting reconnection...");
+                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning'));
+                connect();
+            }
+        }
+
+        function logout() {
+            if (confirm("Are you sure you want to logout?")) {
+                if (client && client.isConnected()) {
+                    try { client.disconnect(); } catch (e) {}
+                }
+                location.reload();
+            }
+        }
         function sendToggle() { sendCmd({ toggle: 1 }); }
         function checkOTA(btn) {
             const oldText = btn ? btn.innerText : "Check for Updates";
