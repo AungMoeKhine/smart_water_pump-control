@@ -2133,6 +2133,7 @@ String generateStatusJson() {
   doc["dD"] = dryRunConfig.WAIT_SECONDS_SET;
   doc["ssid"] = ssid_saved;
   doc["lang"] = sysLang;
+  doc["opM"] = compConfig.opMode;
 
   // Myanmar Language Translations
   if (sysLang == 1) {
