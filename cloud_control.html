@@ -841,7 +841,20 @@
         function requestData() { if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } else { connect(); } }
         function logout() { if (confirm("Are you sure you want to logout?")) { if (client && client.isConnected()) { try { client.disconnect(); } catch (e) { } } location.reload(); } }
         function sendToggle() { sendCmd({ toggle: 1 }); }
-        function checkOTA(btn) { const oldText = btn ? btn.innerText : (sysLang == 1 ? "ဗားရှင်း အသစ်စစ်ရန်" : "Check for Updates"); if (btn) { btn.innerText = sysLang == 1 ? "စစ်ဆေးနေသည်..." : "Checking..."; btn.disabled = true; } sendCmd({ otaCheck: 1 }); setTimeout(() => { if (btn) { btn.innerText = oldText; btn.disabled = false; } }, 4000); }
+        function checkOTA(btn) {
+            const oldText = sysLang == 1 ? "ဗားရှင်း အသစ်စစ်ရန်" : "Check for Updates";
+            btn.innerText = sysLang == 1 ? "စစ်ဆေးနေသည်..." : "Checking...";
+            btn.disabled = true;
+
+            // Send command to ESP32
+            sendCmd({ otaCheck: 1 });
+
+            // Set a timeout to reset the button if the ESP32 doesn't respond
+            setTimeout(() => {
+                btn.innerText = oldText;
+                btn.disabled = false;
+            }, 10000); // 10 seconds is usually enough for HTTPS check
+        }
         function startOTA() { if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
         function sendSave() {
             if (isExpired) { showModal("License Expired. Cannot save settings."); return; }
