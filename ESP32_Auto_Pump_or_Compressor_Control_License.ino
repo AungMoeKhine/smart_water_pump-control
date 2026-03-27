@@ -38,7 +38,7 @@ const int UPPER_TANK_ECHO_PIN = 6;
 const int BUZZER_PIN = 7;
 const int MOTOR_PIN = 8;
 const int MANUAL_BTN_PIN = 9;
-const int SOLENOID_PIN = 10;  // NEW: Solenoid Valve Relay Pin
+const int SOLENOID_PIN = 10;
 const int FLOW_SENSOR_PIN = 18;
 const int RGB_LED_PIN = 48;
 
@@ -332,8 +332,9 @@ const char index_html[] PROGMEM = R"rawliteral(
   .row{display:flex;justify-content:space-between;font-size:1.1rem;margin:12px 0;border-bottom:1px solid #333;padding-bottom:10px;}
   .btn{width:100%;padding:15px;color:white;background:#03ef;border:none;border-radius:8px;margin-top:10px;font-weight:bold;cursor:pointer;font-size:1.1rem; transition: background 0.3s;}
   .btn:active, .refresh-btn:active{transform:scale(0.96);opacity:0.85;}
-  .btn-green{background:#28a745;}
-  .btn-red{background:#dc3545;}
+  .btn-green{background:#28a745 !important;}
+  .btn-red{background:#dc3545 !important;}
+  .btn-grey{background:#555 !important;color:#aaa !important;cursor:not-allowed;}
   .lang-mm .row { font-size: 1rem; }
   .lang-mm .row span:first-child { flex: 2; text-align: left; white-space: nowrap; }
   .lang-mm .row span:last-child { flex: 1; text-align: right; }
@@ -418,7 +419,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       
       let vS = d.vStat; let iF = d.info; let tS = d.tStr; let pS = d.pStat;
       if (d.lang==1) {
-        if(vS=="NORMAL") vS="ပုံမှန်"; else if(vS=="OVER") vS="ကျော်လွန်"; else if(vS=="UNDER") vS="လျော့နည်း";
+        if(vS=="NORMAL") vS="ပုံမှန်"; else if(vS=="OVER") vS="ကျော်လွန်"; else if(vS=="UNDER") vS="လျော့နည်း"; else if(vS=="DELAY") vS="စောင့်ဆိုင်း";
         if(iF=="DRY_RUN_ALARM!") iF="ရေမရှိ အချက်ပေး!"; else if(iF=="PUMP_LOCKED!") iF="ပိတ်သိမ်းထားသည်!"; else if(iF=="WAITING_RETRY!") iF="ပြန်စရန်စောင့်နေသည်!"; else if(iF=="SENSOR_ERROR!") iF="ဆင်ဆာ ချို့ယွင်းချက်!"; else if(iF=="SYSTEM_STANDBY!") iF="အသင့်အနေအထား!"; else if(iF=="FLOW_DETECTED!") iF="ရေစီးဆင်းမှုရှိသည်!"; else if(iF=="FLOW_CHECKING!") iF="ရေစီးဆင်းမှုစစ်နေ!"; else if(iF=="COOLING_DOWN!") iF="အအေးခံနေသည်!"; else if(iF=="VENTING_VALVE!") iF="လေလျှော့နေသည်!";
         if(tS=="FULL") tS="ပြည့်"; else if(tS=="LOW") tS="နည်း"; else if(tS=="ERR") tS="ချို့";
         if(pS=="ON") pS="ဖွင့်"; else if(pS=="OFF") pS="ပိတ်"; else if(pS=="PUMPING") pS="ရေတင်နေသည်"; else if(pS=="STANDBY") pS="အသင့်အနေအထား"; else if(pS=="DRY ALRM") pS="ရေမရှိ အချက်ပေး"; else if(pS=="LOCKED") pS="ပိတ်သိမ်းထားသည်";
@@ -435,11 +436,21 @@ const char index_html[] PROGMEM = R"rawliteral(
       } else if(d.sErr && !d.ack){
          btn.style.display='block';rst.style.display='none';
          btn.innerText=d.lang==1?'အချက်ပေး ပြန်ပိတ်မည်':'Reset Alarm'; btn.className='btn btn-red';
+      } else if(iF == "VENTING_VALVE!" || iF == "လေလျှော့နေသည်!") {
+         btn.style.display='block'; rst.style.display='none';
+         btn.innerText = d.lang==1 ? "စောင့်ဆိုင်းပါ..." : "PLEASE WAIT...";
+         btn.className = 'btn btn-grey';
+         btn.disabled = true;
       } else {
-         rst.style.display='none';btn.style.display='block'; 
-         if(d.lang==1) btn.innerText=d.pStat=="ON"?'ရေမော်တာ ပိတ်မည်':'ရေမော်တာ ဖွင့်မည်';
-         else btn.innerText=d.pStat=="ON"?'Stop the Pump':'Start the Pump'; 
-         btn.className=d.pStat=="ON"?'btn btn-red':'btn btn-green';
+         rst.style.display='none'; btn.style.display='block'; 
+         btn.disabled = false;
+         if(d.lang==1) {
+            btn.innerText = (d.pStat == "ON") ? 'ရေမော်တာ ပိတ်မည်' : 'ရေမော်တာ ဖွင့်မည်';
+         } else {
+            btn.innerText = (d.pStat == "ON") ? 'Stop the Pump' : 'Start the Pump';
+         }
+         // This line applies the Red class when ON and Green class when OFF
+         btn.className = (d.pStat == "ON") ? "btn btn-red" : "btn btn-green";
       }
       
       let tf = document.getElementById('tankFill');
@@ -474,12 +485,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       let ota=document.getElementById('otaHub');
       if(d.ota){ ota.style.display='block'; document.getElementById('otaMsg').innerText = d.lang==1 ? 'ဗားရှင်းသစ် v' + d.nVer + ' ရနိုင်ပါပြီ!' : 'New Version v' + d.nVer + ' Available!'; } else { ota.style.display='none'; }
 
-      if(d.expired) { document.getElementById('expiryBanner').style.display = 'block'; document.getElementById('warnBanner').style.display = 'none'; }
-      else {
-          document.getElementById('expiryBanner').style.display = 'none';
-          if(d.daysLeft <= 7 && d.daysLeft >= 0) { document.getElementById('warnBanner').style.display = 'block'; document.getElementById('warnMsg').innerText = d.lang==1 ? d.daysLeft + " ရက် ကျန်ပါသေးသည်။" : d.daysLeft + " days remaining."; }
-          else document.getElementById('warnBanner').style.display = 'none';
-      }
+      document.getElementById('expiryBanner').style.display = 'none';
+      document.getElementById('warnBanner').style.display = 'none';
 
       if(d.alertMsg && d.alertMsg !== lastWebAlert) { showModal(d.alertMsg); lastWebAlert = d.alertMsg; } else if (!d.alertMsg) { lastWebAlert = ""; }
     }).catch(e=>{ document.getElementById('dot').className='conn-dot off'; document.getElementById('cStat').innerText=(document.body.classList.contains('lang-mm') ? 'စက် အော့ဖ်လိုင်း (ချိတ်ဆက်နေသည်...)' : 'Device: Offline (Connecting...)'); }); }
@@ -664,18 +671,8 @@ const char settings_html[] PROGMEM = R"rawliteral(
           ota.style.display='none'; 
       }
 
-      if(d.expired) {
-          document.getElementById('expiryBanner').style.display = 'block';
-          document.getElementById('warnBanner').style.display = 'none';
-      } else {
-          document.getElementById('expiryBanner').style.display = 'none';
-          if(d.daysLeft <= 7 && d.daysLeft >= 0) {
-              document.getElementById('warnBanner').style.display = 'block';
-              document.getElementById('warnMsg').innerText = d.lang==1 ? d.daysLeft + " ရက် ကျန်ပါသေးသည်။" : d.daysLeft + " days remaining.";
-          } else {
-              document.getElementById('warnBanner').style.display = 'none';
-          }
-      }
+      document.getElementById('expiryBanner').style.display = 'none';
+      document.getElementById('warnBanner').style.display = 'none';
     }).catch(e=>{ 
       document.getElementById('dot').className='conn-dot off'; 
       document.getElementById('cStat').innerText = document.body.classList.contains('lang-mm') ? 'စက် အော့ဖ်လိုင်း (ချိတ်ဆက်နေသည်...)' : 'Device: Offline (Connecting...)'; 
@@ -898,6 +895,8 @@ void setup() {
   lcd.print("********************");
 
   WiFi.mode(WIFI_AP_STA);
+  WiFi.setAutoReconnect(true);  // Ensures the driver stays active
+  WiFi.setSleep(false);         // Prevents the WiFi chip from "napping" (reduces pings/lags)
   WiFi.softAP("Auto-Pump-Config", "12345678");
   Serial.print("Initial Scan Start: ");
   int nS = WiFi.scanNetworks(true);
@@ -964,8 +963,8 @@ void setup() {
   if (MDNS.begin("smartpump")) MDNS.addService("http", "tcp", 80);
 
   espClient.setInsecure();
-  espClient.setHandshakeTimeout(10);
-  espClient.setTimeout(10000);
+  espClient.setHandshakeTimeout(30);  // Increased to 30s
+  espClient.setTimeout(15000);        // Increased to 15s
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
   mqttClient.setBufferSize(4096);
@@ -977,42 +976,62 @@ void setup() {
 
 void networkTask(void* parameter) {
   static unsigned long lastPublish = 0;
+  static unsigned long lastWifiAttempt = 0;
+  static unsigned long lastConnectionTime = millis();
+  static unsigned long heartbeatTimer = 0;  // NEW: Heartbeat timer
+
   while (true) {
-    if (ssid_saved != "" && WiFi.status() != WL_CONNECTED) {
-      static unsigned long lastWifiRetry = 0;
-      unsigned long retryInterval = (WiFi.softAPgetStationNum() > 0) ? 300000 : 15000;
-      if (millis() - lastWifiRetry > retryInterval) {
-        lastWifiRetry = millis();
-        WiFi.disconnect();
-        WiFi.reconnect();
+    int stations = WiFi.softAPgetStationNum();
+
+    // --- 1. WIFI CONNECTION MANAGEMENT ---
+    if (ssid_saved != "") {
+      if (WiFi.status() != WL_CONNECTED) {
+        unsigned long now = millis();
+        if (stations > 0) {
+          lastConnectionTime = now;
+          lastWifiAttempt = now;
+        } else {
+          if (now - lastWifiAttempt > 120000) {
+            lastWifiAttempt = now;
+            Serial.println("[WIFI] Attempting background reconnect...");
+            WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
+          }
+          if (now - lastConnectionTime > 1200000UL) {
+            Serial.println("[WIFI] Critical Timeout. Rebooting...");
+            delay(1000);
+            ESP.restart();
+          }
+        }
+      } else {
+        lastConnectionTime = millis();
       }
     }
+
+    // --- 2. MQTT & CLOUD ---
     if (WiFi.status() == WL_CONNECTED) {
       if (!mqttClient.connected()) {
-        static unsigned long lastReconnectAttempt = 0;
-        if (millis() - lastReconnectAttempt > 10000) {
-          if (!reconnectMQTT()) lastReconnectAttempt = millis();
+        static unsigned long lastMqttAttempt = 0;
+        if (millis() - lastMqttAttempt > 10000) {
+          if (!reconnectMQTT()) lastMqttAttempt = millis();
         }
       } else {
         mqttClient.loop();
-        if (pendingMqttPublish && (millis() - lastPublish >= 500)) {
-          pendingMqttPublish = false;
+
+        // NEW: Force Heartbeat every 30 seconds
+        if (millis() - heartbeatTimer > 30000) {
+          pendingMqttPublish = true;
+          heartbeatTimer = millis();
+        }
+
+        // NEW: Rate limit publishes and handle Mutex safely
+        if (pendingMqttPublish && (millis() - lastPublish >= 1000)) {
           publishState();
+          pendingMqttPublish = false;
           lastPublish = millis();
         }
       }
     }
-    static unsigned long lastHeartbeat = 0;
-    if (millis() - lastHeartbeat >= 30000) {
-      lastHeartbeat = millis();
-      pendingMqttPublish = true;
-    }
-    static unsigned long lastOTACheck = 0;
-    if (millis() - lastOTACheck >= 3600000) {
-      lastOTACheck = millis();
-      checkOTA();
-    }
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);  // Faster loop response
   }
 }
 
@@ -1034,13 +1053,13 @@ String getStartBlockReason() {
   if (coolDownConfig.isResting) return "Pump is cooling down. Please wait.";
   if (tankConfig.displayUpperPercentage >= 100) return "The Tank is already FULL.";
   if (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT) return "Sensor Error! Check the ultrasonic sensor.";
-  
+
   // NEW: Block starting if the compressor valve is currently busy
   if (compConfig.opMode == 1) {
     if (compConfig.isPreVenting) return "Compressor is already starting (Pre-Venting)...";
     if (compConfig.isPostVenting) return "System is still venting pressure. Please wait.";
   }
-  
+
   return "";
 }
 
@@ -1048,32 +1067,28 @@ String processManualToggle() {
   String res = "Success";
   // Use a 500ms timeout for the lock to prevent the system from freezing
   if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(500))) {
-    
-    // 1. License Check
-    if (isSystemExpired) {
-      xSemaphoreGiveRecursive(systemMutex);
-      return "Blocked:License Expired! Please renew.";
-    }
 
-    // 2. SENSOR ERROR SILENCE (Highest Priority)
+    // (LICENSE CHECK REMOVED FROM HERE - ONLY CLOUD IS BLOCKED NOW)
+
+    // 1. SENSOR ERROR SILENCE (Highest Priority)
     // If the buzzer is beeping because of a sensor error, the first press stops the noise.
     bool sensorErrorActive = (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT);
     if (sensorErrorActive && !tankConfig.errorAck) {
-        tankConfig.errorAck = true; // This silences the buzzer in updatePumpLogic
-        Serial.println("[USER] Sensor Alarm Silenced by User.");
-        xSemaphoreGiveRecursive(systemMutex);
-        pendingMqttPublish = true;
-        return "Silenced"; 
+      tankConfig.errorAck = true;  // This silences the buzzer in updatePumpLogic
+      Serial.println("[USER] Sensor Alarm Silenced by User.");
+      xSemaphoreGiveRecursive(systemMutex);
+      pendingMqttPublish = true;
+      return "Silenced";
     }
 
-    // 3. DRY-RUN ALARM RESET
+    // 2. DRY-RUN ALARM RESET
     // If system is in Dry-Run Alarm or Lock, this clears it and stops the motor.
     if (dryRunConfig.error != 0) {
       dryRunConfig.error = 0;
       dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
       digitalWrite(BUZZER_PIN, LOW);
       pumpConfig.motorStatus = 0;
-      pumpConfig.manualOverride = true; 
+      pumpConfig.manualOverride = true;
       saveMotorStatus();
       Serial.println("[USER] Dry-Run Alarm Reset by User.");
       xSemaphoreGiveRecursive(systemMutex);
@@ -1081,21 +1096,20 @@ String processManualToggle() {
       return "Success";
     }
 
-    // 4. VENTING LOCK (For Compressor Mode)
-    // Block normal Start/Stop commands ONLY if we are currently venting 
-    // AND there is no active alarm (alarms were handled above).
+    // 3. VENTING LOCK (For Compressor Mode)
+    // Block normal Start/Stop commands ONLY if we are currently venting
     if (compConfig.opMode == 1) {
-       if (compConfig.isPreVenting) {
-         xSemaphoreGiveRecursive(systemMutex);
-         return "Blocked:Starting up... Please wait.";
-       }
-       if (compConfig.isPostVenting) {
-         xSemaphoreGiveRecursive(systemMutex);
-         return "Blocked:Stopping/Venting... Please wait.";
-       }
+      if (compConfig.isPreVenting) {
+        xSemaphoreGiveRecursive(systemMutex);
+        return "Blocked:Starting up... Please wait.";
+      }
+      if (compConfig.isPostVenting) {
+        xSemaphoreGiveRecursive(systemMutex);
+        return "Blocked:Stopping/Venting... Please wait.";
+      }
     }
 
-    // 5. NORMAL TOGGLE (Start or Stop)
+    // 4. NORMAL TOGGLE (Start or Stop)
     bool wantsToStart = (pumpConfig.motorStatus == 0);
     if (wantsToStart) {
       String blockReason = getStartBlockReason();
@@ -1104,13 +1118,13 @@ String processManualToggle() {
         return "Blocked:" + blockReason;
       }
       pumpConfig.motorStatus = 1;
-      pumpConfig.manualOverride = true; // VIP Pass to ignore DND
-      coolDownConfig.runStartTime = millis(); 
+      pumpConfig.manualOverride = true;  // VIP Pass to ignore DND
+      coolDownConfig.runStartTime = millis();
       dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
       Serial.println("[USER] Manual Start Command Accepted.");
     } else {
       pumpConfig.motorStatus = 0;
-      pumpConfig.manualOverride = true; 
+      pumpConfig.manualOverride = true;
       Serial.println("[USER] Manual Stop Command Accepted.");
     }
 
@@ -1351,17 +1365,17 @@ void updatePumpLogic() {
   bool triggerPublish = false;
   static PumpState lastReportedState = (PumpState)-1;
   static int lastReportedMinute = -1;
-  static int lastFlowStatus = -1; 
-  
+  static int lastFlowStatus = -1;
+
   // --- 1. SENSORS & FLOW PERSISTENCE (1-Minute Slug Window) ---
   bool physicalFlow = (digitalRead(FLOW_SENSOR_PIN) == LOW);
-  if (physicalFlow) pumpConfig.lastFlowTime = currentMillis; 
+  if (physicalFlow) pumpConfig.lastFlowTime = currentMillis;
   if (pumpConfig.motorStatus == 0) { pumpConfig.lastFlowTime = 0; }
 
   bool isInitialGrace = (pumpConfig.motorStatus == 1 && pumpConfig.lastFlowTime == 0 && (currentMillis - coolDownConfig.runStartTime < 60000UL));
   bool isInsideSlugWindow = (pumpConfig.lastFlowTime > 0 && (currentMillis - pumpConfig.lastFlowTime < 60000UL));
   bool effectiveFlow = (physicalFlow || isInitialGrace || isInsideSlugWindow);
-  pumpConfig.flowDetected = effectiveFlow; 
+  pumpConfig.flowDetected = effectiveFlow;
 
   bool sensorError = (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT);
   bool voltAbnormal = (voltageConfig.currentVoltage > voltageConfig.HIGH_THRESHOLD || voltageConfig.currentVoltage < voltageConfig.LOW_THRESHOLD);
@@ -1372,7 +1386,7 @@ void updatePumpLogic() {
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
       int hour = timeinfo.tm_hour;
-      if (scheduleConfig.dndStart > scheduleConfig.dndEnd) { 
+      if (scheduleConfig.dndStart > scheduleConfig.dndEnd) {
         if (hour >= scheduleConfig.dndStart || hour < scheduleConfig.dndEnd) currentDndActive = true;
       } else {
         if (hour >= scheduleConfig.dndStart && hour < scheduleConfig.dndEnd) currentDndActive = true;
@@ -1382,72 +1396,102 @@ void updatePumpLogic() {
 
   // --- 3. AUTO-FILL TRIGGER & SAFETY STOPS ---
   if (tankConfig.firstReadingDone && tankConfig.displayUpperPercentage <= TankConfig::LOW_THRESHOLD && pumpConfig.motorStatus == 0) {
-    if (!sensorError && !isSystemExpired && !coolDownConfig.isResting && voltageConfig.status == 1 && dryRunConfig.error == 0 && !currentDndActive) {
-      pumpConfig.motorStatus = 1; pumpConfig.manualOverride = false; saveMotorStatus();
+    // isSystemExpired removed from auto-start conditions
+    if (!sensorError && !coolDownConfig.isResting && voltageConfig.status == 1 && dryRunConfig.error == 0 && !currentDndActive) {
+      pumpConfig.motorStatus = 1;
+      pumpConfig.manualOverride = false;
+      saveMotorStatus();
     }
   }
   if (pumpConfig.motorStatus == 1) {
     bool stopNow = false;
-    if (tankConfig.displayUpperPercentage >= 100 || sensorError || isSystemExpired) { stopNow = true; pumpConfig.manualOverride = false; }
-    if (currentDndActive && !pumpConfig.manualOverride) stopNow = true; 
-    if (stopNow) { pumpConfig.motorStatus = 0; saveMotorStatus(); }
+    // isSystemExpired removed from auto-stop conditions
+    if (tankConfig.displayUpperPercentage >= 100 || sensorError) {
+      stopNow = true;
+      pumpConfig.manualOverride = false;
+    }
+    if (currentDndActive && !pumpConfig.manualOverride) stopNow = true;
+    if (stopNow) {
+      pumpConfig.motorStatus = 0;
+      saveMotorStatus();
+    }
   }
 
   // --- 4. TRANSITION & VENTING DETECTION ---
   bool targetRunning = (pumpConfig.motorStatus == 1);
   if (targetRunning && !compConfig.lastTargetStatus) {
     if (compConfig.opMode == 1 && compConfig.valveDelay > 0) {
-      compConfig.isPreVenting = true; compConfig.isPostVenting = false; compConfig.ventStartTime = currentMillis;
+      compConfig.isPreVenting = true;
+      compConfig.isPostVenting = false;
+      compConfig.ventStartTime = currentMillis;
     }
   } else if (!targetRunning && compConfig.lastTargetStatus) {
     if (compConfig.opMode == 1 && compConfig.valveDelay > 0) {
-      compConfig.isPostVenting = true; compConfig.isPreVenting = false; compConfig.ventStartTime = currentMillis;
+      compConfig.isPostVenting = true;
+      compConfig.isPreVenting = false;
+      compConfig.ventStartTime = currentMillis;
     }
   }
   compConfig.lastTargetStatus = targetRunning;
 
   if (compConfig.isPreVenting && (currentMillis - compConfig.ventStartTime >= (unsigned long)compConfig.valveDelay * 1000UL)) {
-    compConfig.isPreVenting = false; triggerPublish = true;
+    compConfig.isPreVenting = false;
+    triggerPublish = true;
   }
   if (compConfig.isPostVenting && (currentMillis - compConfig.ventStartTime >= (unsigned long)compConfig.valveDelay * 1000UL)) {
-    compConfig.isPostVenting = false; triggerPublish = true;
+    compConfig.isPostVenting = false;
+    triggerPublish = true;
   }
 
   // --- 5. COOL-DOWN & VOLTAGE TIMERS ---
   if (pumpConfig.motorStatus == 1 && !compConfig.isPreVenting && !compConfig.isPostVenting) {
     if (coolDownConfig.runStartTime == 0) coolDownConfig.runStartTime = currentMillis;
     if (coolDownConfig.restMinutes > 0 && (currentMillis - coolDownConfig.runStartTime >= 3600000UL)) {
-      coolDownConfig.isResting = true; pumpConfig.wasRunningBeforeCoolDown = true;
-      coolDownConfig.restStartTime = currentMillis; pumpConfig.motorStatus = 0; saveMotorStatus();
+      coolDownConfig.isResting = true;
+      pumpConfig.wasRunningBeforeCoolDown = true;
+      coolDownConfig.restStartTime = currentMillis;
+      pumpConfig.motorStatus = 0;
+      saveMotorStatus();
     }
-  } else { coolDownConfig.runStartTime = 0; }
+  } else {
+    coolDownConfig.runStartTime = 0;
+  }
 
   if (coolDownConfig.isResting) {
     static unsigned long lastCoolTick = 0;
-    if (currentMillis - lastCoolTick >= 1000) { lastCoolTick = currentMillis; triggerPublish = true; }
+    if (currentMillis - lastCoolTick >= 1000) {
+      lastCoolTick = currentMillis;
+      triggerPublish = true;
+    }
     if (currentMillis - coolDownConfig.restStartTime >= (unsigned long)coolDownConfig.restMinutes * 60000UL) {
-      coolDownConfig.isResting = false; triggerPublish = true;
+      coolDownConfig.isResting = false;
+      triggerPublish = true;
       if (pumpConfig.wasRunningBeforeCoolDown && voltageConfig.status == 1 && (!currentDndActive || pumpConfig.manualOverride)) {
-               pumpConfig.motorStatus = 1; saveMotorStatus();
+        pumpConfig.motorStatus = 1;
+        saveMotorStatus();
       }
       pumpConfig.wasRunningBeforeCoolDown = false;
     }
   }
 
   if (voltAbnormal) {
-    if (voltageConfig.status == 1) { 
+    if (voltageConfig.status == 1) {
       pumpConfig.wasRunningBeforeVoltageError = (pumpConfig.motorStatus == 1);
-      voltageConfig.status = 0; pumpConfig.motorStatus = 0; saveMotorStatus();
+      voltageConfig.status = 0;
+      pumpConfig.motorStatus = 0;
+      saveMotorStatus();
     }
     voltageConfig.lastCheck = currentMillis;
   } else if (voltageConfig.status == 0) {
     if (currentMillis - voltageConfig.lastCheck >= 1000) {
-      voltageConfig.waitSeconds--; voltageConfig.lastCheck = currentMillis;
-      triggerPublish = true; 
+      voltageConfig.waitSeconds--;
+      voltageConfig.lastCheck = currentMillis;
+      triggerPublish = true;
       if (voltageConfig.waitSeconds <= 0) {
         voltageConfig.status = 1;
         if (pumpConfig.wasRunningBeforeVoltageError && !sensorError && !coolDownConfig.isResting && (!currentDndActive || pumpConfig.manualOverride)) {
-              pumpConfig.motorStatus = 1; saveMotorStatus();
+          pumpConfig.motorStatus = 1;
+          saveMotorStatus();
         }
         pumpConfig.wasRunningBeforeVoltageError = false;
       }
@@ -1470,27 +1514,32 @@ void updatePumpLogic() {
   // --- 7. HARDWARE EXECUTION ---
   switch (currentState) {
     case PumpState::PUMPING:
-      digitalWrite(MOTOR_PIN, HIGH); digitalWrite(SOLENOID_PIN, LOW);
+      digitalWrite(MOTOR_PIN, HIGH);
+      digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = true;
       if (effectiveFlow) {
         if (dryRunConfig.waitSeconds != dryRunConfig.WAIT_SECONDS_SET) {
-           dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
-           triggerPublish = true;
+          dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
+          triggerPublish = true;
         }
       } else {
         if (currentMillis - dryRunConfig.lastUpdate >= 1000) {
-          dryRunConfig.waitSeconds--; dryRunConfig.lastUpdate = currentMillis;
-          triggerPublish = true; // Update cloud with countdown
+          dryRunConfig.waitSeconds--;
+          dryRunConfig.lastUpdate = currentMillis;
+          triggerPublish = true;  // Update cloud with countdown
           if (dryRunConfig.waitSeconds <= 0) {
-            dryRunConfig.error = 1; dryRunConfig.alarmStartTime = currentMillis;
-            pumpConfig.motorStatus = 0; saveMotorStatus();
+            dryRunConfig.error = 1;
+            dryRunConfig.alarmStartTime = currentMillis;
+            pumpConfig.motorStatus = 0;
+            saveMotorStatus();
           }
         }
       }
       break;
 
     case PumpState::SENSOR_ERROR:
-      digitalWrite(MOTOR_PIN, LOW); digitalWrite(SOLENOID_PIN, LOW);
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = false;
       // Alarm sound only if not acknowledged
       if (!tankConfig.errorAck) digitalWrite(BUZZER_PIN, (currentMillis / 1000) % 2);
@@ -1498,40 +1547,64 @@ void updatePumpLogic() {
       break;
 
     case PumpState::DRY_RUN_ALARM:
-      digitalWrite(MOTOR_PIN, LOW); digitalWrite(SOLENOID_PIN, LOW);
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = false;
       digitalWrite(BUZZER_PIN, (currentMillis / 500) % 2);
       if (currentMillis - dryRunConfig.alarmStartTime >= 60000) {
-         dryRunConfig.error = 2; dryRunConfig.retryCountdown = dryRunConfig.autoRetryMinutes * 60;
-         dryRunConfig.lastRetryUpdate = currentMillis; digitalWrite(BUZZER_PIN, LOW);
+        dryRunConfig.error = 2;
+        dryRunConfig.retryCountdown = dryRunConfig.autoRetryMinutes * 60;
+        dryRunConfig.lastRetryUpdate = currentMillis;
+        digitalWrite(BUZZER_PIN, LOW);
       }
       break;
 
     case PumpState::DRY_RUN_LOCKED:
-      digitalWrite(MOTOR_PIN, LOW); digitalWrite(SOLENOID_PIN, LOW);
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = false;
       if (dryRunConfig.autoRetryMinutes > 0 && currentMillis - dryRunConfig.lastRetryUpdate >= 1000) {
-        dryRunConfig.retryCountdown--; dryRunConfig.lastRetryUpdate = currentMillis;
-        triggerPublish = true; 
-        if (dryRunConfig.retryCountdown <= 0) { dryRunConfig.error = 0; triggerPublish = true; }
+        dryRunConfig.retryCountdown--;
+        dryRunConfig.lastRetryUpdate = currentMillis;
+        triggerPublish = true;
+        if (dryRunConfig.retryCountdown <= 0) {
+          dryRunConfig.error = 0;
+          dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
+          pumpConfig.motorStatus = 1;
+          saveMotorStatus();
+          triggerPublish = true;
+        }
       }
       break;
 
     case PumpState::PRE_START_VALVE:
     case PumpState::POST_STOP_VALVE:
-      digitalWrite(MOTOR_PIN, LOW); digitalWrite(SOLENOID_PIN, HIGH);
-      pumpConfig.isRunning = false; digitalWrite(BUZZER_PIN, LOW);
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(SOLENOID_PIN, HIGH);
+      pumpConfig.isRunning = false;
+      digitalWrite(BUZZER_PIN, LOW);
       break;
 
     default:
-      digitalWrite(MOTOR_PIN, LOW); digitalWrite(SOLENOID_PIN, LOW);
-      pumpConfig.isRunning = false; digitalWrite(BUZZER_PIN, LOW);
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(SOLENOID_PIN, LOW);
+      pumpConfig.isRunning = false;
+      digitalWrite(BUZZER_PIN, LOW);
       break;
   }
 
   if (currentState != lastReportedState) {
     lastReportedState = currentState;
-    triggerPublish = true; 
+    triggerPublish = true;
+  }
+  // NEW: Monitor for Voltage or Tank changes to trigger live updates
+  static int lastRepVolt = -1;
+  static int lastRepTank = -1;
+  int curVInt = (int)voltageConfig.currentVoltage;
+  if (curVInt != lastRepVolt || tankConfig.displayUpperPercentage != lastRepTank) {
+    lastRepVolt = curVInt;
+    lastRepTank = tankConfig.displayUpperPercentage;
+    triggerPublish = true;
   }
   if (triggerPublish) pendingMqttPublish = true;
 
@@ -1663,7 +1736,7 @@ void updateLCD() {
   bool voltAbnormal = false, isWait = false, exp = false, pRunning = false, cDown = false;
   int errState = 0, autoRetMins = 0, retCd = 0, invCount = 0;
   int restMinsLeft = 0;
-  bool physFlow = false, isVenting = false; // Changed from flowDet to physFlow
+  bool physFlow = false, isVenting = false;  // Changed from flowDet to physFlow
   float curVolt = 0;
 
   if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
@@ -1680,7 +1753,7 @@ void updateLCD() {
     invCount = tankConfig.upperInvalidCount;
     cDown = coolDownConfig.isResting;
     isVenting = (currentState == PumpState::PRE_START_VALVE || currentState == PumpState::POST_STOP_VALVE);
-    
+
     // Check the PHYSICAL state of the pin for the LCD
     physFlow = (digitalRead(FLOW_SENSOR_PIN) == LOW);
 
@@ -1696,7 +1769,7 @@ void updateLCD() {
   lcd.print("%");
   lcd.setCursor(9, 1);
   lcd.print(" ");
-  
+
   char vUnit = isWait ? 's' : 'V';
   printNumber(vVal / 100, 0, 2);
   printNumber((vVal / 10) % 10, 3, 2);
@@ -1708,13 +1781,11 @@ void updateLCD() {
 
   // --- Right Side Text Labels ---
   lcd.setCursor(10, 0);
-  if (exp) lcd.print(" EXPIRED  ");
-  else if (cDown) lcd.print(" PUMP REST");
+  if (cDown) lcd.print(" PUMP REST");
   else lcd.print(pRunning ? " PUMP ON  " : " PUMP OFF ");
 
   String info;
-  if (exp) info = " CHECK LC ";
-  else if (errState == 1) info = " DRY ALRM ";
+  if (errState == 1) info = " DRY ALRM ";
   else if (errState == 2) {
     if (autoRetMins == 0) info = " LOCKED   ";
     else {
@@ -2034,7 +2105,7 @@ void handleSave() {
     xSemaphoreGiveRecursive(systemMutex);
   }
   preferences.end();
-  String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"20;url=/\" >" // Changed to 20s
+  String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"20;url=/\" >"  // Changed to 20s
                 "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Rebooting</title>"
                 "<style>body{background:#121212;color:white;font-family:sans-serif;text-align:center;margin-top:50px;}</style></head>"
                 "<body><h2>Settings Saved!</h2><p>Rebooting device. Page will refresh in 20 seconds...</p></body></html>";
@@ -2055,7 +2126,13 @@ void handleUpdatePage() {
 }
 
 void handleStatus() {
-  server.send(200, "application/json", generateStatusJson());
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(100))) {
+    String json = generateStatusJson();
+    xSemaphoreGiveRecursive(systemMutex);
+    server.send(200, "application/json", json);
+  } else {
+    server.send(503, "application/json", "{}");
+  }
 }
 
 void handleToggle() {
@@ -2079,81 +2156,38 @@ void handleReset() {
 
 String generateStatusJson() {
   DynamicJsonDocument doc(1024);
-  if (!xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(50))) return "{}";
-
+  // Data for the Dashboard
   doc["pump"] = pumpConfig.motorStatus;
+  doc["tank"] = tankConfig.displayUpperPercentage;
+  doc["tStr"] = tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT ? "ERR" : (tankConfig.displayUpperPercentage >= 100 ? "FULL" : (tankConfig.displayUpperPercentage <= TankConfig::LOW_THRESHOLD ? "LOW" : String(tankConfig.displayUpperPercentage) + "%"));
+  doc["volt"] = (int)voltageConfig.currentVoltage;
+  doc["vStat"] = voltageConfig.status == 0 ? "DELAY" : (voltageConfig.currentVoltage > voltageConfig.HIGH_THRESHOLD ? "OVER" : (voltageConfig.currentVoltage < voltageConfig.LOW_THRESHOLD ? "UNDER" : "NORMAL"));
+  doc["pStat"] = pumpConfig.isRunning ? "ON" : "OFF";
 
-  String tStr;
-  if (tankConfig.upperDistance < 0 && tankConfig.upperInvalidCount < TankConfig::MAX_INVALID_COUNT) tStr = "---";
-  else if (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT) tStr = "ERR";
-  else if (tankConfig.displayUpperPercentage >= 100) tStr = "FULL";
-  else if (tankConfig.displayUpperPercentage <= TankConfig::LOW_THRESHOLD) tStr = "LOW";
-  else tStr = String(tankConfig.displayUpperPercentage) + "%";
-
-  String vS;
-  if (voltageConfig.currentVoltage > voltageConfig.HIGH_THRESHOLD) vS = "OVER";
-  else if (voltageConfig.currentVoltage < voltageConfig.LOW_THRESHOLD) vS = "UNDER";
-  else if (voltageConfig.status == 0) vS = "DELAY (" + String(voltageConfig.waitSeconds) + "s)";
-  else vS = "NORMAL";
-
+  // System Info Logic
   String info;
   if (coolDownConfig.isResting) info = "COOLING_DOWN!";
   else if (dryRunConfig.error == 1) info = "DRY_RUN_ALARM!";
   else if (dryRunConfig.error == 2) info = (dryRunConfig.autoRetryMinutes == 0) ? "PUMP_LOCKED!" : "WAITING_RETRY!";
   else if (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT) info = "SENSOR_ERROR!";
   else if (compConfig.isPreVenting || compConfig.isPostVenting) info = "VENTING_VALVE!";
-  else if (pumpConfig.isRunning) {
-      if (digitalRead(FLOW_SENSOR_PIN) == LOW) info = "FLOW_DETECTED!";
-      else info = "FLOW_CHECKING!"; 
-  }
+  else if (pumpConfig.isRunning) info = (digitalRead(FLOW_SENSOR_PIN) == LOW) ? "FLOW_DETECTED!" : "FLOW_CHECKING!";
   else info = "SYSTEM_STANDBY!";
-
-  doc["tank"] = tankConfig.displayUpperPercentage;
-  doc["tStr"] = tStr;
-  doc["volt"] = (int)voltageConfig.currentVoltage;
-  doc["vStat"] = vS;
-  doc["pStat"] = pumpConfig.isRunning ? "ON" : "OFF";
   doc["info"] = info;
-  doc["err"] = dryRunConfig.error;
-  doc["cd"] = dryRunConfig.waitSeconds;
-  doc["rM"] = dryRunConfig.autoRetryMinutes;
-  doc["rCd"] = dryRunConfig.retryCountdown;
-  doc["rstM"] = coolDownConfig.restMinutes;
-  doc["rstCd"] = coolDownConfig.isResting ? ((coolDownConfig.restMinutes * 60000UL) - (millis() - coolDownConfig.restStartTime)) / 1000 : 0;
-  
-  // STABLE UI LOGIC: Show the countdown row ONLY if the timer has actually 
-  // started dropping below the set limit (60s).
-  doc["isDR"] = (pumpConfig.isRunning && dryRunConfig.waitSeconds < dryRunConfig.WAIT_SECONDS_SET) ? 1 : 0;
 
+  // Settings values (To pre-fill the Cloud Settings Page)
   doc["id"] = deviceID;
   doc["ip"] = WiFi.localIP().toString();
   doc["uH"] = tankConfig.upperHeight;
   doc["vH"] = voltageConfig.HIGH_THRESHOLD;
   doc["vL"] = voltageConfig.LOW_THRESHOLD;
   doc["dD"] = dryRunConfig.WAIT_SECONDS_SET;
+  doc["opM"] = compConfig.opMode;
+  doc["vDly"] = compConfig.valveDelay;       // Fixed: Now sent to cloud
+  doc["rstM"] = coolDownConfig.restMinutes;  // Fixed: Now sent to cloud
+  doc["rM"] = dryRunConfig.autoRetryMinutes;
   doc["ssid"] = ssid_saved;
   doc["lang"] = sysLang;
-  doc["opM"] = compConfig.opMode;
-
-  // Myanmar Language Translations
-  if (sysLang == 1) {
-    if (vS == "NORMAL") vS = "ပုံမှန်";
-    else if (vS == "OVER") vS = "ကျော်လွန်";
-    else if (vS == "UNDER") vS = "လျော့နည်း";
-    else if (vS.startsWith("DELAY")) vS.replace("DELAY", "စောင့်ဆိုင်း");
-    if (info == "DRY_RUN_ALARM!") info = "ရေမရှိ အချက်ပေး!";
-    else if (info == "PUMP_LOCKED!") info = "ပိတ်သိမ်းထားသည်!";
-    else if (info == "WAITING_RETRY!") info = "ပြန်စရန်စောင့်နေသည်!";
-    else if (info == "SENSOR_ERROR!") info = "ဆင်ဆာ ချို့ယွင်းချက်!";
-    else if (info == "FLOW_DETECTED!") info = "ရေစီးဆင်းမှုရှိသည်!";
-    else if (info == "FLOW_CHECKING!") info = "ရေစီးဆင်းမှုစစ်နေ!";
-    else if (info == "SYSTEM_STANDBY!") info = "အသင့်အနေအထား!";
-    else if (info == "COOLING_DOWN!") info = "အအေးခံနေသည်!";
-    else if (info == "VENTING_VALVE!") info = "လေလျှော့နေသည်!";
-    if (tStr == "FULL") tStr = "ပြည့်";
-    else if (tStr == "LOW") tStr = "နည်း";
-    else if (tStr == "ERR") tStr = "ချို့";
-  }
   doc["dndEn"] = scheduleConfig.enabled ? 1 : 0;
   doc["dndS"] = scheduleConfig.dndStart;
   doc["dndE"] = scheduleConfig.dndEnd;
@@ -2162,19 +2196,25 @@ String generateStatusJson() {
   doc["sErr"] = (tankConfig.upperInvalidCount >= TankConfig::MAX_INVALID_COUNT) ? 1 : 0;
   doc["ack"] = tankConfig.errorAck ? 1 : 0;
   doc["ver"] = FIRMWARE_VERSION;
+  doc["nVer"] = otaConfig.remoteVersion;
+  doc["ota"] = otaConfig.updateAvailable ? 1 : 0;
+  doc["err"] = dryRunConfig.error;
+  doc["cd"] = dryRunConfig.waitSeconds;
+  doc["rCd"] = dryRunConfig.retryCountdown;
+  doc["rstCd"] = coolDownConfig.isResting ? ((coolDownConfig.restMinutes * 60000UL) - (millis() - coolDownConfig.restStartTime)) / 1000 : 0;
+  doc["isDR"] = (pumpConfig.isRunning && dryRunConfig.waitSeconds < dryRunConfig.WAIT_SECONDS_SET) ? 1 : 0;
 
-  long daysLeft = 999;
+  // License info
+  long daysLeft = 0;
   if (installDate > 0) {
-    time_t now; time(&now);
+    time_t now;
+    time(&now);
     unsigned long expiryDate = installDate + (validDays * 86400UL);
     if ((unsigned long)now < expiryDate) daysLeft = (expiryDate - (unsigned long)now + 86399) / 86400;
-    else daysLeft = 0;
   }
   doc["expired"] = isSystemExpired ? 1 : 0;
   doc["daysLeft"] = daysLeft;
-  if (webAlertMsg != "" && millis() - webAlertTime < 4000) doc["alertMsg"] = webAlertMsg;
 
-  xSemaphoreGiveRecursive(systemMutex);
   String json;
   serializeJson(doc, json);
   return json;
@@ -2183,8 +2223,14 @@ String generateStatusJson() {
 
 void publishState() {
   if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
-    String json = generateStatusJson();
-    if (!mqttClient.publish(statusTopic.c_str(), json.c_str(), false)) Serial.println("MQTT Publish Failed!");
+    String json = "";
+    if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(100))) {
+      json = generateStatusJson();
+      xSemaphoreGiveRecursive(systemMutex);
+    }
+    if (json != "") {
+      if (!mqttClient.publish(statusTopic.c_str(), json.c_str(), false)) Serial.println("MQTT Publish Failed!");
+    }
   }
 }
 
@@ -2192,7 +2238,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String msg((char*)payload, length);
   Serial.println("MQTT Received: " + msg);
 
-  DynamicJsonDocument doc(512);
+  DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, msg);
   if (error) return;
 
@@ -2203,50 +2249,60 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 
   if (doc.containsKey("toggle")) {
-    // Check PIN first
-    if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) {
-      Serial.println("[MQTT] Toggle Denied: Wrong PIN");
-      // Optional: Publish an error back to the cloud here
-      return;
-    }
-
-    // CRITICAL: Call the official toggle function instead of setting variables directly
-    Serial.println("[MQTT] Toggle Request Received. Processing...");
-    String res = processManualToggle();
-
-    // If the toggle was blocked (e.g. Tank Full), send the reason to the cloud
-    if (res.startsWith("Blocked:")) {
-      DynamicJsonDocument resp(256);
-      resp["alert"] = "System Notice";
-      resp["reason"] = res.substring(8);
-      String respStr;
-      serializeJson(resp, respStr);
-      mqttClient.publish(statusTopic.c_str(), respStr.c_str());
-    }
-  } else if (doc.containsKey("otaCheck")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
-      checkOTA();
-      if (!otaConfig.updateAvailable) {
+      
+      // --- CLOUD LICENSE LOCK FOR TOGGLE ---
+      if (isSystemExpired) {
         DynamicJsonDocument resp(256);
-        resp["alert"] = "System Up to Date";
-        resp["reason"] = "You are already using the latest version: v" + String(FIRMWARE_VERSION);
+        resp["alert"] = "Cloud Disabled";
+        resp["reason"] = "License Expired! Please renew to use cloud control.";
+        String respStr;
+        serializeJson(resp, respStr);
+        mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+        return;
+      }
+      // -------------------------------------
+
+      String result = processManualToggle();  // Capture the result
+
+      // If the command was blocked locally (e.g. Venting), send an alert back to the Cloud dashboard
+      if (result.startsWith("Blocked:")) {
+        DynamicJsonDocument resp(256);
+        resp["alert"] = "System Notice";
+        resp["reason"] = result.substring(8);  // Remove "Blocked:" and send the text
         String respStr;
         serializeJson(resp, respStr);
         mqttClient.publish(statusTopic.c_str(), respStr.c_str());
       }
     }
+  } else if (doc.containsKey("otaCheck")) {
+    if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
+      checkOTA();
+      DynamicJsonDocument resp(256);
+      if (otaConfig.updateAvailable) {
+        resp["alert"] = "Update Found!";
+        resp["reason"] = "A new version (v" + String(otaConfig.remoteVersion) + ") is available.";
+      } else {
+        resp["alert"] = "System Up to Date";
+        resp["reason"] = "You are already using the latest version: v" + String(FIRMWARE_VERSION);
+      }
+      String respStr;
+      serializeJson(resp, respStr);
+      mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+    }
   } else if (doc.containsKey("otaStart")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) startOTA();
   } else if (doc.containsKey("reset")) {
-    if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) return;
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-      dryRunConfig.error = 0;
-      dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
-      digitalWrite(BUZZER_PIN, LOW);
-      saveMotorStatus();
-      xSemaphoreGiveRecursive(systemMutex);
+    if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
+      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+        dryRunConfig.error = 0;
+        dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
+        digitalWrite(BUZZER_PIN, LOW);
+        saveMotorStatus();
+        xSemaphoreGiveRecursive(systemMutex);
+      }
+      pendingMqttPublish = true;
     }
-    pendingMqttPublish = true;
   } else if (doc.containsKey("get")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) pendingMqttPublish = true;
     else {
@@ -2258,72 +2314,98 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       mqttClient.publish(statusTopic.c_str(), respStr.c_str());
     }
   } else if (doc.containsKey("save")) {
-    if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != devicePin) return;
-    preferences.begin("pump-control", false);
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-      if (doc.containsKey("ssid") && doc["ssid"].as<String>() != "") preferences.putString("ssid", doc["ssid"].as<String>());
-      if (doc.containsKey("pass") && doc["pass"].as<String>() != "") preferences.putString("pass", doc["pass"].as<String>());
-      if (doc.containsKey("uH")) {
-        float h = doc["uH"].as<float>();
-        tankConfig.upperHeight = constrain(h, TankConfig::MIN_HEIGHT, TankConfig::MAX_HEIGHT);
-        preferences.putFloat("upperH", tankConfig.upperHeight);
+    if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
+      
+      // --- CLOUD LICENSE LOCK FOR SAVE ---
+      if (isSystemExpired) {
+        DynamicJsonDocument resp(256);
+        resp["alert"] = "Cloud Disabled";
+        resp["reason"] = "License Expired! Cannot save settings via Cloud.";
+        String respStr;
+        serializeJson(resp, respStr);
+        mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+        return;
       }
-      if (doc.containsKey("vH")) {
-        voltageConfig.HIGH_THRESHOLD = doc["vH"].as<int>();
-        preferences.putInt("vHigh", voltageConfig.HIGH_THRESHOLD);
+      // -----------------------------------
+
+      preferences.begin("pump-control", false);
+      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+        // WiFi Safety: Only update if the string is NOT empty
+        if (doc.containsKey("ssid") && doc["ssid"].as<String>() != "") {
+          ssid_saved = doc["ssid"].as<String>();
+          preferences.putString("ssid", ssid_saved);
+        }
+        if (doc.containsKey("pass") && doc["pass"].as<String>() != "") {
+          pass_saved = doc["pass"].as<String>();
+          preferences.putString("pass", pass_saved);
+        }
+
+        if (doc.containsKey("uH")) {
+          tankConfig.upperHeight = doc["uH"].as<float>();
+          preferences.putFloat("upperH", tankConfig.upperHeight);
+        }
+        if (doc.containsKey("vH")) {
+          voltageConfig.HIGH_THRESHOLD = doc["vH"].as<int>();
+          preferences.putInt("vHigh", voltageConfig.HIGH_THRESHOLD);
+        }
+        if (doc.containsKey("vL")) {
+          voltageConfig.LOW_THRESHOLD = doc["vL"].as<int>();
+          preferences.putInt("vLow", voltageConfig.LOW_THRESHOLD);
+        }
+        if (doc.containsKey("dD")) {
+          dryRunConfig.WAIT_SECONDS_SET = doc["dD"].as<int>();
+          preferences.putInt("dryDelay", dryRunConfig.WAIT_SECONDS_SET);
+        }
+        if (doc.containsKey("opM")) {
+          compConfig.opMode = doc["opM"].as<int>();
+          preferences.putInt("opM", compConfig.opMode);
+        }
+        if (doc.containsKey("vDly")) {
+          compConfig.valveDelay = doc["vDly"].as<int>();
+          preferences.putInt("vDly", compConfig.valveDelay);
+        }
+        if (doc.containsKey("rstM")) {
+          coolDownConfig.restMinutes = doc["rstM"].as<int>();
+          preferences.putInt("restM", coolDownConfig.restMinutes);
+        }
+        if (doc.containsKey("rM")) {
+          dryRunConfig.autoRetryMinutes = doc["rM"].as<int>();
+          preferences.putInt("retryMins", dryRunConfig.autoRetryMinutes);
+        }
+        if (doc.containsKey("newPin")) {
+          devicePin = doc["newPin"].as<String>();
+          preferences.putString("pin", devicePin);
+        }
+        if (doc.containsKey("sysLang")) {
+          sysLang = doc["sysLang"].as<int>();
+          preferences.putInt("sysLang", sysLang);
+        }
+
+        // DND Sync
+        if (doc.containsKey("dndEn")) {
+          scheduleConfig.enabled = (doc["dndEn"].as<int>() == 1);
+          preferences.putBool("dndEn", scheduleConfig.enabled);
+        }
+        if (doc.containsKey("dndS")) {
+          scheduleConfig.dndStart = doc["dndS"].as<int>();
+          preferences.putInt("dndS", scheduleConfig.dndStart);
+        }
+        if (doc.containsKey("dndE")) {
+          scheduleConfig.dndEnd = doc["dndE"].as<int>();
+          preferences.putInt("dndE", scheduleConfig.dndEnd);
+        }
+        if (doc.containsKey("tzOf")) {
+          scheduleConfig.timezoneOffset = doc["tzOf"].as<float>();
+          preferences.putFloat("tzOf", scheduleConfig.timezoneOffset);
+        }
+
+        xSemaphoreGiveRecursive(systemMutex);
       }
-      if (doc.containsKey("vL")) {
-        voltageConfig.LOW_THRESHOLD = doc["vL"].as<int>();
-        preferences.putInt("vLow", voltageConfig.LOW_THRESHOLD);
-      }
-      if (doc.containsKey("dD")) {
-        dryRunConfig.WAIT_SECONDS_SET = doc["dD"].as<int>();
-        preferences.putInt("dryDelay", dryRunConfig.WAIT_SECONDS_SET);
-      }
-      if (doc.containsKey("opM")) {
-        compConfig.opMode = doc["opM"].as<int>();
-        preferences.putInt("opM", compConfig.opMode);
-      }
-      if (doc.containsKey("vDly")) {
-        compConfig.valveDelay = doc["vDly"].as<int>();
-        preferences.putInt("vDly", compConfig.valveDelay);
-      }
-      if (doc.containsKey("rstM")) {
-        coolDownConfig.restMinutes = doc["rstM"].as<int>();
-        preferences.putInt("restM", coolDownConfig.restMinutes);
-      }
-      if (doc.containsKey("rM")) {
-        dryRunConfig.autoRetryMinutes = doc["rM"].as<int>();
-        preferences.putInt("retryMins", dryRunConfig.autoRetryMinutes);
-      }
-      if (doc.containsKey("newPin")) {
-        devicePin = doc["newPin"].as<String>();
-        preferences.putString("pin", devicePin);
-      }
-      if (doc.containsKey("sysLang")) {
-        sysLang = doc["sysLang"].as<int>();
-        preferences.putInt("sysLang", sysLang);
-      }
-      if (doc.containsKey("dndEn")) {
-        scheduleConfig.enabled = (doc["dndEn"].as<int>() == 1);
-        preferences.putBool("dndEn", scheduleConfig.enabled);
-      }
-      if (doc.containsKey("dndS")) {
-        scheduleConfig.dndStart = doc["dndS"].as<int>();
-        preferences.putInt("dndS", scheduleConfig.dndStart);
-      }
-      if (doc.containsKey("dndE")) {
-        scheduleConfig.dndEnd = doc["dndE"].as<int>();
-        preferences.putInt("dndE", scheduleConfig.dndEnd);
-      }
-      if (doc.containsKey("tzOf")) {
-        scheduleConfig.timezoneOffset = doc["tzOf"].as<float>();
-        preferences.putFloat("tzOf", scheduleConfig.timezoneOffset);
-      }
-      xSemaphoreGiveRecursive(systemMutex);
+      preferences.end();
+      Serial.println("Cloud Settings Saved. Rebooting...");
+      delay(500);
+      rebootSystem();
     }
-    preferences.end();
-    rebootSystem();
   }
 }
 
