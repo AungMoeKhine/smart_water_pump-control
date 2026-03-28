@@ -1044,7 +1044,9 @@ void networkTask(void* parameter) {
   static unsigned long lastMqttAttempt = 0;
   static unsigned long noInternetTimer = millis();
   static unsigned long heartbeatTimer = 0;
-  static bool apModeActive = false; // Tracks if AP mode is currently turned on
+  
+  // FIX 1: Start as 'true' because setup() turns AP on by default
+  static bool apModeActive = true; 
 
   while (true) {
     bool hasWiFi = (WiFi.status() == WL_CONNECTED);
@@ -1052,45 +1054,43 @@ void networkTask(void* parameter) {
     unsigned long now = millis();
 
     // --- 1. DYNAMIC AP MODE (TRUE INTERNET FALLBACK) ---
-    // If we have BOTH WiFi and Cloud, everything is perfect. Turn OFF AP Mode.
     if (hasWiFi && hasCloud) {
-      noInternetTimer = now; // Reset the no-internet timer
+      noInternetTimer = now; // Reset timer because internet is healthy!
       if (apModeActive) {
-        Serial.println("[NET] Fully connected to Cloud! Turning OFF AP Mode.");
+        Serial.println("[NET] Fully connected to Cloud! Hiding AP Mode.");
         dnsUdp.stop();
-        WiFi.mode(WIFI_STA); // Disable AP, keep Station only
+        WiFi.mode(WIFI_STA); // Turns AP OFF, keeps local network connection
         apModeActive = false;
       }
     } 
-    // If we are missing WiFi, OR we have WiFi but no Cloud for 60 seconds...
     else {
+      // If we lose WiFi, OR if the Cloud fails for 60 seconds
       if (!apModeActive && ssid_saved != "") {
-        // Only turn on AP if WiFi is dead, OR if Cloud has been dead for 60s
         if (!hasWiFi || (now - noInternetTimer > 60000UL)) {
-          Serial.println("[NET] Internet/Router lost! Turning ON AP Mode for local access.");
-          WiFi.mode(WIFI_AP_STA); // Keep trying to connect to router, but broadcast AP too
+          Serial.println("[NET] Internet/Router lost! Starting AP Mode for local access.");
+          WiFi.mode(WIFI_AP_STA);
           WiFi.softAP("Auto-Pump-Config", "12345678");
           dnsUdp.begin(DNS_PORT);
           apModeActive = true;
-          lastWifiAttempt = now; // Reset timer
+          lastWifiAttempt = now; // Reset timer so it doesn't instantly reconnect
         }
       }
     }
 
     // --- 2. BACKGROUND RECONNECT (NO REBOOTS) ---
     if (!hasWiFi && ssid_saved != "") {
-      int stations = WiFi.softAPgetStationNum(); // Check if a phone is connected to AP
+      int stations = WiFi.softAPgetStationNum(); // Check if someone is connected to the AP
 
       if (stations > 0) {
-        // User is connected to AP configuring things. Wait 5 mins before forcing a router check.
+        // User is setting up WiFi. Pause reconnects for 5 mins so web page doesn't lag.
         if (now - lastWifiAttempt > 300000UL) {
           lastWifiAttempt = now;
-          Serial.println("[WIFI] AP Setup Timeout (5 mins). Checking old router...");
+          Serial.println("[WIFI] AP Setup Timeout. Checking old router...");
           WiFi.disconnect();
           WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
         }
       } else {
-        // No user on AP. Try to reconnect to the router every 1 minute.
+        // Nobody is on the AP. Aggressively try to reconnect to router every 60s.
         if (now - lastWifiAttempt > 60000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] Offline. Attempting background reconnect...");
@@ -1098,26 +1098,28 @@ void networkTask(void* parameter) {
           WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
         }
       }
+    } else if (hasWiFi) {
+       // FIX 2: Keep timer fresh while connected, preventing premature disconnects
+       lastWifiAttempt = now; 
     }
 
     // --- 3. MQTT & CLOUD MANAGEMENT ---
     if (hasWiFi) {
       if (!hasCloud) {
-        // Keep trying to connect to the cloud every 10 seconds if internet is down
         if (now - lastMqttAttempt > 10000) {
-          reconnectMQTT();
+          reconnectMQTT(); // Try to reach HiveMQ every 10 seconds
           lastMqttAttempt = now;
         }
       } else {
         mqttClient.loop();
 
-        // HEARTBEAT: Force publish every 30 seconds so Cloud App stays online
+        // HEARTBEAT: Force publish every 30s to keep mobile App connected
         if (now - heartbeatTimer > 30000) {
           pendingMqttPublish = true;
           heartbeatTimer = now;
         }
 
-        // NON-BLOCKING MUTEX: Safely send updates to cloud without freezing
+        // NON-BLOCKING MUTEX: Send data safely
         if (pendingMqttPublish && (now - lastPublish >= 500)) {
           if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(100))) {
             publishState();
@@ -1129,7 +1131,7 @@ void networkTask(void* parameter) {
       }
     }
     
-    // GENTLE DELAY: Allows Core 0 to breathe, ensures Core 1 (Pump) never lags
+    // GENTLE DELAY: Ensures Core 1 (Pump Logic) and Web Server never freeze
     vTaskDelay(100 / portTICK_PERIOD_MS); 
   }
 }
