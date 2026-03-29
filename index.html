@@ -292,11 +292,11 @@
         <img src="logo.png" alt="Logo" class="logo">
 
         <h1>Smart Pump Control</h1>
-        <h2>Premium Version • v1.1.0</h2>
+        <h2>Premium Version • v1.2.0</h2>
 
         <p>
-            An advanced Automatic Pump Controller with <b>Voltage Protection</b>, <b>Dry-Run Auto-Retry</b>, <b>LCD
-                Dashboard</b>, and <b>Cloud Control</b>.
+            An advanced <b>Pump & Compressor</b> Dual-Mode Controller with <b>Voltage Protection</b>,
+            <b>Dry-Run Auto-Retry</b>, <b>Solenoid Venting</b>, and <b>Cloud Tracking</b>.
         </p>
 
         <!-- Button for Firmware Installation -->
@@ -338,11 +338,12 @@
             <div class="card" style="background: #fff3e0; border-color: #ffe0b2;">
                 <h3>🛡️ Safety & Features</h3>
                 <ul>
-                    <li><b>Voltage Guard:</b> Automatic cut-off (>250V or <170V).< /li>
-                    <li><b>Dry-Run System:</b> Smart flow detection with configurable <b>Auto-Retry</b> or <b>Lock</b>
-                        modes.</li>
-                    <li><b>LCD Dashboard:</b> Live status on I2C LCD (2004 or 1602).</li>
-                    <li><b>Hybrid Control:</b> Control via Cloud, Local WiFi, or Physical Button.</li>
+                    <li><b>Dual-Mode:</b> Switch between <b>Water Pump</b> and <b>Air Compressor</b> operations.</li>
+                    <li><b>Solenoid Venting:</b> Automatic pressure release valve for compressor reliability.</li>
+                    <li><b>Voltage Guard:</b> Automatic cut-off (>250V or <170V).</li>
+                    <li><b>Dry-Run System:</b> Smart flow detection with <b>Auto-Retry</b> or <b>Lock</b> modes.</li>
+                    <li><b>Cool-Down Logic:</b> Hardware overheating protection for high-demand loads.</li>
+                    <li><b>Smart Scheduling:</b> DND mode for automated overnight silence.</li>
                 </ul>
             </div>
 
@@ -363,95 +364,7 @@
                             <td></td>
                         </tr>
 
-                        <!-- Row 1: Voltage / Buzzer -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">⚡ Volt Sensor</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 04</td>
-                            <td class="board-body-right">GPIO 07</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">🔔 Buzzer</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 2: Trig / Motor -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">📏 Ultra Trig</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 05</td>
-                            <td class="board-body-right">GPIO 08</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">⚙️ Motor</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 3: Echo / RGB -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">📏 Ultra Echo</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 06</td>
-                            <td class="board-body-right">GPIO 48</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">🌈 RGB LED</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 4: Flow / Manual Button -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">🌊 Flow Sens</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 18</td>
-                            <td class="board-body-right">GPIO 09</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-input">🔘 Manual Btn</div>
-                            </td>
-                        </tr>
-
-                        <!-- Row 5: LCD I2C -->
+                        <!-- Row 1: LCD I2C (Start from 01/02) -->
                         <tr>
                             <td>
                                 <div class="comp-base comp-display">🖥️ LCD (SDA)</div>
@@ -470,6 +383,116 @@
                             </td>
                             <td>
                                 <div class="comp-base comp-display">🖥️ LCD (SCL)</div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 2: Voltage / Trig -->
+                        <tr>
+                            <td>
+                                <div class="comp-base comp-sensor">⚡ Volt Sensor</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 04</td>
+                            <td class="board-body-right">GPIO 05</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-sensor">📏 Ultra Trig</div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 3: Echo / Buzzer -->
+                        <tr>
+                            <td>
+                                <div class="comp-base comp-sensor">📏 Ultra Echo</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 06</td>
+                            <td class="board-body-right">GPIO 07</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-actuator">🔔 Buzzer</div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 4: Motor / Manual Button -->
+                        <tr>
+                            <td>
+                                <div class="comp-base comp-actuator">⚙️ Motor</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 08</td>
+                            <td class="board-body-right">GPIO 09</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-input">🔘 Manual Btn</div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 5: Solenoid / Flow -->
+                        <tr>
+                            <td>
+                                <div class="comp-base comp-actuator">💨 Solenoid</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 10</td>
+                            <td class="board-body-right">GPIO 18</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="comp-base comp-sensor">🌊 Flow Sens</div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 6: RGB LED / Footer -->
+                        <tr>
+                            <td>
+                                <div class="comp-base comp-actuator">🌈 RGB LED</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 48</td>
+                            <td class="board-body-right">---</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 90px; height: 10px;"></div>
                             </td>
                         </tr>
 
