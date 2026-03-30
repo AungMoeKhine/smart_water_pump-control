@@ -85,7 +85,7 @@ struct TankConfig {
   int FULL_THRESHOLD = 80;
   static constexpr float MIN_HEIGHT = 12.0f;
   static constexpr float MAX_HEIGHT = 84.0f;
-  static constexpr float BUFFER_HEIGHT = 6.0f;
+  static constexpr float BUFFER_HEIGHT = 9.0f;
   float upperHeight = MIN_HEIGHT;
   int rawUpperPercentage = 0;
   int displayUpperPercentage = 0;
@@ -224,6 +224,7 @@ void handleUpdatePage();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 void handleRoot();
 void handleSettings();
+void handleConfig();
 void handleSave();
 void handleStatus();
 void handleToggle();
@@ -412,8 +413,10 @@ const char index_html[] PROGMEM = R"rawliteral(
   const rfr = () => { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); };
   
   let lastWebAlert = ""; 
+  const dict = { "Smart Pump Dashboard": "ရေမော်တာ ထိန်းချုပ်စနစ်", "🏠 Home": "🏠 ပင်မစာမျက်နှာ", "⚙️ Settings": "⚙️ ဆက်တင်များ", "💧Tank Water Level": "💧ရေတိုင်ကီ ရေအမှတ်", "Voltage:": "လျှပ်စစ်အား-", "Volt Status:": "ဗို့အား အခြေအနေ-", "Pump:": "ရေမော်တာ-", "System Info:": "စက် အချက်အလက်-", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "Update Now": "ယခု အဆင့်မြှင့်မည်", "System Notice": "စနစ် အသိပေးချက်", "System processing...": "စနစ် အလုပ်လုပ်နေပါသည်...", "Understood": "နားလည်ပါသည်" };
+  const applyDict = () => { if(window.lSet) return; document.title = dict["Smart Pump Dashboard"]; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false); let n; while(n = w.nextNode()){ let t=n.nodeValue.trim(); if(dict[t]) n.nodeValue = n.nodeValue.replace(t, dict[t]); } document.getElementById('expiryBanner').innerHTML="⚠️ စနစ် သက်တမ်းကုန်ဆုံးသွားပါပြီ ⚠️<br><span style='font-size:0.8rem; font-weight:normal'>ရေမော်တာ အသုံးပြုခွင့် ပိတ်ထားပါသည်။</span>"; document.getElementById('warnBanner').innerHTML="⚠️ သက်တမ်းကုန်ဆုံးရန် နီးကပ်နေပါပြီ ⚠️<br><span style='font-size:0.8rem; font-weight:normal' id='warnMsg'></span>"; window.lSet = true; };
   const upd = () => { return fetch('/status').then(r=>r.json()).then(d=>{
-    if(d.lang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm');
+    if(d.lang == 1) { document.body.classList.add('lang-mm'); applyDict(); } else document.body.classList.remove('lang-mm');
       document.getElementById('dot').className='conn-dot'; document.getElementById('cStat').innerText=d.lang==1?'စက် အွန်လိုင်း':'Device: Online';
       document.getElementById('dip').innerText = d.ip; document.getElementById('tankFill').style.height = d.tank + '%';
       
@@ -546,53 +549,49 @@ const char settings_html[] PROGMEM = R"rawliteral(
     
     <form action="/save" method="POST">
       <div class="lbl-wrap"><label>WiFi SSID</label><button type="button" onclick="scn()" style="font-size:0.7rem; color:#03ef; background:none; border:1px solid #333; border-radius:4px; cursor:pointer; padding:2px 5px;">Scan for Networks</button></div>
-      <select id="ss" name="ssid_sel" onchange="chSS(this)">
-        <option value="" selected>-- Keep Current (%CUR_SSID%) --</option>
-        %WIFI_LIST%
-        <option value="__man__">Enter SSID Manually...</option>
-      </select>
+      <select id="ss" name="ssid_sel" onchange="chSS(this)"><option value="">Loading...</option></select>
       <input type="text" id="mi" name="ssid_man" placeholder="Type Network Name" style="display:none; margin-top:10px;">
       
       <div class="lbl-wrap"><label>WiFi Password</label></div>
       <div class="pass-row"><input type="password" id="p" name="pass" placeholder="Leave empty to keep current"><label class="show-pass"><input type="checkbox" onclick="togglePass('p')"> Show WiFi Password</label></div>
       <div class="lbl-wrap"><label>Device PIN (for Cloud)</label></div>
-      <div class="pass-row"><input type="password" id="pin" name="pin" value="%PIN%" required><label class="show-pass"><input type="checkbox" onclick="togglePass('pin')"> Show PIN</label></div>
+      <div class="pass-row"><input type="password" id="pin" name="pin" required><label class="show-pass"><input type="checkbox" onclick="togglePass('pin')"> Show PIN</label></div>
       <hr>
       <div class="lbl-wrap"><label>Interface Language</label></div>
-      <select name="sysLang">
-         <option value="0" %LANG_EN%>English</option>
-         <option value="1" %LANG_MM%>Myanmar (မြန်မာ)</option>
+      <select name="sysLang" id="sysLang">
+         <option value="0">English</option>
+         <option value="1">Myanmar (မြန်မာ)</option>
       </select>
       <hr>
 
       <div class="lbl-wrap"><label>Operating Mode</label></div>
       <select name="opM" id="opM" onchange="toggleVDly()">
-         <option value="0" %OP0%>Water Pump</option>
-         <option value="1" %OP1%>Air Compressor</option>
+         <option value="0">Water Pump</option>
+         <option value="1">Air Compressor</option>
       </select>
       <div class="lbl-wrap" id="vWrap" style="display:none;"><label>Compressor Valve Delay</label><span class="range">5 - 15s</span></div>
-<select name="vDly" id="vDly" style="display:none;">%VDLY_LIST%</select>
+      <select name="vDly" id="vDly" style="display:none;"></select>
       <hr>
 
-      <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select name="uH">%TANK_LIST%</select>
-      <div class="lbl-wrap"><label>Over Voltage Set</label><span class="range">230 - 260 V</span></div><select name="vH">%VH_LIST%</select>
-      <div class="lbl-wrap"><label>Under Voltage Set</label><span class="range">150 - 190 V</span></div><select name="vL">%VL_LIST%</select>
-      <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select name="dD">%DRY_LIST%</select>
+      <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select name="uH" id="uH_s"></select>
+      <div class="lbl-wrap"><label>Over Voltage Set</label><span class="range">230 - 260 V</span></div><select name="vH" id="vH_s"></select>
+      <div class="lbl-wrap"><label>Under Voltage Set</label><span class="range">150 - 190 V</span></div><select name="vL" id="vL_s"></select>
+      <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select name="dD" id="dD_s"></select>
       
       <div class="lbl-wrap"><label>Pump Cool-down (After 1Hr)</label><span class="range">Disable / 5 - 15m</span></div>
-      <select name="rstM">%REST_LIST%</select>
+      <select name="rstM" id="rstM_s"></select>
       <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div>
-      <select name="rM"><option value="0" %RM0%>Disabled</option><option value="30" %RM30%>30 Minutes</option><option value="60" %RM60%>60 Minutes</option></select>
+      <select name="rM" id="rM_s"></select>
       <hr>
 
       <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div>
-      <select name="dndEn"><option value="0" %DND_OFF%>Disabled</option><option value="1" %DND_ON%>Enabled</option></select>
+      <select name="dndEn" id="dndEn_s"><option value="0">Disabled</option><option value="1">Enabled</option></select>
       <div style="display:flex; gap:10px; margin-top:10px;">
-        <div style="flex:1;"><label>Start Hour</label><select name="dndS">%START_LIST%</select></div>
-        <div style="flex:1;"><label>End Hour</label><select name="dndE">%END_LIST%</select></div>
+        <div style="flex:1;"><label>Start Hour</label><select name="dndS" id="dndS_s"></select></div>
+        <div style="flex:1;"><label>End Hour</label><select name="dndE" id="dndE_s"></select></div>
       </div>
       <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div>
-      <select name="tzOf">%TZ_LIST%</select>
+      <select name="tzOf" id="tz_s"></select>
       <button type="submit" class="btn">Save & Reboot</button>
     </form>
     <hr>
@@ -604,21 +603,21 @@ const char settings_html[] PROGMEM = R"rawliteral(
           <button class="btn" style="background:#28a745; margin-top:0;" onclick="startOTA()">Update Now</button>
       </div>
       <button class="btn" style="background:#6f42c1; margin-top:0;" onclick="checkOTA()">Check for Updates</button>
-      <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: v%VER%</p>
+      <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: <span id="curVer">loading...</span></p>
     </div>
     
     <hr>
     <div style="text-align:center;">
       <h3 style="color:#28a745; margin:0 0 15px 0;">🔑 License Management</h3>
       <div style="background:#2a2a2a; padding:10px; border-radius:8px; font-size:0.85rem; margin-bottom:15px; word-break:break-all;">
-          <strong>Device ID:</strong> <span id="did" style="color:#03ef;">%DID%</span>
+          <strong>Device ID:</strong> <span id="did" style="color:#03ef;">loading...</span>
       </div>
       
       <form method='POST' action='/upload_license' enctype='multipart/form-data'>
          <label style="display:inline-block; padding: 10px; background:#1e1e1e; border:1px solid #333; cursor:pointer; color: #aaa; border-radius:6px; margin-bottom:5px; width:100%; box-sizing:border-box; text-align:left;">
             <span style="background:#007bff; color:white; padding:5px 10px; border-radius:4px; margin-right:10px;">Choose File</span>
             <span id="fileName">No file chosen</span>
-            <input type="file" name="license" accept=".key,.txt" style="display:none;" onchange="document.getElementById('fileName').innerText = this.files[0] ? this.files[0].name : (document.querySelector('select[name=\'sysLang\']').value == '1' ? 'ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ' : 'No file chosen')">
+            <input type="file" name="license" accept=".key,.txt" style="display:none;" onchange="document.getElementById('fileName').innerText = this.files[0] ? this.files[0].name : (document.getElementById('sysLang').value == '1' ? 'ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ' : 'No file chosen')">
          </label>
          <button type='submit' class="btn" style="margin-top:0; margin-bottom:15px;">Upload Token File</button>
       </form>
@@ -630,57 +629,71 @@ const char settings_html[] PROGMEM = R"rawliteral(
          <button type='submit' class="btn" style="margin-top:0; background:#6f42c1;">Activate via Text</button>
       </form>
     </div>
-
   </div>
-
   <div style="margin-top:25px;color:#666;font-size:0.75rem;">
     <div style="margin-bottom:8px;">Cloud ID: <span id="cid" style="color:#888;">--</span></div>
     Device IP: <span id="dip">--</span>
   </div>
 
 <script>
-  function toggleVDly() {
-     let mode = document.getElementById('opM').value;
-     document.getElementById('vWrap').style.display = (mode == "1") ? "flex" : "none";
-     document.getElementById('vDly').style.display = (mode == "1") ? "block" : "none";
-  }
-  toggleVDly();
-
-  const togglePass = (id) => { var x = document.getElementById(id); if (x.type === "password") x.type = "text"; else x.type = "password"; };
-  const chSS = (s) => { var m = document.getElementById('mi'); if(s.value === '__man__') { m.style.display='block'; m.required=true; } else { m.style.display='none'; m.required=false; } };
+  function toggleVDly() { let m = document.getElementById('opM').value; document.getElementById('vWrap').style.display = (m=="1")?"flex":"none"; document.getElementById('vDly').style.display = (m=="1")?"block":"none"; }
+  const togglePass = (id) => { let x = document.getElementById(id); x.type = x.type==="password"?"text":"password"; };
+  const chSS = (s) => { let m = document.getElementById('mi'); if(s.value === '__man__') { m.style.display='block'; m.required=true; } else { m.style.display='none'; m.required=false; } };
   const scn = () => { if(!confirm('Scan for WiFi networks?')) return; fetch('/scan').then(()=>alert('Scan started. This takes about 5-10 seconds. Refreshing list...')).then(()=>setTimeout(()=>location.reload(),6000)); };
   const checkOTA = () => { window.location.href = '/update_github'; };
   const startOTA = () => { if(confirm('Are you sure you want to update? The system will reboot.')) fetch('/start-ota').then(()=>{ document.body.innerHTML='<h2 style="color:white;text-align:center;margin-top:50px;">Updating...</h2>'; }); };
-  
   const rfr = () => { let b=document.getElementById('rfb'); b.classList.add('spinning'); upd().finally(()=>b.classList.remove('spinning')); };
-  const upd = () => { 
-    return fetch('/status').then(r=>r.json()).then(d=>{
-      if(d.lang == 1) document.body.classList.add('lang-mm'); 
-      else document.body.classList.remove('lang-mm');
 
-      document.getElementById('dot').className='conn-dot'; 
-      document.getElementById('cStat').innerText = d.lang==1 ? 'စက် အွန်လိုင်း' : 'Device: Online';
-      document.getElementById('dip').innerText = d.ip; 
-      if (document.getElementById('cid')) document.getElementById('cid').innerText = d.id;
-      
-      let ota=document.getElementById('otaHub');
-      if(d.ota){ 
-          ota.style.display='block'; 
-          document.getElementById('otaMsg').innerText = d.lang==1 ? 'ဗားရှင်းသစ် v' + d.nVer + ' ရနိုင်ပါပြီ!' : 'New Version v' + d.nVer + ' Available!'; 
-      } else { 
-          ota.style.display='none'; 
-      }
-
-      document.getElementById('expiryBanner').style.display = 'none';
-      document.getElementById('warnBanner').style.display = 'none';
-    }).catch(e=>{ 
-      document.getElementById('dot').className='conn-dot off'; 
-      document.getElementById('cStat').innerText = document.body.classList.contains('lang-mm') ? 'စက် အော့ဖ်လိုင်း (ချိတ်ဆက်နေသည်...)' : 'Device: Offline (Connecting...)'; 
-    }); 
-  }
+  const dict = { "⚙️ Settings": "⚙️ ဆက်တင်များ", "🏠 Home": "🏠 ပင်မစာမျက်နှာ", "WiFi SSID": "ဝိုင်ဖိုင် အမည်", "WiFi Password": "ဝိုင်ဖိုင် စကားဝှက်", "Device PIN (for Cloud)": "လုံခြုံရေး ပင်နံပါတ်", "Interface Language": "ဘာသာစကား", "Tank Height": "ရေတိုင်ကီ အမြင့်", "Over Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Under Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်", "Operating Mode": "စက် အမျိုးအစား", "Compressor Valve Delay": "အဆို့ရှင် ဖွင့်ချိန်", "Water Pump": "ရေမော်တာ", "Air Compressor": "လေကွန်ပရက်ဆာ", "Pump Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်", "🌙 Smart Scheduling (DND)": "ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်", "End Hour": "ပြီးဆုံးရန် အချိန်", "📍 Home Time Zone (GMT)": "အချိန်ဇုန် (GMT)", "Save & Reboot": "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်", "🛠️ Maintenance": "🛠️ ပြုပြင်ထိန်းသိမ်းမှု", "Check for Updates": "ဗားရှင်း အသစ်စစ်ရန်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု", "Upload Token File": "ဖိုင်ဖြင့် သက်တမ်းတိုးမည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်", "Leave empty to keep current": "မပြောင်းလိုပါက အလွတ်ထားပါ", "Show WiFi Password": "ဝိုင်ဖိုင် စကားဝှက် ပြမည်", "Show PIN": "ပင်နံပါတ် ပြမည်", "Scan for Networks": "ဝိုင်ဖိုင် ရှာမည်", "Type Network Name": "ဝိုင်ဖိုင် အမည် ရိုက်ထည့်ပါ", "Enter SSID Manually...": "ဝိုင်ဖိုင် အမည် ကိုယ်တိုင်ပေးမည်...", "Paste Token String (MTc...)": "ဖုန်းဖြင့်ရသော တိုကင်စာသားကို ဤနေရာတွင် ထည့်ပါ", "Choose File": "ဖိုင်ရွေးမည်", "No file chosen": "ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ", "Current Version:": "လက်ရှိ ဗားရှင်း-", "Device ID:": "စက် အမှတ်စဉ်-", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "Update Now": "ယခု အဆင့်မြှင့်မည်" };
   
-  setInterval(upd, 1000); 
-  upd();
+  window.onload = () => {
+    fetch('/config').then(r=>r.json()).then(c=>{
+       let so = `<option value="">-- Keep Current (${c.ssid==""?"None":c.ssid}) --</option>`;
+       if(c.ws==-1) so+=`<option value="" disabled>Scanning in progress...</option>`;
+       else if(c.ws==0||c.ws==-2) so+=`<option value="" disabled>No networks found.</option>`;
+       else if(c.nets) { for(let n of c.nets) so+=`<option value="${n.s}" ${n.s==c.ssid?"selected":""}>${n.s} (${n.r}dBm)</option>`; }
+       so+=`<option value="__man__">Enter SSID Manually...</option>`;
+       document.getElementById('ss').innerHTML = so;
+       
+       document.getElementById('pin').value = c.pin; document.getElementById('sysLang').value = c.lang;
+       document.getElementById('opM').value = c.opM;
+       
+       let vDs=""; for(let i=5; i<=15; i++) vDs+=`<option value="${i}" ${c.vDly==i?"selected":""}>${i} Seconds</option>`; document.getElementById('vDly').innerHTML = vDs;
+       
+       let tH=""; for(let f=1.0; f<=7.01; f+=0.5){ let inc=f*12.0; tH+=`<option value="${inc.toFixed(1)}" ${Math.abs(c.uH-inc)<0.1?"selected":""}>${f} ft</option>`;} document.getElementById('uH_s').innerHTML = tH;
+       let vH=""; for(let i=230; i<=260; i++) vH+=`<option value="${i}" ${c.vH==i?"selected":""}>${i} Volts</option>`; document.getElementById('vH_s').innerHTML = vH;
+       let vL=""; for(let i=150; i<=190; i++) vL+=`<option value="${i}" ${c.vL==i?"selected":""}>${i} Volts</option>`; document.getElementById('vL_s').innerHTML = vL;
+       let dD=""; for(let i=60; i<=180; i+=5) dD+=`<option value="${i}" ${c.dD==i?"selected":""}>${i} Seconds</option>`; document.getElementById('dD_s').innerHTML = dD;
+       let rM=""; for(let i of [0,5,10,15]) rM+=`<option value="${i}" ${c.rstM==i?"selected":""}>${i==0?"Disabled":i+" Minutes"}</option>`; document.getElementById('rstM_s').innerHTML = rM;
+       let rmOps=""; for(let i of [0,30,60]) rmOps+=`<option value="${i}" ${c.rM==i?"selected":""}>${i==0?"Disabled":i+" Minutes"}</option>`; document.getElementById('rM_s').innerHTML = rmOps;
+       
+       document.getElementById('dndEn_s').value = c.dndEn;
+       let h=""; for(let i=0; i<24; i++) h+=`<option value="${i}">${(i<10?'0':'')+i+":00"}</option>`;
+       document.getElementById('dndS_s').innerHTML = h; document.getElementById('dndS_s').value = c.dndS;
+       document.getElementById('dndE_s').innerHTML = h; document.getElementById('dndE_s').value = c.dndE;
+       let tz=""; for(let f=-12.0; f<=14.0; f+=0.5) tz+=`<option value="${f}" ${Math.abs(c.tzOf-f)<0.1?"selected":""}>GMT ${f>=0?'+':''}${f}</option>`; document.getElementById('tz_s').innerHTML = tz;
+       
+       document.getElementById('curVer').innerText = c.ver; document.getElementById('did').innerText = c.did;
+       toggleVDly();
+       
+       if(c.lang==1 && !window.lSet) {
+          document.body.classList.add('lang-mm');
+          const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+          let n; while(n = w.nextNode()){ let t=n.nodeValue.trim(); if(dict[t]) n.nodeValue = n.nodeValue.replace(t, dict[t]); }
+          if(document.getElementById('ss').options[0]) document.getElementById('ss').options[0].text = `-- လက်ရှိ အတိုင်းထားမည် (${c.ssid===""?"None":c.ssid}) --`;
+          window.lSet = true;
+       }
+    });
+  };
+
+  const upd = () => { return fetch('/status').then(r=>r.json()).then(d=>{
+      document.getElementById('dot').className='conn-dot'; document.getElementById('cStat').innerText=d.lang==1?'စက် အွန်လိုင်း':'Device: Online';
+      document.getElementById('dip').innerText = d.ip; if (document.getElementById('cid')) document.getElementById('cid').innerText = d.id;
+      let ota=document.getElementById('otaHub');
+      if(d.ota){ ota.style.display='block'; document.getElementById('otaMsg').innerText=d.lang==1?'ဗားရှင်းသစ် v'+d.nVer+' ရနိုင်ပါပြီ!':'New Version v'+d.nVer+' Available!'; } else { ota.style.display='none'; }
+    }).catch(e=>{ document.getElementById('dot').className='conn-dot off'; document.getElementById('cStat').innerText=document.body.classList.contains('lang-mm')?'စက် အော့ဖ်လိုင်း (ချိတ်ဆက်နေသည်...)':'Device: Offline (Connecting...)'; }); 
+  };
+  setInterval(upd, 1000); upd();
 </script></body></html>
 )rawliteral";
 
@@ -848,6 +861,7 @@ void setup() {
   pass_saved = preferences.getString("pass", "");
   pumpConfig.motorStatus = preferences.getInt("motor", 0);
   pumpConfig.manualOverride = preferences.getBool("override", false);
+  pumpConfig.wasRunningBeforeVoltageError = preferences.getBool("wasRunV", false);
 
   scheduleConfig.enabled = preferences.getBool("dndEn", false);
   scheduleConfig.dndStart = preferences.getInt("dndS", 22);
@@ -922,11 +936,11 @@ void setup() {
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
       waitForTimeSync();
-      
+
       // Turn OFF AP Mode because we successfully connected to the router!
       WiFi.mode(WIFI_STA);
       dnsUdp.stop();
-      
+
     } else {
       Serial.println("\nAll connection attempts failed. Use AP to configure.");
     }
@@ -939,6 +953,7 @@ void setup() {
 
   server.on("/", handleRoot);
   server.on("/settings", handleSettings);
+  server.on("/config", handleConfig);
   server.on("/save", HTTP_POST, handleSave);
   server.on("/status", handleStatus);
   server.on("/toggle", handleToggle);
@@ -976,77 +991,15 @@ void setup() {
 
   xTaskCreatePinnedToCore(networkTask, "NetworkTask", 12000, NULL, 1, &NetworkTaskHandle, 0);
 }
-
-/*void networkTask(void* parameter) {
-  static unsigned long lastPublish = 0;
-  static unsigned long lastWifiAttempt = 0;
-  static unsigned long lastConnectionTime = millis();
-  static unsigned long heartbeatTimer = 0;  // NEW: Heartbeat timer
-
-  while (true) {
-    int stations = WiFi.softAPgetStationNum();
-
-    // --- 1. WIFI CONNECTION MANAGEMENT ---
-    if (ssid_saved != "") {
-      if (WiFi.status() != WL_CONNECTED) {
-        unsigned long now = millis();
-        if (stations > 0) {
-          lastConnectionTime = now;
-          lastWifiAttempt = now;
-        } else {
-          if (now - lastWifiAttempt > 120000) {
-            lastWifiAttempt = now;
-            Serial.println("[WIFI] Attempting background reconnect...");
-            WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
-          }
-          if (now - lastConnectionTime > 180000UL) {
-            Serial.println("[WIFI] Critical Timeout. Rebooting...");
-            delay(1000);
-            ESP.restart();
-          }
-        }
-      } else {
-        lastConnectionTime = millis();
-      }
-    }
-
-    // --- 2. MQTT & CLOUD ---
-    if (WiFi.status() == WL_CONNECTED) {
-      if (!mqttClient.connected()) {
-        static unsigned long lastMqttAttempt = 0;
-        if (millis() - lastMqttAttempt > 10000) {
-          if (!reconnectMQTT()) lastMqttAttempt = millis();
-        }
-      } else {
-        mqttClient.loop();
-
-        // NEW: Force Heartbeat every 30 seconds
-        if (millis() - heartbeatTimer > 30000) {
-          pendingMqttPublish = true;
-          heartbeatTimer = millis();
-        }
-
-        // NEW: Rate limit publishes and handle Mutex safely
-        if (pendingMqttPublish && (millis() - lastPublish >= 1000)) {
-          publishState();
-          pendingMqttPublish = false;
-          lastPublish = millis();
-        }
-      }
-    }
-    vTaskDelay(100 / portTICK_PERIOD_MS);  // Faster loop response
-  }
-}*/
-
 void networkTask(void* parameter) {
   static unsigned long lastPublish = 0;
   static unsigned long lastWifiAttempt = 0;
   static unsigned long lastMqttAttempt = 0;
   static unsigned long noInternetTimer = millis();
   static unsigned long heartbeatTimer = 0;
-  
+
   // FIX 1: Start as 'true' because setup() turns AP on by default
-  static bool apModeActive = true; 
+  static bool apModeActive = true;
 
   while (true) {
     bool hasWiFi = (WiFi.status() == WL_CONNECTED);
@@ -1055,15 +1008,14 @@ void networkTask(void* parameter) {
 
     // --- 1. DYNAMIC AP MODE (TRUE INTERNET FALLBACK) ---
     if (hasWiFi && hasCloud) {
-      noInternetTimer = now; // Reset timer because internet is healthy!
+      noInternetTimer = now;  // Reset timer because internet is healthy!
       if (apModeActive) {
         Serial.println("[NET] Fully connected to Cloud! Hiding AP Mode.");
         dnsUdp.stop();
-        WiFi.mode(WIFI_STA); // Turns AP OFF, keeps local network connection
+        WiFi.mode(WIFI_STA);  // Turns AP OFF, keeps local network connection
         apModeActive = false;
       }
-    } 
-    else {
+    } else {
       // If we lose WiFi, OR if the Cloud fails for 60 seconds
       if (!apModeActive && ssid_saved != "") {
         if (!hasWiFi || (now - noInternetTimer > 60000UL)) {
@@ -1072,14 +1024,14 @@ void networkTask(void* parameter) {
           WiFi.softAP("Auto-Pump-Config", "12345678");
           dnsUdp.begin(DNS_PORT);
           apModeActive = true;
-          lastWifiAttempt = now; // Reset timer so it doesn't instantly reconnect
+          lastWifiAttempt = now;  // Reset timer so it doesn't instantly reconnect
         }
       }
     }
 
     // --- 2. BACKGROUND RECONNECT (NO REBOOTS) ---
     if (!hasWiFi && ssid_saved != "") {
-      int stations = WiFi.softAPgetStationNum(); // Check if someone is connected to the AP
+      int stations = WiFi.softAPgetStationNum();  // Check if someone is connected to the AP
 
       if (stations > 0) {
         // User is setting up WiFi. Pause reconnects for 5 mins so web page doesn't lag.
@@ -1094,20 +1046,20 @@ void networkTask(void* parameter) {
         if (now - lastWifiAttempt > 60000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] Offline. Attempting background reconnect...");
-          WiFi.disconnect(); 
+          WiFi.disconnect();
           WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
         }
       }
     } else if (hasWiFi) {
-       // FIX 2: Keep timer fresh while connected, preventing premature disconnects
-       lastWifiAttempt = now; 
+      // FIX 2: Keep timer fresh while connected, preventing premature disconnects
+      lastWifiAttempt = now;
     }
 
     // --- 3. MQTT & CLOUD MANAGEMENT ---
     if (hasWiFi) {
       if (!hasCloud) {
         if (now - lastMqttAttempt > 10000) {
-          reconnectMQTT(); // Try to reach HiveMQ every 10 seconds
+          reconnectMQTT();  // Try to reach HiveMQ every 10 seconds
           lastMqttAttempt = now;
         }
       } else {
@@ -1130,9 +1082,9 @@ void networkTask(void* parameter) {
         }
       }
     }
-    
+
     // GENTLE DELAY: Ensures Core 1 (Pump Logic) and Web Server never freeze
-    vTaskDelay(100 / portTICK_PERIOD_MS); 
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 
@@ -1284,6 +1236,7 @@ void saveMotorStatus() {
   preferences.begin("pump-control", false);
   preferences.putInt("motor", pumpConfig.motorStatus);
   preferences.putBool("override", pumpConfig.manualOverride);
+  preferences.putBool("wasRunV", pumpConfig.wasRunningBeforeVoltageError);
   preferences.end();
 }
 void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
@@ -1592,9 +1545,9 @@ void updatePumpLogic() {
         voltageConfig.status = 1;
         if (pumpConfig.wasRunningBeforeVoltageError && !sensorError && !coolDownConfig.isResting && (!currentDndActive || pumpConfig.manualOverride)) {
           pumpConfig.motorStatus = 1;
-          saveMotorStatus();
         }
         pumpConfig.wasRunningBeforeVoltageError = false;
+        saveMotorStatus();
       }
     }
   }
@@ -1953,187 +1906,56 @@ void handleRoot() {
     if (WiFi.status() != WL_CONNECTED) WiFi.disconnect();
     WiFi.scanNetworks(true);
   }
-  String s = index_html;
-  if (sysLang == 1) {
-    s.replace("Smart Pump Dashboard", "ရေမော်တာ ထိန်းချုပ်စနစ်");
-    s.replace("🏠 Home", "🏠 ပင်မစာမျက်နှာ");
-    s.replace("⚙️ Settings", "⚙️ ဆက်တင်များ");
-    s.replace("💧Tank Water Level", "💧ရေတိုင်ကီ ရေအမှတ်");
-    s.replace("Voltage:", "လျှပ်စစ်အား-");
-    s.replace("Volt Status:", "ဗို့အား အခြေအနေ-");
-    s.replace("Pump:", "ရေမော်တာ-");
-    s.replace("System Info:", "စက် အချက်အလက်-");
-    s.replace(">PUMP: OFF<", ">ပိတ်ထားသည်<");
-    s.replace(">Reset Alarm<", ">အချက်ပေး ပြန်ပိတ်မည်<");
-    s.replace("Cloud ID:", "ကလောက် အိုင်ဒီ-");
-    s.replace("Device IP:", "စက် အိုင်ပီ-");
-    s.replace("Dry-Run in:", "ရေမရှိ အချက်ပေးရန်-");
-    s.replace(">Update Now<", ">ယခု အဆင့်မြှင့်မည်<");
-    s.replace("⚠️ SYSTEM EXPIRED ⚠️", "⚠️ စနစ် သက်တမ်းကုန်ဆုံးသွားပါပြီ ⚠️");
-    s.replace("Pump operations are disabled.", "ရေမော်တာ အသုံးပြုခွင့် ပိတ်ထားပါသည်။");
-    s.replace("⚠️ SUBSCRIPTION ENDING SOON ⚠️", "⚠️ သက်တမ်းကုန်ဆုံးရန် နီးကပ်နေပါပြီ ⚠️");
-    s.replace("System Notice", "စနစ် အသိပေးချက်");
-    s.replace("System processing...", "စနစ် အလုပ်လုပ်နေပါသည်...");
-    s.replace(">Understood<", ">နားလည်ပါသည်<");
-  }
-  server.send(200, "text/html", s);
+  server.send_P(200, "text/html", index_html);
 }
 
 void handleSettings() {
-  String wifiList = "";
-  wifiList.reserve(512);
-  int n = WiFi.scanComplete();
-  if (n == -1) wifiList = "<option value='' disabled>Scanning in progress... Please wait.</option>";
-  else if (n == -2 || n == 0) {
-    wifiList = "<option value='' disabled>No networks found. Try scanning again.</option>";
+  if (WiFi.scanComplete() == -2) {
     if (WiFi.status() != WL_CONNECTED) WiFi.disconnect();
     WiFi.scanNetworks(true);
-  } else {
-    for (int i = 0; i < n; ++i) {
-      String ssid = WiFi.SSID(i);
-      String sel = (ssid == ssid_saved) ? " selected" : "";
-      wifiList += "<option value='" + ssid + "'" + sel + ">" + ssid + " (" + String(WiFi.RSSI(i)) + "dBm)</option>";
-    }
   }
+  server.send_P(200, "text/html", settings_html);
+}
 
-  String tankList = "";
-  tankList.reserve(512);
-  String startList = "";
-  startList.reserve(512);
-  String endList = "";
-  endList.reserve(512);
-  String tzList = "";
-  tzList.reserve(256);
-  String vHList = "";
-  vHList.reserve(256);
-  String vLList = "";
-  vLList.reserve(256);
-  String dryList = "";
-  dryList.reserve(256);
-  String restList = "";
-  restList.reserve(256);
-  String vDlyList = "";
-  vDlyList.reserve(256);
+void handleConfig() {
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(100))) {
+    DynamicJsonDocument doc(2048);
+    doc["ssid"] = ssid_saved;
+    doc["uH"] = tankConfig.upperHeight;
+    doc["vH"] = voltageConfig.HIGH_THRESHOLD;
+    doc["vL"] = voltageConfig.LOW_THRESHOLD;
+    doc["dD"] = dryRunConfig.WAIT_SECONDS_SET;
+    doc["rstM"] = coolDownConfig.restMinutes;
+    doc["rM"] = dryRunConfig.autoRetryMinutes;
+    doc["opM"] = compConfig.opMode;
+    doc["vDly"] = compConfig.valveDelay;
+    doc["pin"] = devicePin;
+    doc["lang"] = sysLang;
+    doc["dndEn"] = scheduleConfig.enabled ? 1 : 0;
+    doc["dndS"] = scheduleConfig.dndStart;
+    doc["dndE"] = scheduleConfig.dndEnd;
+    doc["tzOf"] = scheduleConfig.timezoneOffset;
+    doc["ver"] = String(FIRMWARE_VERSION);
+    doc["did"] = getDeviceID();
 
-  if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-    for (float f = 1.0; f <= 7.01; f += 0.5) {
-      float inches = f * 12.0;
-      String sel = (abs(tankConfig.upperHeight - inches) < 0.1) ? " selected" : "";
-      String lbl = (f == (int)f) ? String((int)f) : String(f, 1);
-      tankList += "<option value='" + String(inches, 1) + "'" + sel + ">" + lbl + " ft</option>";
+    int n = WiFi.scanComplete();
+    doc["ws"] = n;
+    if (n > 0) {
+      JsonArray nets = doc.createNestedArray("nets");
+      for (int i = 0; i < n; ++i) {
+        JsonObject n_obj = nets.createNestedObject();
+        n_obj["s"] = WiFi.SSID(i);
+        n_obj["r"] = WiFi.RSSI(i);
+      }
     }
-    for (int i = 0; i < 24; i++) {
-      String hourStr = (i < 10 ? "0" : "") + String(i) + ":00";
-      String selS = (i == scheduleConfig.dndStart) ? " selected" : "";
-      String selE = (i == scheduleConfig.dndEnd) ? " selected" : "";
-      startList += "<option value='" + String(i) + "'" + selS + ">" + hourStr + "</option>";
-      endList += "<option value='" + String(i) + "'" + selE + ">" + hourStr + "</option>";
-    }
-    for (float f = -12.0; f <= 14.0; f += 0.5) {
-      String sel = (abs(scheduleConfig.timezoneOffset - f) < 0.1) ? " selected" : "";
-      String lbl = (f >= 0 ? "+" : "") + (f == (int)f ? String((int)f) : String(f, 1));
-      tzList += "<option value='" + String(f, 1) + "'" + sel + ">GMT " + lbl + "</option>";
-    }
-    for (int i = 230; i <= 260; i++) {
-      String sel = (i == voltageConfig.HIGH_THRESHOLD) ? " selected" : "";
-      vHList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Volts</option>";
-    }
-    for (int i = 150; i <= 190; i++) {
-      String sel = (i == voltageConfig.LOW_THRESHOLD) ? " selected" : "";
-      vLList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Volts</option>";
-    }
-    for (int i = 60; i <= 180; i += 5) {
-      String sel = (i == dryRunConfig.WAIT_SECONDS_SET) ? " selected" : "";
-      dryList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Seconds</option>";
-    }
-    int restOpts[] = { 0, 5, 10, 15 };
-    for (int i = 0; i < 4; i++) {
-      String sel = (coolDownConfig.restMinutes == restOpts[i]) ? " selected" : "";
-      String lbl = (restOpts[i] == 0) ? "Disabled" : String(restOpts[i]) + " Minutes";
-      restList += "<option value='" + String(restOpts[i]) + "'" + sel + ">" + lbl + "</option>";
-    }
-    for (int i = 5; i <= 15; i++) {
-      String sel = (compConfig.valveDelay == i) ? " selected" : "";
-      vDlyList += "<option value='" + String(i) + "'" + sel + ">" + String(i) + " Seconds</option>";
-    }
+
+    String json;
+    serializeJson(doc, json);
     xSemaphoreGiveRecursive(systemMutex);
+    server.send(200, "application/json", json);
+  } else {
+    server.send(503, "application/json", "{}");
   }
-
-  String s = settings_html;
-  s.replace("%CUR_SSID%", ssid_saved == "" ? "None" : ssid_saved);
-  s.replace("%WIFI_LIST%", wifiList);
-  s.replace("%TANK_LIST%", tankList);
-  s.replace("%VH_LIST%", vHList);
-  s.replace("%VL_LIST%", vLList);
-  s.replace("%DRY_LIST%", dryList);
-  s.replace("%REST_LIST%", restList);
-  s.replace("%OP0%", compConfig.opMode == 0 ? "selected" : "");
-  s.replace("%OP1%", compConfig.opMode == 1 ? "selected" : "");
-  s.replace("%VDLY_LIST%", vDlyList);
-  s.replace("%RM0%", dryRunConfig.autoRetryMinutes == 0 ? "selected" : "");
-  s.replace("%RM30%", dryRunConfig.autoRetryMinutes == 30 ? "selected" : "");
-  s.replace("%RM60%", dryRunConfig.autoRetryMinutes == 60 ? "selected" : "");
-  s.replace("%PIN%", devicePin);
-  s.replace("%LANG_EN%", sysLang == 0 ? "selected" : "");
-  s.replace("%LANG_MM%", sysLang == 1 ? "selected" : "");
-  s.replace("%DND_ON%", scheduleConfig.enabled ? "selected" : "");
-  s.replace("%DND_OFF%", !scheduleConfig.enabled ? "selected" : "");
-  s.replace("%START_LIST%", startList);
-  s.replace("%END_LIST%", endList);
-  s.replace("%TZ_LIST%", tzList);
-  s.replace("%VER%", String(FIRMWARE_VERSION));
-  s.replace("%DID%", getDeviceID());
-
-  if (sysLang == 1) {
-    s.replace("⚙️ Settings", "⚙️ ဆက်တင်များ");
-    s.replace("🏠 Home", "🏠 ပင်မစာမျက်နှာ");
-    s.replace("Device: Online", "စက် အွန်လိုင်း");
-    s.replace("WiFi SSID", "ဝိုင်ဖိုင် အမည်");
-    s.replace("WiFi Password", "ဝိုင်ဖိုင် စကားဝှက်");
-    s.replace("Device PIN (for Cloud)", "လုံခြုံရေး ပင်နံပါတ်");
-    s.replace("Interface Language", "ဘာသာစကား");
-    s.replace("Tank Height", "ရေတိုင်ကီ အမြင့်");
-    s.replace("Over Voltage Set", "ဗို့အားလွန် သတ်မှတ်ချက်");
-    s.replace("Under Voltage Set", "ဗို့အားလျော့ သတ်မှတ်ချက်");
-    s.replace("Dry-Run Delay", "ရေမရှိ အချက်ပေးချိန်");
-    s.replace("Operating Mode", "စက် အမျိုးအစား");
-    s.replace("Compressor Valve Delay", "အဆို့ရှင် ဖွင့်ချိန်");
-    s.replace(">Water Pump<", ">ရေမော်တာ<");
-    s.replace(">Air Compressor<", ">လေကွန်ပရက်ဆာ<");
-    s.replace("Pump Cool-down (After 1Hr)", "၁နာရီမောင်းပြီး အနားပေးချိန်");
-    s.replace("Disable / 5 - 15m", "ပိတ်မည် / ၅ - ၁၅ မိနစ်");
-    s.replace("Auto-Retry Wait", "ပြန်လည်စတင်ရန် စောင့်ချိန်");
-    s.replace("Smart Scheduling (DND)", "ညဘက် အသံပိတ်စနစ် (DND)");
-    s.replace("Start Hour", "စတင်ရန် အချိန်");
-    s.replace("End Hour", "ပြီးဆုံးရန် အချိန်");
-    s.replace("Home Time Zone (GMT)", "အချိန်ဇုန် (GMT)");
-    s.replace("Save & Reboot", "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်");
-    s.replace("Save &amp; Reboot", "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်");
-    s.replace("Maintenance", "ပြုပြင်ထိန်းသိမ်းမှု");
-    s.replace("Check for Updates", "ဗားရှင်း အသစ်စစ်ရန်");
-    s.replace("License Management", "လိုင်စင် စီမံခန့်ခွဲမှု");
-    s.replace("Upload Token File", "ဖိုင်ဖြင့် သက်တမ်းတိုးမည်");
-    s.replace("Activate via Text", "စာသားဖြင့် သက်တမ်းတိုးမည်");
-    s.replace("Leave empty to keep current", "မပြောင်းလိုပါက အလွတ်ထားပါ");
-    s.replace("Show WiFi Password", "ဝိုင်ဖိုင် စကားဝှက် ပြမည်");
-    s.replace("Show PIN", "ပင်နံပါတ် ပြမည်");
-    s.replace("Scan for Networks", "ဝိုင်ဖိုင် ရှာမည်");
-    s.replace("Type Network Name", "ဝိုင်ဖိုင် အမည် ရိုက်ထည့်ပါ");
-    s.replace("-- Keep Current", "-- လက်ရှိ အတိုင်းထားမည်");
-    s.replace("Enter SSID Manually...", "ဝိုင်ဖိုင် အမည် ကိုယ်တိုင်ပေးမည်...");
-    s.replace("Paste Token String (MTc...)", "ဖုန်းဖြင့်ရသော တိုကင်စာသားကို ဤနေရာတွင် ထည့်ပါ");
-    s.replace("Choose File", "ဖိုင်ရွေးမည်");
-    s.replace("No file chosen", "ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ");
-    s.replace("Current Version:", "လက်ရှိ ဗားရှင်း-");
-    s.replace("Device ID:", "စက် အမှတ်စဉ်-");
-    s.replace("Cloud ID:", "ကလောက် အိုင်ဒီ-");
-    s.replace("Device IP:", "စက် အိုင်ပီ-");
-    s.replace(">Update Now<", ">ယခု အဆင့်မြှင့်မည်<");
-    s.replace("⚠️ SYSTEM EXPIRED ⚠️", "⚠️ စနစ် သက်တမ်းကုန်ဆုံးသွားပါပြီ ⚠️");
-    s.replace("Pump operations are disabled.", "ရေမော်တာ အသုံးပြုခွင့် ပိတ်ထားပါသည်။");
-    s.replace("⚠️ SUBSCRIPTION ENDING SOON ⚠️", "⚠️ သက်တမ်းကုန်ဆုံးရန် နီးကပ်နေပါပြီ ⚠️");
-  }
-  server.send(200, "text/html", s);
 }
 
 void handleSave() {
@@ -2351,7 +2173,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   if (doc.containsKey("toggle")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
-      
+
       // --- CLOUD LICENSE LOCK FOR TOGGLE ---
       if (isSystemExpired) {
         DynamicJsonDocument resp(256);
@@ -2416,7 +2238,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
   } else if (doc.containsKey("save")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
-      
+
       // --- CLOUD LICENSE LOCK FOR SAVE ---
       if (isSystemExpired) {
         DynamicJsonDocument resp(256);
