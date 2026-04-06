@@ -253,15 +253,15 @@ void requestTimeSync() {
 }
 
 void checkAndSaveInstallDate() {
-  if (installDate != 0) return; // Already saved
-  
+  if (installDate != 0) return;  // Already saved
+
   time_t now = time(nullptr);
-  if (now > 1600000000) { // If time is successfully synced
+  if (now > 1600000000) {  // If time is successfully synced
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
       Serial.print("Time Synced: ");
       Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-      
+
       if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
         installDate = (unsigned long)now;
         preferences.begin("pump-control", false);
@@ -906,19 +906,22 @@ void setup() {
   lcd.print("********************");
 
   WiFi.mode(WIFI_AP_STA);
-  WiFi.setAutoReconnect(true);  // Ensures the driver stays active
-  WiFi.setSleep(false);         // Prevents the WiFi chip from "napping" (reduces pings/lags)
-  WiFi.softAP("Auto-Pump-Config", "12345678");
-  Serial.print("Initial Scan Start: ");
-  int nS = WiFi.scanNetworks(true);
-  Serial.println(nS == -1 ? "OK" : "Error");
-  dnsUdp.begin(DNS_PORT);
+  WiFi.setAutoReconnect(true);  
+  WiFi.setSleep(false);         
+  
+  if (ssid_saved == "") {
+    // Brand new install! Force AP mode actively!
+    Serial.println("No SSID saved. Starting AP mode immediately.");
+    WiFi.softAP("Auto-Pump-Config", "12345678");
+    dnsUdp.begin(DNS_PORT);
+  }
+  // Note: Initial scan removed to prevent the AP from crashing on the ESP32-S3
 
   if (ssid_saved != "") {
     Serial.print("Connecting to WiFi: " + ssid_saved);
     WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
-    
-    // Only wait a maximum of 5 seconds during boot. 
+
+    // Only wait a maximum of 5 seconds during boot.
     // If it fails, we move on instantly so the pump can operate offline!
     unsigned long startWait = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - startWait < 5000) {
@@ -928,7 +931,7 @@ void setup() {
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
-      requestTimeSync(); // Request time without blocking
+      requestTimeSync();  // Request time without blocking
 
       // Turn OFF AP Mode because we successfully connected to the router
       WiFi.mode(WIFI_STA);
@@ -982,7 +985,7 @@ void setup() {
   mqttClient.setKeepAlive(60);
 
   // --- NEW WATCHDOG CONFIG ---
-  esp_task_wdt_deinit(); // Crucial: Remove default Arduino 5s WDT so our 30s config applies
+  esp_task_wdt_deinit();  // Crucial: Remove default Arduino 5s WDT so our 30s config applies
   esp_task_wdt_config_t wdt_config = {
     .timeout_ms = 30000,   // 30 seconds
     .idle_core_mask = 0,   // Core IDLE checks
@@ -1024,16 +1027,14 @@ void networkTask(void* parameter) {
         apModeActive = false;
       }
     } else {
-      // Only start AP Mode if we actually lose connection to the Home Router
-      if (!apModeActive && ssid_saved != "") {
-        if (!hasWiFi) {   // <-- REMOVED THE CLOUD TIMER CONDITION
-          Serial.println("[NET] Router connection lost! Starting AP Mode for local access.");
-          WiFi.mode(WIFI_AP_STA);
-          WiFi.softAP("Auto-Pump-Config", "12345678");
-          dnsUdp.begin(DNS_PORT);
-          apModeActive = true;
-          lastWifiAttempt = now;  // Reset timer so it doesn't instantly reconnect
-        }
+      // Start AP Mode if we lose connection OR if it's a brand new install (No SSID saved)
+      if (!apModeActive && (ssid_saved == "" || !hasWiFi)) {
+        Serial.println("[NET] No Router Connection! Starting AP Mode for local access/setup.");
+        WiFi.mode(WIFI_AP_STA);
+        WiFi.softAP("Auto-Pump-Config", "12345678");
+        dnsUdp.begin(DNS_PORT);
+        apModeActive = true;
+        lastWifiAttempt = now;  // Reset timer so it doesn't instantly reconnect
       }
     }
 
@@ -1054,16 +1055,16 @@ void networkTask(void* parameter) {
         if (now - lastWifiAttempt > 300000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] AP Setup Timeout. Checking old router...");
-          WiFi.disconnect();                                    // <--- ADD THIS
-          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());   // <--- CHANGE TO THIS
+          WiFi.disconnect();                                   // <--- ADD THIS
+          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());  // <--- CHANGE TO THIS
         }
       } else {
         // Nobody is on the AP. Aggressively try to reconnect to router every 60s.
         if (now - lastWifiAttempt > 60000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] Offline. Attempting background reconnect...");
-          WiFi.disconnect();                                    // <--- ADD THIS
-          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());   // <--- CHANGE TO THIS
+          WiFi.disconnect();                                   // <--- ADD THIS
+          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());  // <--- CHANGE TO THIS
         }
       }
     } else if (hasWiFi) {
@@ -1207,30 +1208,68 @@ String processManualToggle() {
 
 void monitorButton() {
   static int lastReading = HIGH;
+  static unsigned long buttonDownTime = 0;
+  static bool longPressHandled = false;
   static unsigned long lastDebounceTime = 0;
+
   int reading = digitalRead(MANUAL_BTN_PIN);
-  if (reading != lastReading) lastDebounceTime = millis();
+  
+  if (reading != lastReading) {
+    lastDebounceTime = millis();
+  }
+
   if ((millis() - lastDebounceTime) > 20) {
     static int buttonState = HIGH;
     if (reading != buttonState) {
       buttonState = reading;
+      
       if (buttonState == LOW) {
-        String res = processManualToggle();
-        if (res.startsWith("Blocked:")) {
-          String reason = res.substring(8);
-          setLedColor(255, 0, 0);
-          if (mqttClient.connected()) {
-            DynamicJsonDocument resp(256);
-            resp["alert"] = "System Notice (Device Button)";
-            resp["reason"] = reason;
-            String respStr;
-            serializeJson(resp, respStr);
-            mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+        // Button just went DOWN
+        buttonDownTime = millis();
+        longPressHandled = false;
+      } else {
+        // Button just went UP (Released)
+        if (!longPressHandled && buttonDownTime > 0) {
+          // It was a short press -> Toggle Pump
+          String res = processManualToggle();
+          if (res.startsWith("Blocked:")) {
+            String reason = res.substring(8);
+            setLedColor(255, 0, 0);
+            if (mqttClient.connected()) {
+              DynamicJsonDocument resp(256);
+              resp["alert"] = "System Notice (Device Button)";
+              resp["reason"] = reason;
+              String respStr;
+              serializeJson(resp, respStr);
+              mqttClient.publish(statusTopic.c_str(), respStr.c_str());
+            }
+            webAlertMsg = "Device Button: " + reason;
+            webAlertTime = millis();
           }
-          webAlertMsg = "Device Button: " + reason;
-          webAlertTime = millis();
         }
+        buttonDownTime = 0;
       }
+    }
+
+    // Check for Long Press (3 seconds) while button is still held DOWN
+    if (buttonState == LOW && !longPressHandled && (millis() - buttonDownTime >= 3000)) {
+      longPressHandled = true; // Prevent multiple triggers
+      Serial.println("[USER] Button Held: Forcing AP Mode!");
+      
+      // Short Beep to tell the user they can let go!
+      digitalWrite(BUZZER_PIN, HIGH);
+      delay(200);
+      digitalWrite(BUZZER_PIN, LOW);
+      
+      // Force AP Mode ON
+      WiFi.mode(WIFI_AP_STA);
+      WiFi.softAP("Auto-Pump-Config", "12345678");
+      dnsUdp.begin(DNS_PORT);
+      
+      // Flash LED to visually indicate Setup Mode is active
+      setLedColor(0, 0, 255);
+      delay(300);
+      setLedColor(255, 255, 255);
     }
   }
   lastReading = reading;
@@ -1455,7 +1494,7 @@ void updatePumpLogic() {
   currentDndActive = false;
   if (scheduleConfig.enabled) {
     struct tm timeinfo;
-    // The ", 0" is CRITICAL. It tells the ESP32 to wait 0ms! 
+    // The ", 0" is CRITICAL. It tells the ESP32 to wait 0ms!
     // And we check if year >= 120 (2020) so it doesn't trigger on fake 1970 time.
     if (getLocalTime(&timeinfo, 0) && timeinfo.tm_year >= 120) {
       int hour = timeinfo.tm_hour;
@@ -1574,7 +1613,7 @@ void updatePumpLogic() {
   // --- 6. STATE DETERMINATION ---
   // PRIORITY 1: Always vent pressure first if stopping, regardless of errors!
   if (compConfig.isPostVenting) currentState = PumpState::POST_STOP_VALVE;
-  
+
   // PRIORITY 2: Safety & Errors
   else if (voltAbnormal) currentState = PumpState::VOLTAGE_ERROR;
   else if (voltageConfig.status == 0) currentState = PumpState::VOLTAGE_WAIT;
@@ -1582,7 +1621,7 @@ void updatePumpLogic() {
   else if (coolDownConfig.isResting) currentState = PumpState::COOLING_DOWN;
   else if (dryRunConfig.error == 1) currentState = PumpState::DRY_RUN_ALARM;
   else if (dryRunConfig.error == 2) currentState = PumpState::DRY_RUN_LOCKED;
-  
+
   // PRIORITY 3: Normal Operations
   else if (pumpConfig.motorStatus == 1) {
     if (compConfig.isPreVenting) currentState = PumpState::PRE_START_VALVE;
@@ -1900,20 +1939,20 @@ void updateLCD() {
 
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
-  
+
   struct tm timeinfo;
   // Non-blocking check: if year is < 120 (before 2020), internet time hasn't synced yet
   if (!getLocalTime(&timeinfo, 10) || timeinfo.tm_year < 120) {
     requestTimeSync();
-    return false; // Exit immediately, don't freeze the system!
+    return false;  // Exit immediately, don't freeze the system!
   }
 
   // Time is valid, ensure install date is saved
-  checkAndSaveInstallDate(); 
+  checkAndSaveInstallDate();
 
   espClient.stop();
   // Lower timeout to prevent freezing if router has no internet
-  espClient.setHandshakeTimeout(10);  
+  espClient.setHandshakeTimeout(10);
   espClient.setTimeout(10000);
 
   if (mqttClient.connect(("Pump-" + getDeviceID()).c_str(), mqtt_user, mqtt_pass, onlineTopic.c_str(), 1, true, "0")) {
