@@ -1054,14 +1054,16 @@ void networkTask(void* parameter) {
         if (now - lastWifiAttempt > 300000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] AP Setup Timeout. Checking old router...");
-          WiFi.reconnect(); // <-- CHANGE TO THIS
+          WiFi.disconnect();                                    // <--- ADD THIS
+          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());   // <--- CHANGE TO THIS
         }
       } else {
         // Nobody is on the AP. Aggressively try to reconnect to router every 60s.
         if (now - lastWifiAttempt > 60000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] Offline. Attempting background reconnect...");
-          WiFi.reconnect(); // <-- CHANGE TO THIS
+          WiFi.disconnect();                                    // <--- ADD THIS
+          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());   // <--- CHANGE TO THIS
         }
       }
     } else if (hasWiFi) {
@@ -1453,7 +1455,9 @@ void updatePumpLogic() {
   currentDndActive = false;
   if (scheduleConfig.enabled) {
     struct tm timeinfo;
-    if (getLocalTime(&timeinfo)) {
+    // The ", 0" is CRITICAL. It tells the ESP32 to wait 0ms! 
+    // And we check if year >= 120 (2020) so it doesn't trigger on fake 1970 time.
+    if (getLocalTime(&timeinfo, 0) && timeinfo.tm_year >= 120) {
       int hour = timeinfo.tm_hour;
       if (scheduleConfig.dndStart > scheduleConfig.dndEnd) {
         if (hour >= scheduleConfig.dndStart || hour < scheduleConfig.dndEnd) currentDndActive = true;
