@@ -17,6 +17,7 @@
 #include <time.h>
 #include <WiFiClientSecure.h>
 #include <WiFiUdp.h>
+#include <DNSServer.h>
 #include <ZMPT101B.h>
 #include <Adafruit_NeoPixel.h>
 #include <ESPmDNS.h>
@@ -204,7 +205,7 @@ int sysLang = 0;
 String webAlertMsg = "";
 unsigned long webAlertTime = 0;
 
-WiFiUDP dnsUdp;
+DNSServer dnsServer;
 const byte DNS_PORT = 53;
 
 TaskHandle_t NetworkTaskHandle;
@@ -279,39 +280,7 @@ void waitForTimeSync() {
 
 void processDNS() {
   if (WiFi.getMode() == WIFI_STA) return;
-  int packetSize = dnsUdp.parsePacket();
-  if (packetSize > 0) {
-    unsigned char buf[512];
-    dnsUdp.read(buf, 512);
-    if ((buf[2] & 0x80) == 0) {
-      buf[2] = 0x81;
-      buf[3] = 0x80;
-      buf[7] = 0x01;
-      int pos = 12;
-      while (buf[pos] != 0 && pos < packetSize) pos += buf[pos] + 1;
-      pos += 5;
-      buf[pos++] = 0xC0;
-      buf[pos++] = 0x0C;
-      buf[pos++] = 0x00;
-      buf[pos++] = 0x01;
-      buf[pos++] = 0x00;
-      buf[pos++] = 0x01;
-      buf[pos++] = 0x00;
-      buf[pos++] = 0x00;
-      buf[pos++] = 0x00;
-      buf[pos++] = 0x3C;
-      buf[pos++] = 0x00;
-      buf[pos++] = 0x04;
-      IPAddress ip = WiFi.softAPIP();
-      buf[pos++] = ip[0];
-      buf[pos++] = ip[1];
-      buf[pos++] = ip[2];
-      buf[pos++] = ip[3];
-      dnsUdp.beginPacket(dnsUdp.remoteIP(), dnsUdp.remotePort());
-      dnsUdp.write(buf, pos);
-      dnsUdp.endPacket();
-    }
-  }
+  dnsServer.processNextRequest();
 }
 
 // --- Web Interface HTML ---
@@ -915,7 +884,8 @@ void setup() {
   Serial.print("Initial Scan Start: ");
   int nS = WiFi.scanNetworks(true);
   Serial.println(nS == -1 ? "OK" : "Error");
-  dnsUdp.begin(DNS_PORT);
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
 
   if (ssid_saved != "") {
     wifiMulti.addAP(ssid_saved.c_str(), pass_saved.c_str());
@@ -939,7 +909,7 @@ void setup() {
 
       // Turn OFF AP Mode because we successfully connected to the router!
       WiFi.mode(WIFI_STA);
-      dnsUdp.stop();
+      dnsServer.stop();
 
     } else {
       Serial.println("\nAll connection attempts failed. Use AP to configure.");
@@ -973,8 +943,8 @@ void setup() {
   server.on("/apply_license", HTTP_POST, handleApplyLicenseText);
   server.on("/admin", handleAdmin);
   server.onNotFound([]() {
-    server.sendHeader("Location", "http://192.168.4.1/", true);
-    server.send(302, "text/plain", "Redirect");
+    server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
+    server.send(302, "text/plain", "Redirecting to Web Dashboard...");
   });
   server.begin();
 
@@ -1000,6 +970,7 @@ void networkTask(void* parameter) {
 
   // FIX 1: Start as 'true' because setup() turns AP on by default
   static bool apModeActive = true;
+  static int lastStations = 0;
 
   while (true) {
     bool hasWiFi = (WiFi.status() == WL_CONNECTED);
@@ -1011,7 +982,7 @@ void networkTask(void* parameter) {
       noInternetTimer = now;  // Reset timer because internet is healthy!
       if (apModeActive) {
         Serial.println("[NET] Fully connected to Cloud! Hiding AP Mode.");
-        dnsUdp.stop();
+        dnsServer.stop();
         WiFi.mode(WIFI_STA);  // Turns AP OFF, keeps local network connection
         apModeActive = false;
       }
@@ -1022,7 +993,8 @@ void networkTask(void* parameter) {
           Serial.println("[NET] Internet/Router lost! Starting AP Mode for local access.");
           WiFi.mode(WIFI_AP_STA);
           WiFi.softAP("Auto-Pump-Config", "12345678");
-          dnsUdp.begin(DNS_PORT);
+          dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+          dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
           apModeActive = true;
           lastWifiAttempt = now;  // Reset timer so it doesn't instantly reconnect
         }
@@ -1034,6 +1006,12 @@ void networkTask(void* parameter) {
       int stations = WiFi.softAPgetStationNum();  // Check if someone is connected to the AP
 
       if (stations > 0) {
+        if (lastStations == 0) {
+          // User just connected to AP! Immediately halt all old STA connection attempts to clear the radio.
+          Serial.println("[WIFI] User connected to AP! Pausing STA reconnects for 5 mins.");
+          WiFi.disconnect(); 
+          lastWifiAttempt = now; // Give a fresh 5 minute grace period
+        }
         // User is setting up WiFi. Pause reconnects for 5 mins so web page doesn't lag.
         if (now - lastWifiAttempt > 300000UL) {
           lastWifiAttempt = now;
@@ -1042,6 +1020,10 @@ void networkTask(void* parameter) {
           WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
         }
       } else {
+        if (lastStations > 0) {
+          // User just disconnected from AP. Set timer to force a fast reconnect check.
+          lastWifiAttempt = now - 60000UL; 
+        }
         // Nobody is on the AP. Aggressively try to reconnect to router every 60s.
         if (now - lastWifiAttempt > 60000UL) {
           lastWifiAttempt = now;
@@ -1050,9 +1032,11 @@ void networkTask(void* parameter) {
           WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
         }
       }
+      lastStations = stations;
     } else if (hasWiFi) {
       // FIX 2: Keep timer fresh while connected, preventing premature disconnects
       lastWifiAttempt = now;
+      lastStations = 0;
     }
 
     // --- 3. MQTT & CLOUD MANAGEMENT ---
