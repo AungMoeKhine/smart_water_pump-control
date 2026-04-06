@@ -17,7 +17,6 @@
 #include <time.h>
 #include <WiFiClientSecure.h>
 #include <WiFiUdp.h>
-#include <DNSServer.h>
 #include <ZMPT101B.h>
 #include <Adafruit_NeoPixel.h>
 #include <ESPmDNS.h>
@@ -26,6 +25,7 @@
 #include <MD5Builder.h>
 #include <mbedtls/base64.h>
 #include "logo.h"
+#include <esp_task_wdt.h>
 
 // ============================================================================
 // CONFIGURATION & PINOUT
@@ -205,7 +205,7 @@ int sysLang = 0;
 String webAlertMsg = "";
 unsigned long webAlertTime = 0;
 
-DNSServer dnsServer;
+WiFiUDP dnsUdp;
 const byte DNS_PORT = 53;
 
 TaskHandle_t NetworkTaskHandle;
@@ -246,41 +246,69 @@ void handleApplyLicenseText();
 void handleLicenseUpload();
 void handleLicenseUploadData();
 
-// --- Time Sync Helper ---
-void waitForTimeSync() {
-  Serial.println("Syncing Time via NTP...");
+// --- Time Sync Helper (NON-BLOCKING) ---
+void requestTimeSync() {
+  Serial.println("[NTP] Requesting Time Sync in background...");
   configTime(scheduleConfig.timezoneOffset * 3600, 0, "pool.ntp.org", "time.google.com", "time.nist.gov");
+}
 
+void checkAndSaveInstallDate() {
+  if (installDate != 0) return; // Already saved
+  
   time_t now = time(nullptr);
-  int retry = 0;
-  while (now < 1600000000 && retry < 15) {
-    delay(300);
-    Serial.print(".");
-    now = time(nullptr);
-    retry++;
-  }
-  Serial.println();
-  struct tm timeinfo;
-  if (getLocalTime(&timeinfo)) {
-    Serial.print("Time Synced: ");
-    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-    time(&now);
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-      if (installDate == 0 && now > 1600000000) {
+  if (now > 1600000000) { // If time is successfully synced
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      Serial.print("Time Synced: ");
+      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+      
+      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
         installDate = (unsigned long)now;
         preferences.begin("pump-control", false);
         preferences.putULong("installDate", installDate);
         preferences.end();
+        xSemaphoreGiveRecursive(systemMutex);
+        checkExpiry();
       }
-      xSemaphoreGiveRecursive(systemMutex);
     }
-    checkExpiry();
   }
 }
 
 void processDNS() {
   if (WiFi.getMode() == WIFI_STA) return;
-  dnsServer.processNextRequest();
+  int packetSize = dnsUdp.parsePacket();
+  if (packetSize > 0) {
+    unsigned char buf[512];
+    dnsUdp.read(buf, 512);
+    if ((buf[2] & 0x80) == 0) {
+      buf[2] = 0x81;
+      buf[3] = 0x80;
+      buf[7] = 0x01;
+      int pos = 12;
+      while (buf[pos] != 0 && pos < packetSize) pos += buf[pos] + 1;
+      pos += 5;
+      buf[pos++] = 0xC0;
+      buf[pos++] = 0x0C;
+      buf[pos++] = 0x00;
+      buf[pos++] = 0x01;
+      buf[pos++] = 0x00;
+      buf[pos++] = 0x01;
+      buf[pos++] = 0x00;
+      buf[pos++] = 0x00;
+      buf[pos++] = 0x00;
+      buf[pos++] = 0x3C;
+      buf[pos++] = 0x00;
+      buf[pos++] = 0x04;
+      IPAddress ip = WiFi.softAPIP();
+      buf[pos++] = ip[0];
+      buf[pos++] = ip[1];
+      buf[pos++] = ip[2];
+      buf[pos++] = ip[3];
+      dnsUdp.beginPacket(dnsUdp.remoteIP(), dnsUdp.remotePort());
+      dnsUdp.write(buf, pos);
+      dnsUdp.endPacket();
+    }
+  }
 }
 
 // --- Web Interface HTML ---
@@ -850,7 +878,7 @@ void setup() {
   voltageSensor.setSensitivity(526.2500000000f);
 
   Serial.println("Running Initial Hardware Safety Check...");
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 60; i++) {
     monitorSensors();
     delay(50);
   }
@@ -884,35 +912,29 @@ void setup() {
   Serial.print("Initial Scan Start: ");
   int nS = WiFi.scanNetworks(true);
   Serial.println(nS == -1 ? "OK" : "Error");
-  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+  dnsUdp.begin(DNS_PORT);
 
   if (ssid_saved != "") {
-    wifiMulti.addAP(ssid_saved.c_str(), pass_saved.c_str());
     Serial.print("Connecting to WiFi: " + ssid_saved);
-    unsigned long startAttempt = millis();
-    while (wifiMulti.run() != WL_CONNECTED && millis() - startAttempt < 10000) {
-      delay(500);
+    WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
+    
+    // Only wait a maximum of 5 seconds during boot. 
+    // If it fails, we move on instantly so the pump can operate offline!
+    unsigned long startWait = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startWait < 5000) {
+      delay(250);
       Serial.print(".");
     }
-    if (WiFi.status() != WL_CONNECTED) {
-      WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
-      unsigned long startWait = millis();
-      while (WiFi.status() != WL_CONNECTED && millis() - startWait < 8000) {
-        delay(500);
-        Serial.print("!");
-      }
-    }
+
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
-      waitForTimeSync();
+      requestTimeSync(); // Request time without blocking
 
-      // Turn OFF AP Mode because we successfully connected to the router!
+      // Turn OFF AP Mode because we successfully connected to the router
       WiFi.mode(WIFI_STA);
-      dnsServer.stop();
-
+      dnsUdp.stop();
     } else {
-      Serial.println("\nAll connection attempts failed. Use AP to configure.");
+      Serial.println("\nOffline Boot. System running locally. Will reconnect in background.");
     }
   }
 
@@ -943,8 +965,8 @@ void setup() {
   server.on("/apply_license", HTTP_POST, handleApplyLicenseText);
   server.on("/admin", handleAdmin);
   server.onNotFound([]() {
-    server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
-    server.send(302, "text/plain", "Redirecting to Web Dashboard...");
+    server.sendHeader("Location", "http://192.168.4.1/", true);
+    server.send(302, "text/plain", "Redirect");
   });
   server.begin();
 
@@ -959,9 +981,25 @@ void setup() {
   mqttClient.setSocketTimeout(10);
   mqttClient.setKeepAlive(60);
 
+  // --- NEW WATCHDOG CONFIG ---
+  esp_task_wdt_deinit(); // Crucial: Remove default Arduino 5s WDT so our 30s config applies
+  esp_task_wdt_config_t wdt_config = {
+    .timeout_ms = 30000,   // 30 seconds
+    .idle_core_mask = 0,   // Core IDLE checks
+    .trigger_panic = true  // Hard reboot on freeze
+  };
+  esp_task_wdt_init(&wdt_config);  // Pass the address of the config
+  esp_task_wdt_add(NULL);          // Add the current task to WDT
+  // ------------------------------------
+
   xTaskCreatePinnedToCore(networkTask, "NetworkTask", 12000, NULL, 1, &NetworkTaskHandle, 0);
 }
 void networkTask(void* parameter) {
+  // --- WDT REMOVED FOR NETWORK TASK ---
+  // We intentionally do NOT monitor this task with the Watchdog.
+  // It is allowed to safely block for 30+ seconds during offline MQTT TLS
+  // reconnects without crashing the main pump system.
+
   static unsigned long lastPublish = 0;
   static unsigned long lastWifiAttempt = 0;
   static unsigned long lastMqttAttempt = 0;
@@ -970,7 +1008,6 @@ void networkTask(void* parameter) {
 
   // FIX 1: Start as 'true' because setup() turns AP on by default
   static bool apModeActive = true;
-  static int lastStations = 0;
 
   while (true) {
     bool hasWiFi = (WiFi.status() == WL_CONNECTED);
@@ -982,19 +1019,18 @@ void networkTask(void* parameter) {
       noInternetTimer = now;  // Reset timer because internet is healthy!
       if (apModeActive) {
         Serial.println("[NET] Fully connected to Cloud! Hiding AP Mode.");
-        dnsServer.stop();
+        dnsUdp.stop();
         WiFi.mode(WIFI_STA);  // Turns AP OFF, keeps local network connection
         apModeActive = false;
       }
     } else {
-      // If we lose WiFi, OR if the Cloud fails for 60 seconds
+      // Only start AP Mode if we actually lose connection to the Home Router
       if (!apModeActive && ssid_saved != "") {
-        if (!hasWiFi || (now - noInternetTimer > 60000UL)) {
-          Serial.println("[NET] Internet/Router lost! Starting AP Mode for local access.");
+        if (!hasWiFi) {   // <-- REMOVED THE CLOUD TIMER CONDITION
+          Serial.println("[NET] Router connection lost! Starting AP Mode for local access.");
           WiFi.mode(WIFI_AP_STA);
           WiFi.softAP("Auto-Pump-Config", "12345678");
-          dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-          dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+          dnsUdp.begin(DNS_PORT);
           apModeActive = true;
           lastWifiAttempt = now;  // Reset timer so it doesn't instantly reconnect
         }
@@ -1004,39 +1040,33 @@ void networkTask(void* parameter) {
     // --- 2. BACKGROUND RECONNECT (NO REBOOTS) ---
     if (!hasWiFi && ssid_saved != "") {
       int stations = WiFi.softAPgetStationNum();  // Check if someone is connected to the AP
+      static int lastStations = 0;
+
+      if (stations > 0 && lastStations == 0) {
+        // Someone just connected! Give them a fresh 5 minutes without interruption.
+        lastWifiAttempt = now;
+        Serial.println("[WIFI] Client connected to AP mode. Pausing background reconnects for 5 mins.");
+      }
+      lastStations = stations;
 
       if (stations > 0) {
-        if (lastStations == 0) {
-          // User just connected to AP! Immediately halt all old STA connection attempts to clear the radio.
-          Serial.println("[WIFI] User connected to AP! Pausing STA reconnects for 5 mins.");
-          WiFi.disconnect(); 
-          lastWifiAttempt = now; // Give a fresh 5 minute grace period
-        }
         // User is setting up WiFi. Pause reconnects for 5 mins so web page doesn't lag.
         if (now - lastWifiAttempt > 300000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] AP Setup Timeout. Checking old router...");
-          WiFi.disconnect();
-          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
+          WiFi.reconnect(); // <-- CHANGE TO THIS
         }
       } else {
-        if (lastStations > 0) {
-          // User just disconnected from AP. Set timer to force a fast reconnect check.
-          lastWifiAttempt = now - 60000UL; 
-        }
         // Nobody is on the AP. Aggressively try to reconnect to router every 60s.
         if (now - lastWifiAttempt > 60000UL) {
           lastWifiAttempt = now;
           Serial.println("[WIFI] Offline. Attempting background reconnect...");
-          WiFi.disconnect();
-          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
+          WiFi.reconnect(); // <-- CHANGE TO THIS
         }
       }
-      lastStations = stations;
     } else if (hasWiFi) {
       // FIX 2: Keep timer fresh while connected, preventing premature disconnects
       lastWifiAttempt = now;
-      lastStations = 0;
     }
 
     // --- 3. MQTT & CLOUD MANAGEMENT ---
@@ -1081,6 +1111,7 @@ void loop() {
   updateLCD();
   updateLEDStatus();
   delay(1);
+  esp_task_wdt_reset();
 }
 
 String getStartBlockReason() {
@@ -1537,13 +1568,18 @@ void updatePumpLogic() {
   }
 
   // --- 6. STATE DETERMINATION ---
-  if (voltAbnormal) currentState = PumpState::VOLTAGE_ERROR;
+  // PRIORITY 1: Always vent pressure first if stopping, regardless of errors!
+  if (compConfig.isPostVenting) currentState = PumpState::POST_STOP_VALVE;
+  
+  // PRIORITY 2: Safety & Errors
+  else if (voltAbnormal) currentState = PumpState::VOLTAGE_ERROR;
   else if (voltageConfig.status == 0) currentState = PumpState::VOLTAGE_WAIT;
   else if (sensorError) currentState = PumpState::SENSOR_ERROR;
   else if (coolDownConfig.isResting) currentState = PumpState::COOLING_DOWN;
   else if (dryRunConfig.error == 1) currentState = PumpState::DRY_RUN_ALARM;
   else if (dryRunConfig.error == 2) currentState = PumpState::DRY_RUN_LOCKED;
-  else if (compConfig.isPostVenting) currentState = PumpState::POST_STOP_VALVE;
+  
+  // PRIORITY 3: Normal Operations
   else if (pumpConfig.motorStatus == 1) {
     if (compConfig.isPreVenting) currentState = PumpState::PRE_START_VALVE;
     else currentState = PumpState::PUMPING;
@@ -1860,12 +1896,22 @@ void updateLCD() {
 
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
+  
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo, 0) || timeinfo.tm_year < 120) {
-    waitForTimeSync();
-    if (!getLocalTime(&timeinfo, 0) || timeinfo.tm_year < 120) return false;
+  // Non-blocking check: if year is < 120 (before 2020), internet time hasn't synced yet
+  if (!getLocalTime(&timeinfo, 10) || timeinfo.tm_year < 120) {
+    requestTimeSync();
+    return false; // Exit immediately, don't freeze the system!
   }
+
+  // Time is valid, ensure install date is saved
+  checkAndSaveInstallDate(); 
+
   espClient.stop();
+  // Lower timeout to prevent freezing if router has no internet
+  espClient.setHandshakeTimeout(10);  
+  espClient.setTimeout(10000);
+
   if (mqttClient.connect(("Pump-" + getDeviceID()).c_str(), mqtt_user, mqtt_pass, onlineTopic.c_str(), 1, true, "0")) {
     mqttClient.publish(onlineTopic.c_str(), "1", true);
     mqttClient.subscribe(subTopic.c_str());
