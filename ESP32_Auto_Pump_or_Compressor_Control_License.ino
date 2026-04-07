@@ -197,6 +197,7 @@ Adafruit_NeoPixel rgbLed(1, RGB_LED_PIN, NEO_GRB + NEO_KHZ800);
 ZMPT101B voltageSensor(VOLTAGE_SENSOR_PIN, 50.0);
 
 String deviceID = "";
+unsigned long showIpUntil = 0;  // <--- INSERT THIS LINE
 String subTopic = "";
 String statusTopic = "";
 String onlineTopic = "";
@@ -906,9 +907,9 @@ void setup() {
   lcd.print("********************");
 
   WiFi.mode(WIFI_AP_STA);
-  WiFi.setAutoReconnect(true);  
-  WiFi.setSleep(false);         
-  
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
+
   if (ssid_saved == "") {
     // Brand new install! Force AP mode actively!
     Serial.println("No SSID saved. Starting AP mode immediately.");
@@ -1211,67 +1212,72 @@ void monitorButton() {
   static unsigned long buttonDownTime = 0;
   static bool longPressHandled = false;
   static unsigned long lastDebounceTime = 0;
-
-  int reading = digitalRead(MANUAL_BTN_PIN);
+  static int clickCount = 0;
+  static unsigned long lastClickTime = 0;
   
+  int reading = digitalRead(MANUAL_BTN_PIN);
+  unsigned long now = millis();
+
+  // --- 1. DEBOUNCE (Lowered to 30ms for faster double-clicks) ---
   if (reading != lastReading) {
-    lastDebounceTime = millis();
+    lastDebounceTime = now;
   }
 
-  if ((millis() - lastDebounceTime) > 20) {
+  if ((now - lastDebounceTime) > 30) {
     static int buttonState = HIGH;
     if (reading != buttonState) {
       buttonState = reading;
-      
+
       if (buttonState == LOW) {
-        // Button just went DOWN
-        buttonDownTime = millis();
+        // Button Pressed
+        buttonDownTime = now;
         longPressHandled = false;
       } else {
-        // Button just went UP (Released)
-        if (!longPressHandled && buttonDownTime > 0) {
-          // It was a short press -> Toggle Pump
-          String res = processManualToggle();
-          if (res.startsWith("Blocked:")) {
-            String reason = res.substring(8);
-            setLedColor(255, 0, 0);
-            if (mqttClient.connected()) {
-              DynamicJsonDocument resp(256);
-              resp["alert"] = "System Notice (Device Button)";
-              resp["reason"] = reason;
-              String respStr;
-              serializeJson(resp, respStr);
-              mqttClient.publish(statusTopic.c_str(), respStr.c_str());
-            }
-            webAlertMsg = "Device Button: " + reason;
-            webAlertTime = millis();
+        // Button Released
+        unsigned long pressDuration = now - buttonDownTime;
+        
+        if (!longPressHandled && pressDuration < 500) {
+          clickCount++;
+          lastClickTime = now;
+          
+          // INSTANT TRIGGER: If this is the second click, show IP right now!
+          if (clickCount == 2) {
+            Serial.println("[USER] Double Click Detected!");
+            showIpUntil = now + 10000;
+            // Pip-Pip feedback
+            digitalWrite(BUZZER_PIN, HIGH); delay(40); digitalWrite(BUZZER_PIN, LOW);
+            delay(40);
+            digitalWrite(BUZZER_PIN, HIGH); delay(40); digitalWrite(BUZZER_PIN, LOW);
+            clickCount = 0; // Reset
           }
         }
         buttonDownTime = 0;
       }
     }
 
-    // Check for Long Press (3 seconds) while button is still held DOWN
-    if (buttonState == LOW && !longPressHandled && (millis() - buttonDownTime >= 3000)) {
-      longPressHandled = true; // Prevent multiple triggers
-      Serial.println("[USER] Button Held: Forcing AP Mode!");
-      
-      // Short Beep to tell the user they can let go!
-      digitalWrite(BUZZER_PIN, HIGH);
-      delay(200);
-      digitalWrite(BUZZER_PIN, LOW);
-      
-      // Force AP Mode ON
-      WiFi.mode(WIFI_AP_STA);
-      WiFi.softAP("Auto-Pump-Config", "12345678");
-      dnsUdp.begin(DNS_PORT);
-      
-      // Flash LED to visually indicate Setup Mode is active
-      setLedColor(0, 0, 255);
-      delay(300);
-      setLedColor(255, 255, 255);
+    // --- 2. LONG PRESS (While holding) ---
+    if (buttonState == LOW && !longPressHandled && (now - buttonDownTime >= 3000)) {
+      longPressHandled = true;
+      clickCount = 0; 
+      digitalWrite(BUZZER_PIN, HIGH); delay(300); digitalWrite(BUZZER_PIN, LOW);
+      WiFi.mode(WIFI_AP_STA); WiFi.softAP("Auto-Pump-Config", "12345678"); dnsUdp.begin(DNS_PORT);
     }
   }
+
+  // --- 3. SINGLE CLICK TIMEOUT ---
+  // If 500ms passed and we only have 1 click, it's a pump toggle
+  if (clickCount == 1 && (now - lastClickTime > 500)) {
+    Serial.println("[USER] Single Click: Toggle Pump");
+    String res = processManualToggle();
+    if (res.startsWith("Blocked:")) {
+      setLedColor(255, 0, 0);
+      digitalWrite(BUZZER_PIN, HIGH); delay(50); digitalWrite(BUZZER_PIN, LOW);
+    } else {
+      digitalWrite(BUZZER_PIN, HIGH); delay(100); digitalWrite(BUZZER_PIN, LOW);
+    }
+    clickCount = 0;
+  }
+
   lastReading = reading;
 }
 
@@ -1845,15 +1851,50 @@ void printNumber(int value, int col, int r) {
 }
 
 void updateLCD() {
+  static bool infoModeActive = false; 
   static unsigned long lastLCD = 0;
-  if (millis() - lastLCD < 500) return;
-  lastLCD = millis();
+  unsigned long now = millis();
 
+  // --- 1. HANDLE INFO OVERLAY (DOUBLE-CLICK MODE) ---
+  if (now < showIpUntil) {
+    if (!infoModeActive) {
+      lcd.clear();
+      delay(150); // Increased delay for stability after clear
+      
+      lcd.setCursor(0, 0);
+      lcd.print("--- SYSTEM INFO ---");
+      
+      // Combine "IP: " and the address into one string for Line 2
+      lcd.setCursor(0, 2);
+      String ipAddr = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "OFFLINE";
+      lcd.print("IP: " + ipAddr); 
+          
+      // Show Device ID on the bottom line
+      lcd.setCursor(0, 3);
+      lcd.print("ID: " + getDeviceID());
+      
+      infoModeActive = true;
+    }
+    return; 
+  }
+
+  // --- 2. TRANSITION BACK TO NORMAL MODE ---
+  if (infoModeActive) {
+    lcd.clear();
+    delay(100); 
+    infoModeActive = false;
+  }
+
+  // --- 3. NORMAL PUMP SCREEN THROTTLING ---
+  if (now - lastLCD < 500) return;
+  lastLCD = now;
+
+  // --- 4. FETCH DATA (SAFE MUTEX) ---
   int val = 0, vVal = 0;
-  bool voltAbnormal = false, isWait = false, exp = false, pRunning = false, cDown = false;
+  bool voltAbnormal = false, isWait = false, pRunning = false, cDown = false;
   int errState = 0, autoRetMins = 0, retCd = 0, invCount = 0;
   int restMinsLeft = 0;
-  bool physFlow = false, isVenting = false;  // Changed from flowDet to physFlow
+  bool physFlow = false, isVenting = false;
   float curVolt = 0;
 
   if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
@@ -1862,7 +1903,6 @@ void updateLCD() {
     isWait = (!voltAbnormal && voltageConfig.status == 0);
     vVal = isWait ? voltageConfig.waitSeconds : (int)voltageConfig.currentVoltage;
     curVolt = voltageConfig.currentVoltage;
-    exp = isSystemExpired;
     pRunning = pumpConfig.isRunning;
     errState = dryRunConfig.error;
     autoRetMins = dryRunConfig.autoRetryMinutes;
@@ -1870,33 +1910,30 @@ void updateLCD() {
     invCount = tankConfig.upperInvalidCount;
     cDown = coolDownConfig.isResting;
     isVenting = (currentState == PumpState::PRE_START_VALVE || currentState == PumpState::POST_STOP_VALVE);
-
-    // Check the PHYSICAL state of the pin for the LCD
     physFlow = (digitalRead(FLOW_SENSOR_PIN) == LOW);
-
-    if (cDown) restMinsLeft = (((coolDownConfig.restMinutes * 60000UL) - (millis() - coolDownConfig.restStartTime)) / 60000UL) + 1;
+    if (cDown) restMinsLeft = (((coolDownConfig.restMinutes * 60000UL) - (now - coolDownConfig.restStartTime)) / 60000UL) + 1;
     xSemaphoreGiveRecursive(systemMutex);
   }
 
-  // --- Big Number Drawing ---
+  // --- 5. DRAW BIG NUMBERS & CLEANUP COLUMN 9 ---
   printNumber(val / 100, 0, 0);
   printNumber((val / 10) % 10, 3, 0);
   printNumber(val % 10, 6, 0);
-  lcd.setCursor(9, 0);
-  lcd.print("%");
-  lcd.setCursor(9, 1);
-  lcd.print(" ");
-
+  
+  // Wipe Column 9 to remove the "T"
+  lcd.setCursor(9, 0); lcd.print("%");
+  lcd.setCursor(9, 1); lcd.print(" "); 
+  
   char vUnit = isWait ? 's' : 'V';
   printNumber(vVal / 100, 0, 2);
   printNumber((vVal / 10) % 10, 3, 2);
   printNumber(vVal % 10, 6, 2);
-  lcd.setCursor(9, 2);
-  lcd.print(vUnit);
-  lcd.setCursor(9, 3);
-  lcd.print(" ");
+  
+  // Wipe Column 9 to remove the "*"
+  lcd.setCursor(9, 2); lcd.print(vUnit);
+  lcd.setCursor(9, 3); lcd.print(" "); 
 
-  // --- Right Side Text Labels ---
+  // --- 6. DRAW RIGHT-SIDE STATUS LABELS ---
   lcd.setCursor(10, 0);
   if (cDown) lcd.print(" PUMP REST");
   else lcd.print(pRunning ? " PUMP ON  " : " PUMP OFF ");
@@ -1917,8 +1954,6 @@ void updateLCD() {
     snprintf(buf, sizeof(buf), " WAIT %02dM", restMinsLeft);
     info = String(buf);
   } else if (pRunning) {
-    // NEW: If motor is on, show OK only if water is physically hitting the sensor
-    // Otherwise show CHK (priming or air gaps)
     info = physFlow ? " FLOW OK  " : " FLOW CHK ";
   } else info = " STANDBY  ";
 
