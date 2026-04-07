@@ -238,7 +238,7 @@ bool reconnectMQTT();
 void updateLCD();
 void updateLEDStatus();
 void monitorSensors();
-void monitorButton();
+void ButtonTask(void* parameter);
 String processManualToggle();
 void setLedColor(uint8_t r, uint8_t g, uint8_t b);
 String getDeviceID();
@@ -997,6 +997,7 @@ void setup() {
   // ------------------------------------
 
   xTaskCreatePinnedToCore(networkTask, "NetworkTask", 12000, NULL, 1, &NetworkTaskHandle, 0);
+  xTaskCreatePinnedToCore(ButtonTask, "ButtonTask", 4096, NULL, 3, NULL, 0);
 }
 void networkTask(void* parameter) {
   // --- WDT REMOVED FOR NETWORK TASK ---
@@ -1109,7 +1110,6 @@ void networkTask(void* parameter) {
 void loop() {
   processDNS();
   monitorSensors();
-  monitorButton();
   updatePumpLogic();
   server.handleClient();
   updateLCD();
@@ -1207,78 +1207,102 @@ String processManualToggle() {
   return res;
 }
 
-void monitorButton() {
+void ButtonTask(void* parameter) {
   static int lastReading = HIGH;
-  static unsigned long buttonDownTime = 0;
-  static bool longPressHandled = false;
   static unsigned long lastDebounceTime = 0;
-  static int clickCount = 0;
-  static unsigned long lastClickTime = 0;
-  
-  int reading = digitalRead(MANUAL_BTN_PIN);
-  unsigned long now = millis();
+  static unsigned long pressStartTime = 0;
+  static int quickTapCount = 0;
+  static unsigned long lastReleaseTime = 0;
+  static bool stage1Beep = false;
+  static bool stage2Beep = false;
 
-  // --- 1. DEBOUNCE (Lowered to 30ms for faster double-clicks) ---
-  if (reading != lastReading) {
-    lastDebounceTime = now;
-  }
+  while (true) {
+    int reading = digitalRead(MANUAL_BTN_PIN);
+    unsigned long now = millis();
 
-  if ((now - lastDebounceTime) > 30) {
-    static int buttonState = HIGH;
-    if (reading != buttonState) {
-      buttonState = reading;
+    // 1. Hardware Debounce (30ms)
+    if (reading != lastReading) {
+      lastDebounceTime = now;
+    }
 
-      if (buttonState == LOW) {
-        // Button Pressed
-        buttonDownTime = now;
-        longPressHandled = false;
-      } else {
-        // Button Released
-        unsigned long pressDuration = now - buttonDownTime;
-        
-        if (!longPressHandled && pressDuration < 500) {
-          clickCount++;
-          lastClickTime = now;
-          
-          // INSTANT TRIGGER: If this is the second click, show IP right now!
-          if (clickCount == 2) {
-            Serial.println("[USER] Double Click Detected!");
-            showIpUntil = now + 10000;
-            // Pip-Pip feedback
-            digitalWrite(BUZZER_PIN, HIGH); delay(40); digitalWrite(BUZZER_PIN, LOW);
-            delay(40);
-            digitalWrite(BUZZER_PIN, HIGH); delay(40); digitalWrite(BUZZER_PIN, LOW);
-            clickCount = 0; // Reset
+    if ((now - lastDebounceTime) > 30) {
+      static int buttonState = HIGH;
+      if (reading != buttonState) {
+        buttonState = reading;
+
+        if (buttonState == LOW) {
+          // --- BUTTON PRESSED DOWN ---
+          pressStartTime = now;
+          stage1Beep = false;
+          stage2Beep = false;
+        } 
+        else {
+          // --- BUTTON RELEASED ---
+          unsigned long holdDuration = now - pressStartTime;
+
+          if (holdDuration < 400) {
+            // It was a Quick Tap
+            quickTapCount++;
+            lastReleaseTime = now;
+          } 
+          else if (holdDuration >= 800 && holdDuration < 3000) {
+            // It was a Medium Hold (approx 1s) -> Toggle Pump
+            Serial.println("[USER] Medium Hold confirmed: Toggling Pump");
+            processManualToggle();
+            quickTapCount = 0;
           }
+          pressStartTime = 0;
         }
-        buttonDownTime = 0;
+      }
+
+      // 2. Real-time Holding Feedback (While button is still DOWN)
+      if (buttonState == LOW) {
+        unsigned long currentHold = now - pressStartTime;
+
+        // At 1 second: Short Bip (Tells user: "You can let go now to toggle pump")
+        if (currentHold >= 1000 && !stage1Beep) {
+          digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(50 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
+          stage1Beep = true;
+        }
+
+        // At 5 seconds: Long Beep (Tells user: "Setup Mode Active")
+        if (currentHold >= 5000 && !stage2Beep) {
+          Serial.println("[USER] Long Hold: Setup Mode");
+          digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(500 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
+          WiFi.mode(WIFI_AP_STA);
+          WiFi.softAP("Auto-Pump-Config", "12345678");
+          dnsUdp.begin(DNS_PORT);
+          stage2Beep = true;
+          quickTapCount = 0;
+        }
       }
     }
 
-    // --- 2. LONG PRESS (While holding) ---
-    if (buttonState == LOW && !longPressHandled && (now - buttonDownTime >= 3000)) {
-      longPressHandled = true;
-      clickCount = 0; 
-      digitalWrite(BUZZER_PIN, HIGH); delay(300); digitalWrite(BUZZER_PIN, LOW);
-      WiFi.mode(WIFI_AP_STA); WiFi.softAP("Auto-Pump-Config", "12345678"); dnsUdp.begin(DNS_PORT);
+    // 3. Quick Tap Logic (Double Click)
+    // If we have taps and 400ms passed since the last release...
+    if (quickTapCount > 0 && (now - lastReleaseTime > 400)) {
+      if (quickTapCount == 1) {
+        // Optional: Single Quick tap can also toggle if you want
+        processManualToggle();
+      } 
+      else if (quickTapCount >= 2) {
+        // Confirmed Double Click
+        Serial.println("[USER] Double Click: Displaying IP");
+        showIpUntil = now + 10000;
+        // Audible Feedback: Pip-Pip
+        digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(40 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
+        vTaskDelay(40 / portTICK_PERIOD_MS);
+        digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(40 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
+      }
+      quickTapCount = 0;
     }
-  }
 
-  // --- 3. SINGLE CLICK TIMEOUT ---
-  // If 500ms passed and we only have 1 click, it's a pump toggle
-  if (clickCount == 1 && (now - lastClickTime > 500)) {
-    Serial.println("[USER] Single Click: Toggle Pump");
-    String res = processManualToggle();
-    if (res.startsWith("Blocked:")) {
-      setLedColor(255, 0, 0);
-      digitalWrite(BUZZER_PIN, HIGH); delay(50); digitalWrite(BUZZER_PIN, LOW);
-    } else {
-      digitalWrite(BUZZER_PIN, HIGH); delay(100); digitalWrite(BUZZER_PIN, LOW);
-    }
-    clickCount = 0;
+    lastReading = reading;
+    
+    // Crucial: Let the CPU breathe for 10ms. 
+    // This makes the button check 100 times per second!
+    vTaskDelay(10 / portTICK_PERIOD_MS); 
   }
-
-  lastReading = reading;
 }
 
 void rebootSystem() {
