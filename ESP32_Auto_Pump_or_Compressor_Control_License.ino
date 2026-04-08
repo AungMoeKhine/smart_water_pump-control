@@ -178,6 +178,9 @@ unsigned long installDate = 0;
 unsigned long lastTokenTime = 0;
 int validDays = 10;
 bool isSystemExpired = false;
+bool apModeActive = false;  // <--- FIXED: Starts FALSE by default
+unsigned long apManualTriggerTime = 0;  // Tracks when AP was last started
+unsigned long lastStationActiveTime = 0; // Tracks if a user is currently connected
 String uploadedLicenseToken = "";
 
 VoltageConfig voltageConfig;
@@ -238,7 +241,7 @@ bool reconnectMQTT();
 void updateLCD();
 void updateLEDStatus();
 void monitorSensors();
-void ButtonTask(void* parameter);
+void monitorButton();
 String processManualToggle();
 void setLedColor(uint8_t r, uint8_t g, uint8_t b);
 String getDeviceID();
@@ -258,19 +261,13 @@ void checkAndSaveInstallDate() {
 
   time_t now = time(nullptr);
   if (now > 1600000000) {  // If time is successfully synced
-    struct tm timeinfo;
-    if (getLocalTime(&timeinfo)) {
-      Serial.print("Time Synced: ");
-      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-
-      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-        installDate = (unsigned long)now;
-        preferences.begin("pump-control", false);
-        preferences.putULong("installDate", installDate);
-        preferences.end();
-        xSemaphoreGiveRecursive(systemMutex);
-        checkExpiry();
-      }
+    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+      installDate = (unsigned long)now;
+      preferences.begin("pump-control", false);
+      preferences.putULong("installDate", installDate);
+      preferences.end();
+      xSemaphoreGiveRecursive(systemMutex);
+      checkExpiry();
     }
   }
 }
@@ -823,6 +820,7 @@ void monitorSensors() {
 }
 
 // ============================================================================
+// ============================================================================
 // SYSTEM SETUP
 // ============================================================================
 void setup() {
@@ -906,24 +904,26 @@ void setup() {
   lcd.setCursor(0, 3);
   lcd.print("********************");
 
-  WiFi.mode(WIFI_AP_STA);
+  // --- NEW FIXED WIFI SETUP ---
   WiFi.setAutoReconnect(true);
   WiFi.setSleep(false);
 
   if (ssid_saved == "") {
-    // Brand new install! Force AP mode actively!
-    Serial.println("No SSID saved. Starting AP mode immediately.");
+    // No SSID Saved -> Force AP Mode
+    Serial.println("[NET] AP Mode Started (No SSID Saved - First Setup)");
+    WiFi.mode(WIFI_AP_STA);
     WiFi.softAP("Auto-Pump-Config", "12345678");
     dnsUdp.begin(DNS_PORT);
-  }
-  // Note: Initial scan removed to prevent the AP from crashing on the ESP32-S3
-
-  if (ssid_saved != "") {
+    apModeActive = true;
+    apManualTriggerTime = millis();
+    lastStationActiveTime = millis();
+  } else {
+    // SSID Exists -> STRICTLY Station Mode (No AP mode at all)
+    WiFi.mode(WIFI_STA);
+    apModeActive = false;
     Serial.print("Connecting to WiFi: " + ssid_saved);
     WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
 
-    // Only wait a maximum of 5 seconds during boot.
-    // If it fails, we move on instantly so the pump can operate offline!
     unsigned long startWait = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - startWait < 5000) {
       delay(250);
@@ -932,15 +932,12 @@ void setup() {
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
-      requestTimeSync();  // Request time without blocking
-
-      // Turn OFF AP Mode because we successfully connected to the router
-      WiFi.mode(WIFI_STA);
-      dnsUdp.stop();
+      requestTimeSync();
     } else {
       Serial.println("\nOffline Boot. System running locally. Will reconnect in background.");
     }
   }
+  // -----------------------------
 
   deviceID = getDeviceID();
   subTopic = "smartpump/" + deviceID + "/set";
@@ -977,100 +974,73 @@ void setup() {
   if (MDNS.begin("smartpump")) MDNS.addService("http", "tcp", 80);
 
   espClient.setInsecure();
-  espClient.setHandshakeTimeout(30);  // Increased to 30s
-  espClient.setTimeout(15000);        // Increased to 15s
+  espClient.setHandshakeTimeout(30);
+  espClient.setTimeout(15000);
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
   mqttClient.setBufferSize(4096);
   mqttClient.setSocketTimeout(10);
   mqttClient.setKeepAlive(60);
 
-  // --- NEW WATCHDOG CONFIG ---
-  esp_task_wdt_deinit();  // Crucial: Remove default Arduino 5s WDT so our 30s config applies
+  esp_task_wdt_deinit(); 
   esp_task_wdt_config_t wdt_config = {
-    .timeout_ms = 30000,   // 30 seconds
-    .idle_core_mask = 0,   // Core IDLE checks
-    .trigger_panic = true  // Hard reboot on freeze
+    .timeout_ms = 30000, 
+    .idle_core_mask = 0, 
+    .trigger_panic = true 
   };
-  esp_task_wdt_init(&wdt_config);  // Pass the address of the config
-  esp_task_wdt_add(NULL);          // Add the current task to WDT
-  // ------------------------------------
+  esp_task_wdt_init(&wdt_config); 
+  esp_task_wdt_add(NULL); 
 
   xTaskCreatePinnedToCore(networkTask, "NetworkTask", 12000, NULL, 1, &NetworkTaskHandle, 0);
-  xTaskCreatePinnedToCore(ButtonTask, "ButtonTask", 4096, NULL, 3, NULL, 0);
 }
-void networkTask(void* parameter) {
-  // --- WDT REMOVED FOR NETWORK TASK ---
-  // We intentionally do NOT monitor this task with the Watchdog.
-  // It is allowed to safely block for 30+ seconds during offline MQTT TLS
-  // reconnects without crashing the main pump system.
 
+void networkTask(void* parameter) {
   static unsigned long lastPublish = 0;
   static unsigned long lastWifiAttempt = 0;
   static unsigned long lastMqttAttempt = 0;
-  static unsigned long noInternetTimer = millis();
   static unsigned long heartbeatTimer = 0;
-
-  // FIX 1: Start as 'true' because setup() turns AP on by default
-  static bool apModeActive = true;
 
   while (true) {
     bool hasWiFi = (WiFi.status() == WL_CONNECTED);
     bool hasCloud = mqttClient.connected();
     unsigned long now = millis();
 
-    // --- 1. DYNAMIC AP MODE (TRUE INTERNET FALLBACK) ---
-    if (hasWiFi && hasCloud) {
-      noInternetTimer = now;  // Reset timer because internet is healthy!
-      if (apModeActive) {
-        Serial.println("[NET] Fully connected to Cloud! Hiding AP Mode.");
-        dnsUdp.stop();
-        WiFi.mode(WIFI_STA);  // Turns AP OFF, keeps local network connection
-        apModeActive = false;
+    // --- 1. AP MODE MANAGEMENT LOGIC ---
+    if (apModeActive) {
+      int stations = WiFi.softAPgetStationNum();
+      if (stations > 0) lastStationActiveTime = now;  // Reset timer while someone is connected
+
+      if (ssid_saved != "") {
+        // RULE: User manually started AP. Wait 5 mins for access. If none, close it.
+        if (now - lastStationActiveTime > 300000UL) {
+          Serial.println("[NET] AP Mode Closed (Timeout - No user access for 5 mins)");
+          WiFi.mode(WIFI_STA);
+          dnsUdp.stop();
+          apModeActive = false;
+        }
       }
     } else {
-      // Start AP Mode if we lose connection OR if it's a brand new install (No SSID saved)
-      if (!apModeActive && (ssid_saved == "" || !hasWiFi)) {
-        Serial.println("[NET] No Router Connection! Starting AP Mode for local access/setup.");
+      // AP is OFF. Only start it if no SSID is saved.
+      if (ssid_saved == "") {
+        Serial.println("[NET] AP Mode Started (No SSID saved)");
         WiFi.mode(WIFI_AP_STA);
         WiFi.softAP("Auto-Pump-Config", "12345678");
         dnsUdp.begin(DNS_PORT);
         apModeActive = true;
-        lastWifiAttempt = now;  // Reset timer so it doesn't instantly reconnect
+        apManualTriggerTime = now;
+        lastStationActiveTime = now;
       }
     }
 
-    // --- 2. BACKGROUND RECONNECT (NO REBOOTS) ---
+    // --- 2. BACKGROUND WIFI RECONNECT (No AP Mode) ---
     if (!hasWiFi && ssid_saved != "") {
-      int stations = WiFi.softAPgetStationNum();  // Check if someone is connected to the AP
-      static int lastStations = 0;
-
-      if (stations > 0 && lastStations == 0) {
-        // Someone just connected! Give them a fresh 5 minutes without interruption.
+      if (now - lastWifiAttempt > 60000UL) {
         lastWifiAttempt = now;
-        Serial.println("[WIFI] Client connected to AP mode. Pausing background reconnects for 5 mins.");
-      }
-      lastStations = stations;
-
-      if (stations > 0) {
-        // User is setting up WiFi. Pause reconnects for 5 mins so web page doesn't lag.
-        if (now - lastWifiAttempt > 300000UL) {
-          lastWifiAttempt = now;
-          Serial.println("[WIFI] AP Setup Timeout. Checking old router...");
-          WiFi.disconnect();                                   // <--- ADD THIS
-          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());  // <--- CHANGE TO THIS
-        }
-      } else {
-        // Nobody is on the AP. Aggressively try to reconnect to router every 60s.
-        if (now - lastWifiAttempt > 60000UL) {
-          lastWifiAttempt = now;
-          Serial.println("[WIFI] Offline. Attempting background reconnect...");
-          WiFi.disconnect();                                   // <--- ADD THIS
-          WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());  // <--- CHANGE TO THIS
-        }
+        Serial.println("[WIFI] Offline. Attempting background reconnect...");
+        WiFi.disconnect();
+        WiFi.begin(ssid_saved.c_str(), pass_saved.c_str());
       }
     } else if (hasWiFi) {
-      // FIX 2: Keep timer fresh while connected, preventing premature disconnects
       lastWifiAttempt = now;
     }
 
@@ -1078,19 +1048,17 @@ void networkTask(void* parameter) {
     if (hasWiFi) {
       if (!hasCloud) {
         if (now - lastMqttAttempt > 10000) {
-          reconnectMQTT();  // Try to reach HiveMQ every 10 seconds
+          reconnectMQTT();
           lastMqttAttempt = now;
         }
       } else {
         mqttClient.loop();
 
-        // HEARTBEAT: Force publish every 30s to keep mobile App connected
         if (now - heartbeatTimer > 30000) {
           pendingMqttPublish = true;
           heartbeatTimer = now;
         }
 
-        // NON-BLOCKING MUTEX: Send data safely
         if (pendingMqttPublish && (now - lastPublish >= 500)) {
           if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(100))) {
             publishState();
@@ -1102,16 +1070,16 @@ void networkTask(void* parameter) {
       }
     }
 
-    // GENTLE DELAY: Ensures Core 1 (Pump Logic) and Web Server never freeze
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    server.handleClient();
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
 }
 
 void loop() {
+  monitorButton();  // Prioritized: Check button at the very start of every loop
   processDNS();
   monitorSensors();
   updatePumpLogic();
-  server.handleClient();
   updateLCD();
   updateLEDStatus();
   delay(1);
@@ -1207,101 +1175,101 @@ String processManualToggle() {
   return res;
 }
 
-void ButtonTask(void* parameter) {
+void monitorButton() {
   static int lastReading = HIGH;
+  static unsigned long buttonDownTime = 0;
+  static bool longPressHandled = false;
   static unsigned long lastDebounceTime = 0;
-  static unsigned long pressStartTime = 0;
-  static int quickTapCount = 0;
+  static int clickCount = 0;
   static unsigned long lastReleaseTime = 0;
-  static bool stage1Beep = false;
-  static bool stage2Beep = false;
+  static bool isButtonPressed = false;
 
-  while (true) {
-    int reading = digitalRead(MANUAL_BTN_PIN);
-    unsigned long now = millis();
+  int reading = digitalRead(MANUAL_BTN_PIN);
+  unsigned long now = millis();
 
-    // 1. Hardware Debounce (30ms)
-    if (reading != lastReading) {
-      lastDebounceTime = now;
-    }
+  // --- 1. DEBOUNCE (High Speed: 15ms) ---
+  if (reading != lastReading) {
+    lastDebounceTime = now;
+  }
 
-    if ((now - lastDebounceTime) > 30) {
-      static int buttonState = HIGH;
-      if (reading != buttonState) {
-        buttonState = reading;
+  if ((now - lastDebounceTime) > 15) {
+    if (reading == LOW && !isButtonPressed) {
+      // BUTTON JUST PRESSED
+      isButtonPressed = true;
+      buttonDownTime = now;
+      longPressHandled = false;
 
-        if (buttonState == LOW) {
-          // --- BUTTON PRESSED DOWN ---
-          pressStartTime = now;
-          stage1Beep = false;
-          stage2Beep = false;
-        } 
-        else {
-          // --- BUTTON RELEASED ---
-          unsigned long holdDuration = now - pressStartTime;
-
-          if (holdDuration < 400) {
-            // It was a Quick Tap
-            quickTapCount++;
-            lastReleaseTime = now;
-          } 
-          else if (holdDuration >= 800 && holdDuration < 3000) {
-            // It was a Medium Hold (approx 1s) -> Toggle Pump
-            Serial.println("[USER] Medium Hold confirmed: Toggling Pump");
-            processManualToggle();
-            quickTapCount = 0;
-          }
-          pressStartTime = 0;
-        }
-      }
-
-      // 2. Real-time Holding Feedback (While button is still DOWN)
-      if (buttonState == LOW) {
-        unsigned long currentHold = now - pressStartTime;
-
-        // At 1 second: Short Bip (Tells user: "You can let go now to toggle pump")
-        if (currentHold >= 1000 && !stage1Beep) {
-          digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(50 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
-          stage1Beep = true;
-        }
-
-        // At 5 seconds: Long Beep (Tells user: "Setup Mode Active")
-        if (currentHold >= 5000 && !stage2Beep) {
-          Serial.println("[USER] Long Hold: Setup Mode");
-          digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(500 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
-          WiFi.mode(WIFI_AP_STA);
-          WiFi.softAP("Auto-Pump-Config", "12345678");
-          dnsUdp.begin(DNS_PORT);
-          stage2Beep = true;
-          quickTapCount = 0;
-        }
-      }
-    }
-
-    // 3. Quick Tap Logic (Double Click)
-    // If we have taps and 400ms passed since the last release...
-    if (quickTapCount > 0 && (now - lastReleaseTime > 400)) {
-      if (quickTapCount == 1) {
-        // Optional: Single Quick tap can also toggle if you want
-        processManualToggle();
-      } 
-      else if (quickTapCount >= 2) {
-        // Confirmed Double Click
-        Serial.println("[USER] Double Click: Displaying IP");
+      // --- MOUSE-LIKE DOUBLE CLICK: INSTANT TRIGGER ON SECOND PRESS DOWNSTROKE ---
+      if (clickCount == 1 && (now - lastReleaseTime < 850)) {
+        Serial.println("[USER] Double Click: Show System Info (INSTANT)");
         showIpUntil = now + 10000;
-        // Audible Feedback: Pip-Pip
-        digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(40 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
-        vTaskDelay(40 / portTICK_PERIOD_MS);
-        digitalWrite(BUZZER_PIN, HIGH); vTaskDelay(40 / portTICK_PERIOD_MS); digitalWrite(BUZZER_PIN, LOW);
-      }
-      quickTapCount = 0;
-    }
+        // Distinct Double-Beep
+        digitalWrite(BUZZER_PIN, HIGH);
+        delay(40);
+        digitalWrite(BUZZER_PIN, LOW);
+        delay(60);
+        digitalWrite(BUZZER_PIN, HIGH);
+        delay(40);
+        digitalWrite(BUZZER_PIN, LOW);
 
-    lastReading = reading;
+        clickCount = 0;
+        longPressHandled = true;  // Prevents release of this click from triggering anything
+      }
+    } else if (reading == HIGH && isButtonPressed) {
+      // BUTTON JUST RELEASED
+      isButtonPressed = false;
+      unsigned long pressDuration = now - buttonDownTime;
+
+      if (!longPressHandled) {
+        if (pressDuration < 600) {  // Valid short click
+          clickCount = 1;           // Mark that first click is completed
+          lastReleaseTime = now;
+        }
+      }
+      buttonDownTime = 0;
+    }
+  }
+  lastReading = reading;
+
+  // --- 2. LONG PRESS (While holding) ---
+  if (isButtonPressed && !longPressHandled && (now - buttonDownTime >= 3000)) {
+    Serial.println("[NET] AP Mode Started (Manual Button Trigger)");
+    longPressHandled = true;
+    clickCount = 0;  // Cancel any pending clicks
     
-    // Crucial: Let the CPU breathe for 10ms. 
-    // This makes the button check 100 times per second!
-    vTaskDelay(10 / portTICK_PERIOD_MS); 
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(1000);
+    digitalWrite(BUZZER_PIN, LOW);
+
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP("Auto-Pump-Config", "12345678");
+    dnsUdp.begin(DNS_PORT);
+
+    apModeActive = true;
+    apManualTriggerTime = now;
+    lastStationActiveTime = now;
+  }
+
+  // --- 3. SINGLE CLICK TIMEOUT (Decision Logic) ---
+  // Only trigger single click if:
+  // - We have 1 click recorded
+  // - The button is currently NOT pressed (prevents trigger while holding 2nd click)
+  // - The 850ms window has expired
+  if (clickCount == 1 && !isButtonPressed && (now - lastReleaseTime > 850)) {
+    Serial.println("[USER] Single Click: Toggle Pump (Action after 850ms)");
+    String res = processManualToggle();
+    if (res.startsWith("Blocked:")) {
+      setLedColor(255, 0, 0);  // Red flash on block
+      digitalWrite(BUZZER_PIN, HIGH);
+      delay(150);
+      digitalWrite(BUZZER_PIN, LOW);
+    } else {
+      // Standard Single-Beep
+      digitalWrite(BUZZER_PIN, HIGH);
+      delay(120);
+      digitalWrite(BUZZER_PIN, LOW);
+    }
+    clickCount = 0;
   }
 }
 
@@ -1875,7 +1843,7 @@ void printNumber(int value, int col, int r) {
 }
 
 void updateLCD() {
-  static bool infoModeActive = false; 
+  static bool infoModeActive = false;
   static unsigned long lastLCD = 0;
   unsigned long now = millis();
 
@@ -1883,29 +1851,44 @@ void updateLCD() {
   if (now < showIpUntil) {
     if (!infoModeActive) {
       lcd.clear();
-      delay(150); // Increased delay for stability after clear
-      
+      delay(150);  // Increased delay for stability after clear
+
       lcd.setCursor(0, 0);
       lcd.print("--- SYSTEM INFO ---");
-      
+
+      // Calculate Days Left
+      long daysLeft = 0;
+      if (installDate > 0) {
+        time_t nowT;
+        time(&nowT);
+        if (nowT > 1000000) {  // Ensure time is synced
+          unsigned long expiry = installDate + (validDays * 86400UL);
+          if (expiry > (unsigned long)nowT) daysLeft = (expiry - (unsigned long)nowT) / 86400;
+        }
+      }
+      lcd.setCursor(0, 1);
+      if (installDate == 0) lcd.print("License: PENDING");
+      else if (isSystemExpired) lcd.print("License: EXPIRED");
+      else lcd.print("License: " + String(daysLeft) + " Days");
+
       // Combine "IP: " and the address into one string for Line 2
       lcd.setCursor(0, 2);
       String ipAddr = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "OFFLINE";
-      lcd.print("IP: " + ipAddr); 
-          
+      lcd.print("IP: " + ipAddr);
+
       // Show Device ID on the bottom line
       lcd.setCursor(0, 3);
       lcd.print("ID: " + getDeviceID());
-      
+
       infoModeActive = true;
     }
-    return; 
+    return;
   }
 
   // --- 2. TRANSITION BACK TO NORMAL MODE ---
   if (infoModeActive) {
     lcd.clear();
-    delay(100); 
+    delay(100);
     infoModeActive = false;
   }
 
@@ -1943,19 +1926,23 @@ void updateLCD() {
   printNumber(val / 100, 0, 0);
   printNumber((val / 10) % 10, 3, 0);
   printNumber(val % 10, 6, 0);
-  
+
   // Wipe Column 9 to remove the "T"
-  lcd.setCursor(9, 0); lcd.print("%");
-  lcd.setCursor(9, 1); lcd.print(" "); 
-  
+  lcd.setCursor(9, 0);
+  lcd.print("%");
+  lcd.setCursor(9, 1);
+  lcd.print(" ");
+
   char vUnit = isWait ? 's' : 'V';
   printNumber(vVal / 100, 0, 2);
   printNumber((vVal / 10) % 10, 3, 2);
   printNumber(vVal % 10, 6, 2);
-  
+
   // Wipe Column 9 to remove the "*"
-  lcd.setCursor(9, 2); lcd.print(vUnit);
-  lcd.setCursor(9, 3); lcd.print(" "); 
+  lcd.setCursor(9, 2);
+  lcd.print(vUnit);
+  lcd.setCursor(9, 3);
+  lcd.print(" ");
 
   // --- 6. DRAW RIGHT-SIDE STATUS LABELS ---
   lcd.setCursor(10, 0);
@@ -1994,17 +1981,44 @@ void updateLCD() {
   if (voltAbnormal) lcd.print(curVolt > voltageConfig.HIGH_THRESHOLD ? " OVER     " : " UNDER    ");
   else if (isWait) lcd.print(" DELAY    ");
   else lcd.print(" NORMAL   ");
-}
+
+  // --- 7. AP MODE INDICATOR (Blinking Dot) ---
+  static bool blinkState = false;
+  if (apModeActive) {
+    blinkState = !blinkState;
+    lcd.setCursor(19, 3);  // Bottom-right corner
+    lcd.print(blinkState ? "." : " ");
+  } else if (blinkState) {
+    blinkState = false;
+    // We don't necessarily need to clear it here because the " NORMAL   "
+    // string is 10 chars long and naturally overwrites position 19 with a space,
+    // but putting it here guarantees it clears safely!
+    lcd.setCursor(19, 3);
+    lcd.print(" ");
+  }
+}  
 
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
 
   struct tm timeinfo;
-  // Non-blocking check: if year is < 120 (before 2020), internet time hasn't synced yet
   if (!getLocalTime(&timeinfo, 10) || timeinfo.tm_year < 120) {
-    requestTimeSync();
-    return false;  // Exit immediately, don't freeze the system!
+    // Only request time again if 5 seconds have passed
+    static unsigned long lastNtpReq = 0;
+    if (millis() - lastNtpReq > 5000) {
+      requestTimeSync();
+      lastNtpReq = millis();
+    }
+    return false;
   }
+
+  static bool ntpPrinted = false;
+  if (!ntpPrinted) {
+    Serial.print("[NTP] Time Successfully Synchronized: ");
+    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+    ntpPrinted = true;
+  }
+  // -------------------------------------------------------------
 
   // Time is valid, ensure install date is saved
   checkAndSaveInstallDate();
