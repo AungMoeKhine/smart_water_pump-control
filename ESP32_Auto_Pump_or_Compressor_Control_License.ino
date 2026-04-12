@@ -59,7 +59,7 @@ const int mqtt_port = 8883;
 const char* mqtt_user = "my_switch";
 const char* mqtt_pass = "My_password123";
 
-const int FIRMWARE_VERSION = 1;
+const int FIRMWARE_VERSION = 2;
 const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/";
 
 #define SAMPLE_BUFFER_SIZE 20
@@ -178,9 +178,9 @@ unsigned long installDate = 0;
 unsigned long lastTokenTime = 0;
 int validDays = 10;
 bool isSystemExpired = false;
-bool apModeActive = false;  // <--- FIXED: Starts FALSE by default
-unsigned long apManualTriggerTime = 0;  // Tracks when AP was last started
-unsigned long lastStationActiveTime = 0; // Tracks if a user is currently connected
+bool apModeActive = false;                // <--- FIXED: Starts FALSE by default
+unsigned long apManualTriggerTime = 0;    // Tracks when AP was last started
+unsigned long lastStationActiveTime = 0;  // Tracks if a user is currently connected
 String uploadedLicenseToken = "";
 
 VoltageConfig voltageConfig;
@@ -766,9 +766,10 @@ public:
 
 NonBlockingUltrasonic upperSensor(UPPER_TANK_TRIG_PIN, UPPER_TANK_ECHO_PIN);
 
-// --- Sensor Polling Logic ---
 void monitorSensors() {
   static unsigned long lastScan = 0;
+  static int lastSentTank = -1;    // Track last sent tank level for cloud
+  static int lastSentVolt = -1;    // Track last sent voltage for cloud
   unsigned long now = millis();
 
   if (now - lastScan >= ULTRASONIC_INTERVAL) {
@@ -794,6 +795,13 @@ void monitorSensors() {
         tankConfig.rawUpperPercentage = constrain(tankConfig.rawUpperPercentage, 0, 100);
         tankConfig.displayUpperPercentage = map(tankConfig.rawUpperPercentage, 0, tankConfig.FULL_THRESHOLD, 0, 100);
         tankConfig.displayUpperPercentage = constrain(tankConfig.displayUpperPercentage, 0, 100);
+
+        // --- NEW: IMMEDIATE CLOUD UPDATE FOR TANK LEVEL ---
+        if (tankConfig.displayUpperPercentage != lastSentTank) {
+          pendingMqttPublish = true; 
+          lastSentTank = tankConfig.displayUpperPercentage;
+        }
+
       } else {
         tankConfig.upperInvalidCount++;
       }
@@ -813,13 +821,21 @@ void monitorSensors() {
         if (voltageConfig.currentVoltage < 10.0f) voltageConfig.currentVoltage = v;
         else voltageConfig.currentVoltage = (0.2f * v) + (0.8f * voltageConfig.currentVoltage);
       }
+
+      // --- NEW: IMMEDIATE CLOUD UPDATE FOR VOLTAGE ---
+      // Triggers if the rounded voltage changes (e.g. 220V to 221V)
+      int currentVInt = (int)voltageConfig.currentVoltage;
+      if (currentVInt != lastSentVolt) {
+        pendingMqttPublish = true;
+        lastSentVolt = currentVInt;
+      }
+
       xSemaphoreGiveRecursive(systemMutex);
     }
     lastVoltSample = now;
   }
 }
 
-// ============================================================================
 // ============================================================================
 // SYSTEM SETUP
 // ============================================================================
@@ -874,7 +890,7 @@ void setup() {
 
   rgbLed.begin();
   rgbLed.setBrightness(30);
-  voltageSensor.setSensitivity(526.2500000000f);
+  voltageSensor.setSensitivity(415.7500000000f);
 
   Serial.println("Running Initial Hardware Safety Check...");
   for (int i = 0; i < 60; i++) {
@@ -982,14 +998,14 @@ void setup() {
   mqttClient.setSocketTimeout(10);
   mqttClient.setKeepAlive(60);
 
-  esp_task_wdt_deinit(); 
+  esp_task_wdt_deinit();
   esp_task_wdt_config_t wdt_config = {
-    .timeout_ms = 30000, 
-    .idle_core_mask = 0, 
-    .trigger_panic = true 
+    .timeout_ms = 30000,
+    .idle_core_mask = 0,
+    .trigger_panic = true
   };
-  esp_task_wdt_init(&wdt_config); 
-  esp_task_wdt_add(NULL); 
+  esp_task_wdt_init(&wdt_config);
+  esp_task_wdt_add(NULL);
 
   xTaskCreatePinnedToCore(networkTask, "NetworkTask", 12000, NULL, 1, &NetworkTaskHandle, 0);
 }
@@ -1236,7 +1252,7 @@ void monitorButton() {
     Serial.println("[NET] AP Mode Started (Manual Button Trigger)");
     longPressHandled = true;
     clickCount = 0;  // Cancel any pending clicks
-    
+
     digitalWrite(BUZZER_PIN, HIGH);
     delay(1000);
     digitalWrite(BUZZER_PIN, LOW);
@@ -1465,22 +1481,27 @@ void handleAdmin() {
   checkExpiry();
 }
 
-
 void updatePumpLogic() {
   unsigned long currentMillis = millis();
+
+  static unsigned long lastExpiryCheck = 0;
+  if (currentMillis - lastExpiryCheck > 3600000UL) {
+    checkExpiry();
+    lastExpiryCheck = currentMillis;
+  }
+
   if (!xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(50))) return;
 
   bool triggerPublish = false;
   static PumpState lastReportedState = (PumpState)-1;
-  static int lastReportedMinute = -1;
-  static int lastFlowStatus = -1;
 
-  // --- 1. SENSORS & FLOW PERSISTENCE (1-Minute Slug Window) ---
+  // --- 1. SENSORS & FLOW PERSISTENCE ---
   bool physicalFlow = (digitalRead(FLOW_SENSOR_PIN) == LOW);
   if (physicalFlow) pumpConfig.lastFlowTime = currentMillis;
   if (pumpConfig.motorStatus == 0) { pumpConfig.lastFlowTime = 0; }
 
-  bool isInitialGrace = (pumpConfig.motorStatus == 1 && pumpConfig.lastFlowTime == 0 && (currentMillis - coolDownConfig.runStartTime < 60000UL));
+  // Grace Period: Gives 60s for water to hit the sensor after the motor physically starts
+  bool isInitialGrace = (pumpConfig.motorStatus == 1 && (currentMillis - coolDownConfig.runStartTime < 60000UL));
   bool isInsideSlugWindow = (pumpConfig.lastFlowTime > 0 && (currentMillis - pumpConfig.lastFlowTime < 60000UL));
   bool effectiveFlow = (physicalFlow || isInitialGrace || isInsideSlugWindow);
   pumpConfig.flowDetected = effectiveFlow;
@@ -1492,8 +1513,6 @@ void updatePumpLogic() {
   currentDndActive = false;
   if (scheduleConfig.enabled) {
     struct tm timeinfo;
-    // The ", 0" is CRITICAL. It tells the ESP32 to wait 0ms!
-    // And we check if year >= 120 (2020) so it doesn't trigger on fake 1970 time.
     if (getLocalTime(&timeinfo, 0) && timeinfo.tm_year >= 120) {
       int hour = timeinfo.tm_hour;
       if (scheduleConfig.dndStart > scheduleConfig.dndEnd) {
@@ -1504,30 +1523,29 @@ void updatePumpLogic() {
     }
   }
 
-  // --- 3. AUTO-FILL TRIGGER & SAFETY STOPS ---
-  if (tankConfig.firstReadingDone && tankConfig.displayUpperPercentage <= TankConfig::LOW_THRESHOLD && pumpConfig.motorStatus == 0) {
-    // isSystemExpired removed from auto-start conditions
-    if (!sensorError && !coolDownConfig.isResting && voltageConfig.status == 1 && dryRunConfig.error == 0 && !currentDndActive) {
-      pumpConfig.motorStatus = 1;
-      pumpConfig.manualOverride = false;
-      saveMotorStatus();
-    }
-  }
-  if (pumpConfig.motorStatus == 1) {
-    bool stopNow = false;
-    // isSystemExpired removed from auto-stop conditions
-    if (tankConfig.displayUpperPercentage >= 100 || sensorError) {
-      stopNow = true;
-      pumpConfig.manualOverride = false;
-    }
-    if (currentDndActive && !pumpConfig.manualOverride) stopNow = true;
-    if (stopNow) {
-      pumpConfig.motorStatus = 0;
-      saveMotorStatus();
-    }
+  // --- 3. AUTO START/STOP LOGIC (WATER LEVEL) ---
+  // AUTO STOP: If tank is full, turn off
+  if (tankConfig.displayUpperPercentage >= 100 && pumpConfig.motorStatus == 1) {
+    pumpConfig.motorStatus = 0;
+    pumpConfig.manualOverride = false;
+    saveMotorStatus();
+    triggerPublish = true;
+    Serial.println("[AUTO] Tank Full - Stopping");
   }
 
-  // --- 4. TRANSITION & VENTING DETECTION ---
+  // AUTO START: If tank is low (20%), turn on
+  if (pumpConfig.motorStatus == 0 && tankConfig.displayUpperPercentage <= TankConfig::LOW_THRESHOLD && voltageConfig.status == 1 && dryRunConfig.error == 0 && !sensorError && !coolDownConfig.isResting && !currentDndActive) {
+
+    pumpConfig.motorStatus = 1;
+    // CRITICAL: Reset timers so the pump gets its 1-minute flow grace period
+    coolDownConfig.runStartTime = currentMillis;
+    dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
+    saveMotorStatus();
+    triggerPublish = true;
+    Serial.println("[AUTO] Tank Low - Starting");
+  }
+
+  // --- 4. TRANSITION & VENTING DETECTION (COMPRESSOR MODE) ---
   bool targetRunning = (pumpConfig.motorStatus == 1);
   if (targetRunning && !compConfig.lastTargetStatus) {
     if (compConfig.opMode == 1 && compConfig.valveDelay > 0) {
@@ -1544,16 +1562,28 @@ void updatePumpLogic() {
   }
   compConfig.lastTargetStatus = targetRunning;
 
-  if (compConfig.isPreVenting && (currentMillis - compConfig.ventStartTime >= (unsigned long)compConfig.valveDelay * 1000UL)) {
-    compConfig.isPreVenting = false;
-    triggerPublish = true;
+  if (compConfig.isPreVenting) {
+    if (currentState == PumpState::PRE_START_VALVE) {
+      if (currentMillis - compConfig.ventStartTime >= (unsigned long)compConfig.valveDelay * 1000UL) {
+        compConfig.isPreVenting = false;
+        triggerPublish = true;
+      }
+    } else {
+      compConfig.ventStartTime = currentMillis;
+    }
   }
-  if (compConfig.isPostVenting && (currentMillis - compConfig.ventStartTime >= (unsigned long)compConfig.valveDelay * 1000UL)) {
-    compConfig.isPostVenting = false;
-    triggerPublish = true;
+  if (compConfig.isPostVenting) {
+    if (currentState == PumpState::POST_STOP_VALVE) {
+      if (currentMillis - compConfig.ventStartTime >= (unsigned long)compConfig.valveDelay * 1000UL) {
+        compConfig.isPostVenting = false;
+        triggerPublish = true;
+      }
+    } else {
+      compConfig.ventStartTime = currentMillis;
+    }
   }
 
-  // --- 5. COOL-DOWN & VOLTAGE TIMERS ---
+  // --- 5. COOL-DOWN & VOLTAGE PROTECTION ---
   if (pumpConfig.motorStatus == 1 && !compConfig.isPreVenting && !compConfig.isPostVenting) {
     if (coolDownConfig.runStartTime == 0) coolDownConfig.runStartTime = currentMillis;
     if (coolDownConfig.restMinutes > 0 && (currentMillis - coolDownConfig.runStartTime >= 3600000UL)) {
@@ -1563,24 +1593,20 @@ void updatePumpLogic() {
       pumpConfig.motorStatus = 0;
       saveMotorStatus();
     }
-  } else {
+  } else if (pumpConfig.motorStatus == 0 && !coolDownConfig.isResting) {
     coolDownConfig.runStartTime = 0;
   }
 
   if (coolDownConfig.isResting) {
-    static unsigned long lastCoolTick = 0;
-    if (currentMillis - lastCoolTick >= 1000) {
-      lastCoolTick = currentMillis;
-      triggerPublish = true;
-    }
     if (currentMillis - coolDownConfig.restStartTime >= (unsigned long)coolDownConfig.restMinutes * 60000UL) {
       coolDownConfig.isResting = false;
-      triggerPublish = true;
       if (pumpConfig.wasRunningBeforeCoolDown && voltageConfig.status == 1 && (!currentDndActive || pumpConfig.manualOverride)) {
         pumpConfig.motorStatus = 1;
-        saveMotorStatus();
+        coolDownConfig.runStartTime = currentMillis;
       }
       pumpConfig.wasRunningBeforeCoolDown = false;
+      saveMotorStatus();
+      triggerPublish = true;
     }
   }
 
@@ -1588,6 +1614,7 @@ void updatePumpLogic() {
     if (voltageConfig.status == 1) {
       pumpConfig.wasRunningBeforeVoltageError = (pumpConfig.motorStatus == 1);
       voltageConfig.status = 0;
+      voltageConfig.waitSeconds = 10;
       pumpConfig.motorStatus = 0;
       saveMotorStatus();
     }
@@ -1601,6 +1628,7 @@ void updatePumpLogic() {
         voltageConfig.status = 1;
         if (pumpConfig.wasRunningBeforeVoltageError && !sensorError && !coolDownConfig.isResting && (!currentDndActive || pumpConfig.manualOverride)) {
           pumpConfig.motorStatus = 1;
+          coolDownConfig.runStartTime = currentMillis;
         }
         pumpConfig.wasRunningBeforeVoltageError = false;
         saveMotorStatus();
@@ -1609,18 +1637,13 @@ void updatePumpLogic() {
   }
 
   // --- 6. STATE DETERMINATION ---
-  // PRIORITY 1: Always vent pressure first if stopping, regardless of errors!
-  if (compConfig.isPostVenting) currentState = PumpState::POST_STOP_VALVE;
-
-  // PRIORITY 2: Safety & Errors
-  else if (voltAbnormal) currentState = PumpState::VOLTAGE_ERROR;
+  if (voltAbnormal) currentState = PumpState::VOLTAGE_ERROR;
   else if (voltageConfig.status == 0) currentState = PumpState::VOLTAGE_WAIT;
+  else if (compConfig.isPostVenting) currentState = PumpState::POST_STOP_VALVE;
   else if (sensorError) currentState = PumpState::SENSOR_ERROR;
   else if (coolDownConfig.isResting) currentState = PumpState::COOLING_DOWN;
   else if (dryRunConfig.error == 1) currentState = PumpState::DRY_RUN_ALARM;
   else if (dryRunConfig.error == 2) currentState = PumpState::DRY_RUN_LOCKED;
-
-  // PRIORITY 3: Normal Operations
   else if (pumpConfig.motorStatus == 1) {
     if (compConfig.isPreVenting) currentState = PumpState::PRE_START_VALVE;
     else currentState = PumpState::PUMPING;
@@ -1633,15 +1656,12 @@ void updatePumpLogic() {
       digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = true;
       if (effectiveFlow) {
-        if (dryRunConfig.waitSeconds != dryRunConfig.WAIT_SECONDS_SET) {
-          dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
-          triggerPublish = true;
-        }
+        dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
       } else {
         if (currentMillis - dryRunConfig.lastUpdate >= 1000) {
           dryRunConfig.waitSeconds--;
           dryRunConfig.lastUpdate = currentMillis;
-          triggerPublish = true;  // Update cloud with countdown
+          triggerPublish = true;
           if (dryRunConfig.waitSeconds <= 0) {
             dryRunConfig.error = 1;
             dryRunConfig.alarmStartTime = currentMillis;
@@ -1652,11 +1672,18 @@ void updatePumpLogic() {
       }
       break;
 
+    case PumpState::PRE_START_VALVE:
+    case PumpState::POST_STOP_VALVE:
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(SOLENOID_PIN, HIGH);
+      pumpConfig.isRunning = false;
+      digitalWrite(BUZZER_PIN, LOW);
+      break;
+
     case PumpState::SENSOR_ERROR:
       digitalWrite(MOTOR_PIN, LOW);
       digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = false;
-      // Alarm sound only if not acknowledged
       if (!tankConfig.errorAck) digitalWrite(BUZZER_PIN, (currentMillis / 1000) % 2);
       else digitalWrite(BUZZER_PIN, LOW);
       break;
@@ -1686,21 +1713,13 @@ void updatePumpLogic() {
           dryRunConfig.error = 0;
           dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
           pumpConfig.motorStatus = 1;
+          coolDownConfig.runStartTime = currentMillis;
           saveMotorStatus();
-          triggerPublish = true;
         }
       }
       break;
 
-    case PumpState::PRE_START_VALVE:
-    case PumpState::POST_STOP_VALVE:
-      digitalWrite(MOTOR_PIN, LOW);
-      digitalWrite(SOLENOID_PIN, HIGH);
-      pumpConfig.isRunning = false;
-      digitalWrite(BUZZER_PIN, LOW);
-      break;
-
-    default:
+    default:  // IDLE, VOLTAGE ERR, COOLING
       digitalWrite(MOTOR_PIN, LOW);
       digitalWrite(SOLENOID_PIN, LOW);
       pumpConfig.isRunning = false;
@@ -1712,17 +1731,8 @@ void updatePumpLogic() {
     lastReportedState = currentState;
     triggerPublish = true;
   }
-  // NEW: Monitor for Voltage or Tank changes to trigger live updates
-  static int lastRepVolt = -1;
-  static int lastRepTank = -1;
-  int curVInt = (int)voltageConfig.currentVoltage;
-  if (curVInt != lastRepVolt || tankConfig.displayUpperPercentage != lastRepTank) {
-    lastRepVolt = curVInt;
-    lastRepTank = tankConfig.displayUpperPercentage;
-    triggerPublish = true;
-  }
-  if (triggerPublish) pendingMqttPublish = true;
 
+  if (triggerPublish) pendingMqttPublish = true;
   xSemaphoreGiveRecursive(systemMutex);
 }
 
@@ -1996,35 +2006,32 @@ void updateLCD() {
     lcd.setCursor(19, 3);
     lcd.print(" ");
   }
-}  
+}
 
 bool reconnectMQTT() {
   if (WiFi.status() != WL_CONNECTED) return false;
 
   struct tm timeinfo;
+  static unsigned long lastNtpRetry = 0;
+
+  // Check if year is greater than 2020 (means time is synced)
   if (!getLocalTime(&timeinfo, 10) || timeinfo.tm_year < 120) {
-    // Only request time again if 5 seconds have passed
-    static unsigned long lastNtpReq = 0;
-    if (millis() - lastNtpReq > 5000) {
+    if (millis() - lastNtpRetry > 30000) {
       requestTimeSync();
-      lastNtpReq = millis();
+      lastNtpRetry = millis();
     }
     return false;
   }
 
   static bool ntpPrinted = false;
   if (!ntpPrinted) {
-    Serial.print("[NTP] Time Successfully Synchronized: ");
+    Serial.print("[NTP] Time Synchronized: ");
     Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
     ntpPrinted = true;
   }
-  // -------------------------------------------------------------
 
-  // Time is valid, ensure install date is saved
   checkAndSaveInstallDate();
-
   espClient.stop();
-  // Lower timeout to prevent freezing if router has no internet
   espClient.setHandshakeTimeout(10);
   espClient.setTimeout(10000);
 
