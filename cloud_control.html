@@ -16,6 +16,7 @@
         body {
             font-family: sans-serif;
             background: #121212;
+            background-image: radial-gradient(circle at 50% 0%, #2a2a2a 0%, #121212 70%);
             color: white;
             text-align: center;
             padding: 20px;
@@ -24,13 +25,15 @@
         }
 
         .card {
-            background: #1e1e1e;
-            border-radius: 12px;
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
             padding: 20px;
             max-width: 400px;
             margin: 0 auto 25px auto;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             position: relative;
             text-align: left;
         }
@@ -54,18 +57,18 @@
             text-align: center;
             cursor: pointer;
             color: #888;
-            background: #121212;
+            background: transparent;
         }
 
         .tab-active {
-            background: #1e1e1e;
+            background: rgba(30, 30, 30, 0.8);
             color: #fff;
-            border: 1px solid #333;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
         .tab-inactive:hover {
-            background: #1a1a1a;
+            background: rgba(255, 255, 255, 0.05);
             color: #ccc;
         }
 
@@ -76,20 +79,22 @@
             border-radius: 50%;
             display: inline-block;
             margin-right: 5px;
+            box-shadow: 0 0 8px #28a745;
         }
 
         .off {
             background: #dc3545;
+            box-shadow: 0 0 8px #dc3545;
         }
 
         .logo {
             width: 80px;
-            height: 80px;
+            height: auto;
             margin: 0 auto 15px auto;
             display: block;
             border-radius: 50%;
-            border: 2px solid #333;
-            background: #1a1a1a;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         }
 
         .refresh-btn {
@@ -107,19 +112,20 @@
         .row {
             display: flex;
             justify-content: space-between;
-            font-size: 1.1rem;
-            margin: 12px 0;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
+            align-items: center;
+            font-size: 1.05rem;
+            margin: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
         }
 
         .btn {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             color: white;
-            background: #03ef;
+            background: #007bff;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-top: 10px;
             font-weight: bold;
             cursor: pointer;
@@ -146,32 +152,76 @@
         }
 
         .btn-green {
-            background: #28a745;
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         }
 
         .btn-red {
-            background: #dc3545;
+            background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
         }
 
         .btn-purple {
-            background: #6f42c1;
+            background: linear-gradient(135deg, #6f42c1, #a958a5) !important;
+            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
         }
 
         .btn-grey {
-            background: #555;
-            color: #aaa;
+            background: #555 !important;
+            color: #aaa !important;
             cursor: not-allowed;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .bg-success {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.5);
+        }
+
+        .bg-danger {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.5);
+        }
+
+        .bg-warning {
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
+
+        .bg-info {
+            background: rgba(23, 162, 184, 0.2);
+            color: #17a2b8;
+            border: 1px solid rgba(23, 162, 184, 0.5);
+        }
+
+        .bg-secondary {
+            background: rgba(108, 117, 125, 0.2);
+            color: #adb5bd;
+            border: 1px solid rgba(108, 117, 125, 0.5);
         }
 
         .tank-wrap {
             width: 140px;
             height: 180px;
-            border: 4px solid #333;
+            border: 4px solid #444;
             border-radius: 15px;
             margin: 30px auto;
             position: relative;
-            background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
+            background: linear-gradient(90deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
             overflow: visible;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
         }
 
         .tank-wrap::before {
@@ -183,8 +233,8 @@
             width: 80px;
             height: 14px;
             background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
-            border-left: 4px solid #333;
-            border-right: 4px solid #333;
+            border-left: 4px solid #444;
+            border-right: 4px solid #444;
             z-index: 1;
         }
 
@@ -197,7 +247,7 @@
             width: 100px;
             height: 10px;
             background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
-            border: 3px solid #333;
+            border: 3px solid #444;
             border-radius: 4px;
             z-index: 5;
         }
@@ -219,7 +269,7 @@
             left: 0;
             width: 100%;
             background: #039be5;
-            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s;
             height: 0%;
             overflow: visible;
         }
@@ -232,7 +282,7 @@
             width: 200%;
             height: 25px;
             opacity: 0;
-            transition: opacity 0.5s;
+            transition: opacity 0.5s, background-image 0.5s;
             background-repeat: repeat-x;
             background-size: 50% 100%;
             top: -15px;
@@ -249,6 +299,19 @@
             animation: wave 3s linear infinite reverse;
             z-index: 2;
             margin-top: 2px;
+        }
+
+        .tank-fill.low-water {
+            background: #dc3545;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.5);
+        }
+
+        .tank-fill.low-water::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ff6b6b' opacity='0.7'/%3E%3C/svg%3E");
+        }
+
+        .tank-fill.low-water::after {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23dc3545'/%3E%3C/svg%3E");
         }
 
         .tank-fill.pumping::before,
@@ -274,7 +337,7 @@
             height: 100%;
             z-index: 5;
             pointer-events: none;
-            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
             border-radius: 10px;
         }
 
@@ -295,8 +358,8 @@
             right: -4px;
             top: 25%;
             height: 2px;
-            background: rgba(0, 0, 0, 0.35);
-            box-shadow: 0 45px 0 rgba(0, 0, 0, 0.35), 0 90px 0 rgba(0, 0, 0, 0.35);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 45px 0 rgba(0, 0, 0, 0.4), 0 90px 0 rgba(0, 0, 0, 0.4);
         }
 
         .tank-text {
@@ -308,14 +371,16 @@
             font-size: 1.6rem;
             color: #fff;
             z-index: 6;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            text-shadow: 0px 2px 5px rgba(0, 0, 0, 0.9);
         }
 
         .lbl-wrap {
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
+            align-items: center;
             margin: 15px 0 5px;
+            flex-wrap: wrap;
+            gap: 5px;
         }
 
         label {
@@ -334,17 +399,27 @@
         select {
             width: 100%;
             padding: 12px;
-            background: #2a2a2a;
-            border: 1px solid #444;
+            background: rgba(42, 42, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            border-radius: 6px;
+            border-radius: 8px;
             box-sizing: border-box;
-            font-size: 1rem;
+            font-size: 1.1rem;
         }
 
-        .pass-row {
-            position: relative;
+        /* --- LOGIN PAGE INPUT CENTERING --- */
+        #loginScreen input {
+            text-align: center !important;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
         }
+
+        #devPin {
+            letter-spacing: 8px !important;
+            /* Space out the PIN dots */
+        }
+
+        /* ---------------------------------- */
 
         .show-pass {
             margin-top: 8px;
@@ -353,6 +428,9 @@
             display: flex;
             align-items: center;
             cursor: pointer;
+            justify-content: flex-start;
+            text-align: left;
+            width: 100%;
         }
 
         .show-pass input {
@@ -362,7 +440,7 @@
 
         hr {
             border: 0;
-            border-top: 1px solid #333;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             margin: 25px 0;
         }
 
@@ -378,11 +456,6 @@
             text-align: center;
         }
 
-        #loginScreen input {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
         .modal {
             display: none;
             position: fixed;
@@ -391,22 +464,22 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
         }
 
         .modal-content {
-            background-color: #1e1e1e;
+            background: rgba(30, 30, 30, 0.9);
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             padding: 25px;
             border-left: 5px solid #ffc107;
-            border-radius: 8px;
+            border-radius: 12px;
             width: 85%;
             max-width: 320px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
             text-align: left;
             box-sizing: border-box;
         }
@@ -432,7 +505,7 @@
             color: white;
             padding: 12px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
             width: 100%;
@@ -447,53 +520,69 @@
             font-weight: bold;
             max-width: 400px;
             display: none;
+            backdrop-filter: blur(10px);
         }
 
         .banner-red {
-            background: #dc3545;
-            color: white;
-            border: 2px solid #ff6b6b;
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.5);
         }
 
         .banner-yellow {
-            background: #ffc107;
-            color: #333;
-            border: 2px solid #ffca2c;
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.5);
         }
 
         .lang-mm .row {
-            font-size: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .lang-mm .badge {
+            font-size: 0.8rem;
+            letter-spacing: 0;
         }
 
         .lang-mm .row span:first-child {
-            flex: 2;
+            flex: 1;
             text-align: left;
             white-space: nowrap;
         }
 
         .lang-mm .row span:last-child {
-            flex: 1;
+            flex: none;
             text-align: right;
         }
 
         @media screen and (max-width: 440px) {
             .lang-mm .row {
-                font-size: 0.85rem !important;
+                font-size: 0.82rem !important;
                 letter-spacing: -0.5px;
             }
 
             .lang-mm .tab {
-                font-size: 0.82rem;
-                padding: 10px 2px;
+                font-size: 0.75rem;
+                padding: 12px 1px;
+                white-space: nowrap;
             }
 
             .lang-mm h2 {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
 
             .lang-mm .btn {
-                font-size: 0.95rem;
-                padding: 12px;
+                font-size: 0.8rem !important;
+                padding: 12px 2px !important;
+                white-space: nowrap;
+            }
+
+            .lang-mm input::placeholder {
+                font-size: 0.68rem !important;
+            }
+
+            #fileName {
+                font-size: 0.72rem !important;
             }
         }
     </style>
@@ -510,15 +599,16 @@
 
     <div id="loginScreen" class="card">
         <img src="logo.png" alt="Logo" class="logo">
-        <h1 style="color:white; margin: 10px 0 5px 0; font-size: 1.6rem; letter-spacing: -0.5px;">Smart Pump Cloud</h1>
-        <p style="color:#888; font-size:1.1rem; margin: 0 0 25px 0; font-weight: 300;">Enter Device ID and PIN</p>
+        <h1 style="color:white; margin: 10px 0 5px 0; text-align: center; font-size: 1.6rem; letter-spacing: -0.5px;">
+            Smart Pump Cloud</h1>
+        <p style="color:#888; text-align: center; font-size:1.1rem; margin: 0 0 25px 0; font-weight: 300;">Enter Device
+            ID and PIN</p>
         <div style="max-width: 280px; margin: 0 auto;">
             <div id="loginError"
-                style="color: #ff4d4d; font-size: 0.85rem; margin-bottom: 10px; display: none; font-weight: bold;">
+                style="color: #ff6b6b; font-size: 0.85rem; margin-bottom: 10px; display: none; font-weight: bold;">
             </div>
-            <input type="text" id="devID" placeholder="DEVICE ID"
-                style="text-transform:uppercase; letter-spacing: 1px; font-weight: 500;">
-            <input type="password" id="devPin" placeholder="••••••" style="letter-spacing: 4px;">
+            <input type="text" id="devID" placeholder="DEVICE ID" style="text-transform:uppercase;">
+            <input type="password" id="devPin" placeholder="••••••">
             <button id="btnLogin" class="btn" onclick="connect()"
                 style="margin-top: 15px; border-radius: 10px; padding: 18px; font-size: 1.2rem; background: #007bff;">Connect</button>
         </div>
@@ -526,9 +616,9 @@
 
     <div id="dashboard" style="display:none;">
         <div id="expiryBanner" class="banner banner-red">⚠️ SYSTEM EXPIRED ⚠️<br><span
-                style="font-size:0.8rem; font-weight:normal">Pump operations are disabled.</span></div>
+                style="font-size:0.8rem; font-weight:normal; color:#ddd;">Pump operations are disabled.</span></div>
         <div id="warnBanner" class="banner banner-yellow">⚠️ SUBSCRIPTION ENDING SOON ⚠️<br><span
-                style="font-size:0.8rem; font-weight:normal" id="warnMsg"></span></div>
+                style="font-size:0.8rem; font-weight:normal; color:#ddd;" id="warnMsg"></span></div>
 
         <div class="tabs">
             <div id="tabHome" class="tab tab-active" onclick="showTab('home')">🏠 Home</div>
@@ -539,11 +629,11 @@
             <div class="card">
                 <button id="refreshBtn" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
                 <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="statusDot"
-                        class="conn-dot"></span><span id="statusTxt">Connecting...</span></div>
-                <h2 style="color:#03ef;margin:0; text-align: center;"><img src="logo.png" alt="Logo"
-                        class="logo"><br>💧Tank Water Level
+                        class="conn-dot"></span><span id="statusTxt" style="color:#aaa;">Connecting...</span></div>
+                <h2 style="color:#03ef;margin:0; text-align: center; font-weight:800; letter-spacing:-0.5px;">
+                    <img src="logo.png" alt="Logo" class="logo"><br>💧Tank Water Level
                     <div id="dndBadgeC"
-                        style="display:none; font-size: 0.9rem; background: #6f42c1; color: white; padding: 4px 10px; border-radius: 12px; margin: 10px auto 0 auto; width: fit-content;">
+                        style="display:none; font-size: 0.8rem; background: rgba(111,66,193,0.2); border: 1px solid rgba(111,66,193,0.6); color: #d8b4fe; padding: 4px 12px; border-radius: 20px; margin: 8px auto 0 auto; width: fit-content; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">
                         🌙 DND Active</div>
                 </h2>
                 <div class="tank-wrap">
@@ -554,19 +644,23 @@
                     <div class="tank-ridges"></div>
                     <div id="tankVal" class="tank-text">-- %</div>
                 </div>
-                <div class="row"><span>Voltage:</span> <span id="volt">-- V</span></div>
-                <div class="row"><span>Volt Status:</span> <span id="vstat">--</span></div>
-                <div class="row"><span>Pump:</span> <span id="pstate">--</span></div>
-                <div class="row"><span>System Info:</span> <span id="info">--</span></div>
-                <div class="row" id="cdRow" style="display:none; color:#ff4d4d; font-weight:bold;"><span>Dry-Run
-                        in:</span> <span id="cd">--</span></div>
+                <div class="row"><span>Voltage:</span> <span id="volt" style="font-weight:bold; font-size:1.2rem;">--
+                        V</span></div>
+                <div class="row"><span>Volt Status:</span> <span id="vstat" class="badge bg-secondary">--</span></div>
+                <div class="row"><span>Pump:</span> <span id="pstate" class="badge bg-secondary">--</span></div>
+                <div class="row"><span>System Info:</span> <span id="info" class="badge bg-secondary">--</span></div>
+
+                <div class="row" id="cdRow" style="display:none; color:#ff6b6b; font-weight:bold;"><span>Dry-Run
+                        in:</span> <span id="cd"
+                        style="background:rgba(220,53,69,0.1); padding:2px 8px; border-radius:6px;">--</span></div>
                 <div id="otaHub"
-                    style="display:none; margin:15px 0; padding:15px; border:1px solid #03ef; border-radius:12px; background:rgba(3,239,98,0.05);">
-                    <div style="color:#03ef; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!
-                    </div><button class="btn btn-green" onclick="startOTA()">Update Now</button>
+                    style="display:none; margin:15px 0; padding:15px; border:1px solid rgba(40,167,69,0.3); border-radius:12px; background:rgba(40,167,69,0.05);">
+                    <div style="color:#28a745; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!
+                    </div>
+                    <button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">Update Now</button>
                 </div>
                 <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING SYNC...</button>
-                <button id="btnReset" class="btn btn-red" onclick="sendCmd({reset:1})" style="display:none;">Reset
+                <button id="btnReset" class="btn btn-red" onclick="sendReset()" style="display:none;">Reset
                     Alarm</button>
             </div>
         </div>
@@ -575,7 +669,7 @@
             <div class="card">
                 <button id="refreshBtnS" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
                 <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="statusDotS"
-                        class="conn-dot"></span><span id="statusTxtS">Connecting...</span></div>
+                        class="conn-dot"></span><span id="statusTxtS" style="color:#aaa;">Connecting...</span></div>
                 <img src="logo.png" class="logo">
                 <div class="lbl-wrap"><label>WiFi SSID</label></div><input type="text" id="ssid"
                     placeholder="Current WiFi SSID">
@@ -593,7 +687,6 @@
                     <option value="1">Myanmar (မြန်မာ)</option>
                 </select>
                 <hr>
-
                 <div class="lbl-wrap"><label>Operating Mode</label></div>
                 <select id="opM" onchange="toggleVDly()">
                     <option value="0">Water Pump</option>
@@ -603,7 +696,6 @@
                         class="range">5 - 15s</span></div>
                 <select id="vDly" style="display:none;"></select>
                 <hr>
-
                 <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select
                     id="uH"></select>
                 <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><select
@@ -612,16 +704,13 @@
                     id="vL"></select>
                 <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select
                     id="dD"></select>
-
                 <div class="lbl-wrap"><label>Pump Cool-down (After 1Hr)</label><span class="range">Disable / 5 -
-                        15m</span></div>
-                <select id="rstM">
+                        15m</span></div><select id="rstM">
                     <option value="0">Disabled</option>
                     <option value="5">5 Minutes</option>
                     <option value="10">10 Minutes</option>
                     <option value="15">15 Minutes</option>
                 </select>
-
                 <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div>
                 <select id="rM">
                     <option value="0">Disabled</option>
@@ -642,31 +731,39 @@
                 <hr>
 
                 <div
-                    style="background:rgba(3,239,98,0.05); border:1px solid #28a745; border-radius:12px; padding:15px; margin-bottom:20px;">
+                    style="background:rgba(40,167,69,0.05); border:1px solid rgba(40,167,69,0.3); border-radius:12px; padding:15px; margin-bottom:20px;">
                     <h3 style="color:#28a745; margin:0 0 10px 0;">🔑 License Management</h3>
                     <div style="font-size:0.8rem; margin-bottom:10px; color:#aaa;">Status: <span id="licStat"
                             style="color:white; font-weight:bold;">Unknown</span></div>
                     <div class="lbl-wrap"><label>Upload Token File (.key)</label></div>
+
+                    <!-- CORRECTED SINGLE FLEX LABEL -->
                     <label
-                        style="display:inline-block; padding: 10px; background:#121212; border:1px solid #333; cursor:pointer; color: #aaa; border-radius:6px; margin-bottom:5px; width:100%; box-sizing:border-box; text-align:left;"><span
-                            style="background:#007bff; color:white; padding:5px 10px; border-radius:4px; margin-right:10px;">Choose
-                            File</span><span id="fileName">No file chosen</span><input type="file" id="licFile"
-                            accept=".key,.txt" style="display:none;"
-                            onchange="document.getElementById('fileName').innerText = this.files[0] ? this.files[0].name : (sysLang == 1 ? 'ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ' : 'No file chosen')"></label>
+                        style="display:flex; align-items:center; padding: 8px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); cursor:pointer; color: #aaa; border-radius:8px; margin-bottom:5px; width:100%; box-sizing:border-box; text-align:left; overflow:hidden;">
+                        <span
+                            style="background:#007bff; color:white; padding:5px 8px; border-radius:4px; margin-right:5px; font-size:0.75rem; white-space:nowrap;">Choose
+                            File</span>
+                        <span id="fileName"
+                            style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size: 0.72rem; flex:1;">No
+                            file chosen</span>
+                        <input type="file" id="licFile" accept=".key,.txt" style="display:none;"
+                            onchange="vibe(); document.getElementById('fileName').innerText = this.files[0] ? this.files[0].name : (sysLang == 1 ? 'ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ' : 'No file chosen')">
+                    </label>
+
                     <button class="btn btn-green" style="margin-top:5px; padding:10px;"
                         onclick="uploadLicenseFile()">Upload File</button>
                     <div style="color:#666; margin:10px 0; font-size:0.9rem;">- OR -</div>
-                    <div class="lbl-wrap"><label>Paste Token String</label></div><input type="text" id="licText"
-                        placeholder="Paste MTc... string here" style="margin-bottom:5px;">
+                    <div class="lbl-wrap"><label>Paste Token String</label></div>
+                    <input type="text" id="licText" placeholder="Paste MTc... string here" style="margin-bottom:5px;">
                     <button class="btn btn-purple" style="margin-top:5px; padding:10px;"
                         onclick="uploadLicenseText()">Activate via Text</button>
                 </div>
 
                 <div style="text-align:center;">
-                    <h3 style="color:#6f42c1; margin:0 0 15px 0;">🛠️ Maintenance</h3>
+                    <h3 style="color:#a958a5; margin:0 0 15px 0;">🛠️ Maintenance</h3>
                     <div id="otaHubS"
-                        style="display:none; margin-bottom:15px; padding:15px; border:1px solid #6f42c1; border-radius:12px; background:rgba(111, 66, 193, 0.05); text-align:left;">
-                        <div style="color:#6f42c1; font-weight:bold; margin-bottom:10px;" id="otaMsgS">Update Available!
+                        style="display:none; margin-bottom:15px; padding:15px; border:1px solid rgba(111, 66, 193, 0.3); border-radius:12px; background:rgba(111, 66, 193, 0.05); text-align:left;">
+                        <div style="color:#d8b4fe; font-weight:bold; margin-bottom:10px;" id="otaMsgS">Update Available!
                         </div><button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">Update
                             Now</button>
                     </div>
@@ -682,7 +779,7 @@
             <div id="lastMsg" style="margin-bottom:8px;">Waiting for first sync...</div>
             <span>Cloud ID: <span id="dispCid">--</span></span><br><span>Device IP: <span id="dispIp">--</span></span>
             <div style="margin-top: 15px;"><button class="btn"
-                    style="padding: 10px 20px; font-size: 0.95rem; width: auto; min-width: 120px; background: #007bff;"
+                    style="padding: 10px 20px; font-size: 0.95rem; width: auto; min-width: 120px; background: rgba(0,123,255,0.5); border: 1px solid rgba(0,123,255,0.8);"
                     onclick="logout()">Logout</button></div>
         </div>
     </div>
@@ -699,12 +796,28 @@
         const dict = { "Device: Online": "စက် အွန်လိုင်း", "Device: Offline": "စက် အော့ဖ်လိုင်း", "Connecting...": "ချိတ်ဆက်နေသည်...", "NORMAL": "ပုံမှန်", "OVER": "ကျော်လွန်", "UNDER": "လျော့နည်း", "ON": "ဖွင့်", "OFF": "ပိတ်", "PUMPING": "ရေတင်နေသည်", "STANDBY": "အသင့်အနေအထား", "DRY ALRM": "ရေမရှိ အချက်ပေး", "LOCKED": "ပိတ်သိမ်းထားသည်", "EXPIRED": "သက်တမ်းကုန်ပြီ", "Active": "အသက်ဝင်သည်", "days left": "ရက် ကျန်သည်" };
         const tr = (t) => (sysLang == 1 && dict[t]) ? dict[t] : t;
 
+        const vibe = () => {
+            try {
+                if (window.AndroidBridge && window.AndroidBridge.triggerVibration) {
+                    window.AndroidBridge.triggerVibration(100);
+                }
+                else if (window.navigator && window.navigator.vibrate) {
+                    window.navigator.vibrate(100);
+                }
+            } catch (e) { }
+        };
+
         function setAppLang() { sysLang = parseInt(document.getElementById('appLang').value); localStorage.setItem('cloudLang', sysLang); location.reload(); }
 
         document.addEventListener("DOMContentLoaded", () => {
+            const fileNameEl = document.getElementById('fileName');
+
             if (sysLang == 1) {
                 document.getElementById('tabHome').innerText = "🏠 ပင်မစာမျက်နှာ";
                 document.getElementById('tabSettings').innerText = "⚙️ ဆက်တင်များ";
+
+                // Explicitly translate the file picker text
+                if (fileNameEl) fileNameEl.innerText = "ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ";
 
                 document.body.innerHTML = document.body.innerHTML
                     .replace("💧Tank Water Level", "💧ရေတိုင်ကီ ရေအမှတ်")
@@ -743,7 +856,6 @@
                     .replace(">Upload File<", ">ဖိုင် တင်မည်<")
                     .replace("Paste Token String", "တိုကင် စာသား ထည့်ပါ")
                     .replace("Paste MTc... string here", "ဖုန်းဖြင့်ရသော တိုကင်စာသားကို ဤနေရာတွင် ထည့်ပါ")
-                    .replace(">No file chosen<", ">ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ<")
                     .replace("Cloud ID:", "ကလောက် အိုင်ဒီ-")
                     .replace("Device IP:", "စက် အိုင်ပီ-")
                     .replace(">Logout<", ">ထွက်မည်<")
@@ -785,6 +897,8 @@
         for (let i = 0; i < 24; i++) { let h = (i < 10 ? '0' : '') + i + ':00';[dndS, dndE].forEach(s => { let opt = document.createElement('option'); opt.value = i; opt.innerText = h; s.appendChild(opt); }); }
         const tz = document.getElementById('tzOf'); for (let i = -12; i <= 14; i += 0.5) { let opt = document.createElement('option'); opt.value = i; opt.innerText = "GMT " + (i >= 0 ? "+" : "") + (i == 0 ? "0" : i); tz.appendChild(opt); }
 
+        const setBadge = (id, text, type) => { let el = document.getElementById(id); el.innerText = text; el.className = 'badge bg-' + type; };
+
         function toggleVDly() {
             const v = document.getElementById('opM').value;
             document.getElementById('vWrap').style.display = (v == "1") ? "flex" : "none";
@@ -792,23 +906,31 @@
         }
 
         function togglePass(id) { let x = document.getElementById(id); x.type = x.type === "password" ? "text" : "password"; }
+
         function showTab(t) {
+            vibe();
             activeTab = t;
             document.getElementById('homeView').style.display = t === 'home' ? 'block' : 'none';
             document.getElementById('settingsView').style.display = t === 'settings' ? 'block' : 'none';
             document.getElementById('tabHome').className = 'tab ' + (t === 'home' ? 'tab-active' : 'tab-inactive');
             document.getElementById('tabSettings').className = 'tab ' + (t === 'settings' ? 'tab-active' : 'tab-inactive');
         }
-        function showModal(msg) { document.getElementById('warnText').innerText = msg; document.getElementById('warnModal').style.display = 'block'; }
+
+        function showModal(msg) {
+            document.getElementById('warnText').innerText = msg;
+            document.getElementById('warnModal').style.display = 'block';
+            vibe();
+        }
+
         function closeModal() { document.getElementById('warnModal').style.display = 'none'; }
 
-        // --- STABILITY FIX: Watchdog timer increased to 90 seconds ---
         function resetWatchdog() {
             if (watchdog) clearTimeout(watchdog);
             watchdog = setTimeout(() => updateOnlineStatus(false), 90000);
         }
 
         function connect() {
+            vibe();
             if (isConnecting) return; isConnecting = true;
             deviceID = document.getElementById('devID').value.trim().toUpperCase(); devicePin = document.getElementById('devPin').value.trim();
             if (deviceID.length < 5) { alert("Invalid ID"); isConnecting = false; return; }
@@ -832,7 +954,7 @@
                     if (!dataReceived) { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; }
                     dataReceived = true;
                     updateUI(data);
-                    resetWatchdog(); // Reset connection timer on any valid data (including heartbeat)
+                    resetWatchdog();
                     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
                 } catch (e) { }
             };
@@ -849,18 +971,25 @@
             });
         }
 
-        function requestData() { if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } else { connect(); } }
-        function logout() { if (confirm("Are you sure you want to logout?")) { if (client && client.isConnected()) { try { client.disconnect(); } catch (e) { } } location.reload(); } }
-        function sendToggle() { sendCmd({ toggle: 1 }); }
+        function requestData() { vibe(); if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } else { connect(); } }
+        function logout() { vibe(); if (confirm("Are you sure you want to logout?")) { if (client && client.isConnected()) { try { client.disconnect(); } catch (e) { } } localStorage.removeItem("cloudPumpPin"); location.reload(); } }
+
+        function sendReset() { vibe(); sendCmd({ reset: 1 }); }
+        function sendToggle() { vibe(); sendCmd({ toggle: 1 }); }
+
         function checkOTA(btn) {
+            vibe();
             const oldText = sysLang == 1 ? "ဗားရှင်း အသစ်စစ်ရန်" : "Check for Updates";
             btn.innerText = sysLang == 1 ? "စစ်ဆေးနေသည်..." : "Checking...";
             btn.disabled = true;
             sendCmd({ otaCheck: 1 });
             setTimeout(() => { btn.innerText = oldText; btn.disabled = false; }, 10000);
         }
-        function startOTA() { if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
+
+        function startOTA() { vibe(); if (confirm("Start OTA?")) sendCmd({ otaStart: 1 }); }
+
         function sendSave() {
+            vibe();
             if (isExpired) { showModal("License Expired. Cannot save settings."); return; }
             const ssid = document.getElementById('ssid').value.trim();
             if (!ssid) { alert("SSID cannot be empty! Please wait for dashboard to sync or enter WiFi name."); return; }
@@ -879,8 +1008,8 @@
             setTimeout(() => location.reload(), 20000);
         }
 
-        function uploadLicenseFile() { const fileInput = document.getElementById('licFile'); if (fileInput.files.length === 0) { alert("Please select a .key file first."); return; } const file = fileInput.files[0]; const reader = new FileReader(); reader.onload = function (e) { sendLicense(e.target.result.trim()); }; reader.readAsText(file); }
-        function uploadLicenseText() { const val = document.getElementById('licText').value.trim(); if (val.length < 10) { alert("Invalid token string."); return; } sendLicense(val); }
+        function uploadLicenseFile() { vibe(); const fileInput = document.getElementById('licFile'); if (fileInput.files.length === 0) { alert("Please select a .key file first."); return; } const file = fileInput.files[0]; const reader = new FileReader(); reader.onload = function (e) { sendLicense(e.target.result.trim()); }; reader.readAsText(file); }
+        function uploadLicenseText() { vibe(); const val = document.getElementById('licText').value.trim(); if (val.length < 10) { alert("Invalid token string."); return; } sendLicense(val); }
         function sendLicense(token) { if (token.length > 10) { sendCmd({ lic: token }); alert("License Token Sent! The device will reply shortly."); setTimeout(() => { document.getElementById('licFile').value = ""; document.getElementById('licText').value = ""; }, 500); } else { alert("Invalid license content."); } }
         function sendCmd(p) { if (!client || !client.isConnected()) return; p.pin = devicePin; let msg = new Paho.MQTT.Message(JSON.stringify(p)); msg.destinationName = `smartpump/${deviceID}/set`; client.send(msg); }
 
@@ -892,14 +1021,16 @@
 
         function updateUI(d) {
             if (sysLang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm');
-            if (document.getElementById('dndBadgeC')) document.getElementById('dndBadgeC').style.display = d.dndAct ? 'block' : 'none';
+            if (document.getElementById('dndBadgeC')) {
+                if (d.dndAct == 1) { document.getElementById('dndBadgeC').style.display = 'block'; } else { document.getElementById('dndBadgeC').style.display = 'none'; }
+            }
 
             isExpired = d.expired ? true : false;
             const expBanner = document.getElementById('expiryBanner'), warnBanner = document.getElementById('warnBanner'), licStat = document.getElementById('licStat');
 
             if (isExpired) {
                 expBanner.style.display = 'block'; warnBanner.style.display = 'none';
-                licStat.innerHTML = '<span style="color:#ff4d4d">' + (sysLang == 1 ? "သက်တမ်းကုန်ပြီ" : "EXPIRED") + '</span>';
+                licStat.innerHTML = '<span style="color:#ff6b6b">' + (sysLang == 1 ? "သက်တမ်းကုန်ပြီ" : "EXPIRED") + '</span>';
             } else {
                 expBanner.style.display = 'none';
                 if (d.daysLeft <= 7 && d.daysLeft >= 0) {
@@ -912,22 +1043,30 @@
             const tankFill = document.getElementById('tankFill');
             if (!tankFill || activeTab === 'saving') return;
             tankFill.style.height = (d.tank || 0) + '%';
+            if (d.tank <= 20) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water');
             if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');
 
-            let vS = d.vStat || "--"; let iF = d.info || "--";
+            let vS = d.vStat || "--"; let iF = d.info || "--"; let pS = d.pStat || "--"; let tS = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
             if (sysLang == 1) {
                 if (vS == "NORMAL") vS = "ပုံမှန်"; else if (vS == "OVER") vS = "ကျော်လွန်"; else if (vS == "UNDER") vS = "လျော့နည်း"; else if (vS == "DELAY") vS = "စောင့်ဆိုင်း";
                 if (iF == "DRY_RUN_ALARM!") iF = "ရေမရှိ အချက်ပေး!"; else if (iF == "PUMP_LOCKED!") iF = "ပိတ်သိမ်းထားသည်!"; else if (iF == "WAITING_RETRY!") iF = "ပြန်စရန်စောင့်နေသည်!"; else if (iF == "SENSOR_ERROR!") iF = "ဆင်ဆာ ချို့ယွင်းချက်!"; else if (iF == "SYSTEM_STANDBY!") iF = "အသင့်အနေအထား!"; else if (iF == "FLOW_DETECTED!") iF = "ရေစီးဆင်းမှုရှိသည်!"; else if (iF == "FLOW_CHECKING!") iF = "ရေစီးဆင်းမှုစစ်ဆေးနေ!"; else if (iF == "COOLING_DOWN!") iF = "အအေးခံနေသည်!"; else if (iF == "VENTING_VALVE!") iF = "လေလျှော့နေသည်!";
-                if (d.tStr == "FULL") d.tStr = "ပြည့်"; else if (d.tStr == "LOW") d.tStr = "နည်း"; else if (d.tStr == "ERR") d.tStr = "ချို့";
+                if (d.pStat == "ON") pS = "ဖွင့်"; else if (d.pStat == "OFF") pS = "ပိတ်"; else if (d.pStat == "PUMPING") pS = "ရေတင်နေသည်"; else if (d.pStat == "STANDBY") pS = "အသင့်အနေအထား"; else if (d.pStat == "DRY ALRM") pS = "ရေမရှိ အချက်ပေး"; else if (d.pStat == "LOCKED") pS = "ပိတ်သိမ်းထားသည်";
+                if (d.tStr == "FULL") tS = "ပြည့်"; else if (d.tStr == "LOW") tS = "နည်း"; else if (d.tStr == "ERR") tS = "ချို့";
             }
 
-            document.getElementById('vstat').innerText = vS;
-            document.getElementById('pstate').innerText = tr(d.pStat || "--");
-            document.getElementById('info').innerText = iF;
-            document.getElementById('tankVal').innerText = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
+            document.getElementById('tankVal').innerText = tS;
             document.getElementById('dispIp').innerText = d.ip || "---";
             document.getElementById('dispCid').innerText = d.id || "---";
             document.getElementById('volt').innerText = (d.volt || "--") + " V";
+
+            setBadge('vstat', vS, (d.vStat == "NORMAL") ? 'success' : (d.vStat == "DELAY" ? 'warning' : 'danger'));
+            setBadge('pstate', pS, (d.pStat == "ON") ? 'success' : (d.pStat == "DRY ALRM" || d.pStat == "LOCKED" ? 'danger' : 'secondary'));
+
+            let iType = 'info';
+            if (d.info && (d.info.includes("ALARM") || d.info.includes("ERROR"))) iType = 'danger';
+            else if (d.info && (d.info.includes("WAITING") || d.info.includes("LOCKED") || d.info.includes("COOLING") || d.info.includes("VENTING"))) iType = 'warning';
+            else if (d.info && d.info.includes("FLOW_DETECTED")) iType = 'success';
+            setBadge('info', iF, iType);
 
             updateOnlineStatus(true);
             const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset');
@@ -935,11 +1074,14 @@
             if (d.err) {
                 btn.style.display = 'none'; rst.style.display = 'block';
                 rst.innerText = sysLang == 1 ? "အချက်ပေး ပြန်ပိတ်မည်" : "Reset Alarm";
+                rst.onclick = sendReset;
             } else if (d.sErr && !d.ack) {
                 btn.style.display = 'block'; rst.style.display = 'none';
                 btn.innerText = sysLang == 1 ? "အချက်ပေး ပြန်ပိတ်မည်" : "Reset Alarm"; btn.className = "btn btn-red";
+                btn.onclick = sendToggle;
             } else {
                 btn.style.display = 'block'; rst.style.display = 'none';
+                btn.onclick = sendToggle;
                 if (isExpired) {
                     btn.innerText = sysLang == 1 ? "လိုင်စင် သက်တမ်းကုန်ပြီ" : "LICENSE EXPIRED";
                     btn.className = "btn btn-grey"; btn.disabled = true;
