@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -702,6 +702,8 @@
                     id="vH"></select>
                 <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><select
                     id="vL"></select>
+                <div class="lbl-wrap"><label>Voltage Resume Gap</label><span class="range">1 - 10 V</span></div><select
+                    id="vG"></select>
                 <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select
                     id="dD"></select>
                 <div class="lbl-wrap"><label>Pump Cool-down (After 1Hr)</label><span class="range">Disable / 5 -
@@ -836,6 +838,7 @@
                     .replace("Tank Height", "ရေတိုင်ကီ အမြင့်")
                     .replace("High Voltage Set", "ဗို့အားလွန် သတ်မှတ်ချက်")
                     .replace("Low Voltage Set", "ဗို့အားလျော့ သတ်မှတ်ချက်")
+                    .replace("Voltage Resume Gap", "ဗို့အားပြန်ဖွင့် ကွာဟချက်")
                     .replace("Dry-Run Delay", "ရေမရှိ အချက်ပေးချိန်")
                     .replace("Pump Cool-down (After 1Hr)", "၁နာရီမောင်းပြီး အနားပေးချိန်")
                     .replace("Disable / 5 - 15m", "ပိတ်မည် / ၅ - ၁၅ မိနစ်")
@@ -891,6 +894,7 @@
         const uH = document.getElementById('uH'); for (let i = 12; i <= 84; i += 6) { let opt = document.createElement('option'); opt.value = i; opt.innerText = (i / 12).toFixed(1) + " ft"; uH.appendChild(opt); }
         const vH = document.getElementById('vH'); for (let i = 230; i <= 260; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vH.appendChild(opt); }
         const vL = document.getElementById('vL'); for (let i = 150; i <= 190; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vL.appendChild(opt); }
+        const vG = document.getElementById('vG'); for (let i = 1; i <= 10; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vG.appendChild(opt); } vG.value = "5";
         const dD = document.getElementById('dD'); for (let i = 60; i <= 180; i += 5) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Seconds"; dD.appendChild(opt); }
         const vDly = document.getElementById('vDly'); for (let i = 5; i <= 15; i++) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Seconds"; vDly.appendChild(opt); }
         const dndS = document.getElementById('dndS'), dndE = document.getElementById('dndE');
@@ -999,7 +1003,7 @@
             sendCmd({
                 save: 1, ssid: ssid, pass: document.getElementById('wifiPass').value, newPin: document.getElementById('newPin').value || devicePin,
                 opM: parseInt(document.getElementById('opM').value), vDly: parseInt(document.getElementById('vDly').value),
-                uH: parseFloat(document.getElementById('uH').value), vH: parseInt(document.getElementById('vH').value), vL: parseInt(document.getElementById('vL').value),
+                uH: parseFloat(document.getElementById('uH').value), vH: parseInt(document.getElementById('vH').value), vL: parseInt(document.getElementById('vL').value), vG: parseInt(document.getElementById('vG').value),
                 dD: parseInt(document.getElementById('dD').value), rstM: parseInt(document.getElementById('rstM').value), rM: parseInt(document.getElementById('rM').value),
                 dndEn: parseInt(document.getElementById('dndEn').value), dndS: parseInt(document.getElementById('dndS').value), dndE: parseInt(document.getElementById('dndE').value),
                 tzOf: parseFloat(document.getElementById('tzOf').value)
@@ -1016,7 +1020,8 @@
         function safeUpdate(id, val, suffix) {
             const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null) return;
             if (el.tagName === 'SELECT') { let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) { let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt); } }
-            if (activeTab === 'home' || el.value === "") el.value = val;
+            if (el.tagName === 'SELECT') el.value = val;
+            else if (activeTab === 'home' || el.value === "") el.value = val;
         }
 
         function updateUI(d) {
@@ -1107,7 +1112,7 @@
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = sysLang == 1 ? 'ဗားရှင်းသစ် v' + (d.nVer || "") + ' ရနိုင်ပါပြီ!' : 'New Version v' + (d.nVer || "") + ' Available!'; });
             if (d.opM !== undefined) { safeUpdate('opM', d.opM); toggleVDly(); }
             if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds");
-            if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts");
+            if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts");
             if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds"); if (d.rstM !== undefined) safeUpdate('rstM', d.rstM); if (d.rM !== undefined) safeUpdate('rM', d.rM);
             if (d.ssid !== undefined) safeUpdate('ssid', d.ssid); if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn); if (d.dndS !== undefined) safeUpdate('dndS', d.dndS);
             if (d.dndE !== undefined) safeUpdate('dndE', d.dndE); if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
@@ -1120,3 +1125,6 @@
 </body>
 
 </html>
+
+
+
