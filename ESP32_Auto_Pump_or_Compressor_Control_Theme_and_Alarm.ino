@@ -59,7 +59,7 @@ const int mqtt_port = 8883;
 const char* mqtt_user = "my_switch";
 const char* mqtt_pass = "My_password123";
 
-const int FIRMWARE_VERSION = 3;
+const int FIRMWARE_VERSION = 3; // fix for stable voltage reading
 const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/";
 
 #define SAMPLE_BUFFER_SIZE 20
