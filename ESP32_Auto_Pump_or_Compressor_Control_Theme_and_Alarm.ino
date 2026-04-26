@@ -59,7 +59,7 @@ const int mqtt_port = 8883;
 const char* mqtt_user = "my_switch";
 const char* mqtt_pass = "My_password123";
 
-const int FIRMWARE_VERSION = 2;
+const int FIRMWARE_VERSION = 3;
 const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/";
 
 #define SAMPLE_BUFFER_SIZE 20
@@ -264,7 +264,7 @@ void checkAndSaveInstallDate() {
 
   time_t now = time(nullptr);
   if (now > 1600000000) {  // If time is successfully synced
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+    if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(1000))) {
       installDate = (unsigned long)now;
       preferences.begin("pump-control", false);
       preferences.putULong("installDate", installDate);
@@ -628,7 +628,6 @@ const char settings_html[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 // --- SENSOR IMPLEMENTATION ---
-
 class NonBlockingUltrasonic {
 private:
   int trigPin, echoPin;
@@ -708,6 +707,9 @@ void monitorSensors() {
   static int lastSentVolt = -1;  // Track last sent voltage for cloud
   unsigned long now = millis();
 
+  // =================================================================
+  // 1. ULTRASONIC TANK SENSOR
+  // =================================================================
   if (now - lastScan >= ULTRASONIC_INTERVAL) {
     if (!upperSensor.isBusy()) upperSensor.start();
   }
@@ -715,7 +717,9 @@ void monitorSensors() {
 
   if (!upperSensor.isBusy() && now - lastScan >= ULTRASONIC_INTERVAL) {
     float dist = upperSensor.getDistance();
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+
+    // Wait max 50ms instead of portMAX_DELAY
+    if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(50))) {
       if (dist > 0) {
         tankConfig.upperInvalidCount = 0;
         tankConfig.errorAck = false;
@@ -732,7 +736,7 @@ void monitorSensors() {
         tankConfig.displayUpperPercentage = map(tankConfig.rawUpperPercentage, 0, tankConfig.FULL_THRESHOLD, 0, 100);
         tankConfig.displayUpperPercentage = constrain(tankConfig.displayUpperPercentage, 0, 100);
 
-        // --- NEW: IMMEDIATE CLOUD UPDATE FOR TANK LEVEL ---
+        // --- IMMEDIATE CLOUD UPDATE FOR TANK LEVEL ---
         if (tankConfig.displayUpperPercentage != lastSentTank) {
           pendingMqttPublish = true;
           lastSentTank = tankConfig.displayUpperPercentage;
@@ -742,46 +746,93 @@ void monitorSensors() {
         tankConfig.upperInvalidCount++;
       }
       xSemaphoreGiveRecursive(systemMutex);
+
+      // Only reset the timer if we successfully got the mutex and saved the data
+      lastScan = now;
     }
-    lastScan = now;
   }
 
-  static float voltBuffer = 0;
-  static int voltCount = 0;
+  // =================================================================
+  // 2. VOLTAGE SENSOR (Anti-Spike Filtered)
+  // =================================================================
   static unsigned long lastVoltSample = 0;
+  static float rawBuf[5] = { 0 };
+  static int rawIdx = 0;
+  static int rawCount = 0;
+  static float filteredVolt = 0.0f;
+  static int jumpConfirm = 0;
+  static int lowVoltConfirm = 0;
 
-  // Check the sensor every 20ms (The timing is handled by IF, not DELAY)
-  if (now - lastVoltSample >= 20) {
+  auto median5 = [](float* a, int n) -> float {
+    float t[5];
+    for (int i = 0; i < n; i++) t[i] = a[i];
+    for (int i = 0; i < n - 1; i++) {
+      for (int j = i + 1; j < n; j++) {
+        if (t[j] < t[i]) {
+          float x = t[i];
+          t[i] = t[j];
+          t[j] = x;
+        }
+      }
+    }
+    return (n % 2 == 0) ? (t[n / 2 - 1] + t[n / 2]) * 0.5f : t[n / 2];
+  };
+
+  if (now - lastVoltSample >= 500) {
     lastVoltSample = now;
     float v = voltageSensor.getRmsVoltage();
 
-    if (!isnan(v) && v > 10.0) {
-      voltBuffer += v;
-      voltCount++;
-    }
+    if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(5))) {
+      // 1) Basic validity gate
+      bool valid = (!isnan(v) && v >= 40.0f && v <= 320.0f);
 
-    // Every 5 samples (100ms total), update the actual system voltage
-    if (voltCount >= 5) {
-      float avgV = voltBuffer / 5.0;
+      if (valid) {
+        lowVoltConfirm = 0;
 
-      if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(5))) {
-        // Apply smoothing filter: 40% new reading, 60% old value.
-        // This prevents the pump from flickering ON/OFF during tiny voltage spikes.
-        if (voltageConfig.currentVoltage < 10.0f) voltageConfig.currentVoltage = avgV;
-        else voltageConfig.currentVoltage = (0.4f * avgV) + (0.6f * voltageConfig.currentVoltage);
+        // 2) Median buffer
+        rawBuf[rawIdx] = v;
+        rawIdx = (rawIdx + 1) % 5;
+        if (rawCount < 5) rawCount++;
+        float med = median5(rawBuf, rawCount);
 
-        // Cloud Update
-        int currentVInt = (int)voltageConfig.currentVoltage;
-        if (currentVInt != lastSentVolt) {
-          pendingMqttPublish = true;
-          lastSentVolt = currentVInt;
+        // Initialize filter quickly on startup
+        if (filteredVolt < 10.0f) filteredVolt = med;
+
+        // 3) Outlier hold (large jump must repeat 3 times)
+        float d = med - filteredVolt;
+        if (fabs(d) > 18.0f) {
+          jumpConfirm++;
+          if (jumpConfirm < 3) med = filteredVolt;  // ignore temporary spike
+        } else {
+          jumpConfirm = 0;
         }
-        xSemaphoreGiveRecursive(systemMutex);
+
+        // 4) Slew rate limit (max change each 500 ms)
+        d = med - filteredVolt;
+        const float maxStep = 3.0f;  // V per sample (500ms)
+        if (d > maxStep) med = filteredVolt + maxStep;
+        else if (d < -maxStep) med = filteredVolt - maxStep;
+
+        // 5) Final smoothing (EMA)
+        filteredVolt = 0.25f * med + 0.75f * filteredVolt;
+        voltageConfig.currentVoltage = filteredVolt;
+      } else {
+        // Require repeated low/invalid before dropping to zero
+        lowVoltConfirm++;
+        if (lowVoltConfirm >= 3) {
+          filteredVolt = 0.0f;
+          voltageConfig.currentVoltage = 0.0f;
+        }
       }
 
-      // Reset the buffer for the next 5 samples
-      voltBuffer = 0;
-      voltCount = 0;
+      // Cloud Update
+      int currentVInt = (int)voltageConfig.currentVoltage;
+      if (currentVInt != lastSentVolt) {
+        pendingMqttPublish = true;
+        lastSentVolt = currentVInt;
+      }
+
+      xSemaphoreGiveRecursive(systemMutex);
     }
   }
 }
@@ -842,7 +893,7 @@ void setup() {
 
   rgbLed.begin();
   rgbLed.setBrightness(30);
-  voltageSensor.setSensitivity(415.7500000000f);
+  voltageSensor.setSensitivity(500.0f);
 
   Serial.println("Running Initial Hardware Safety Check...");
   for (int i = 0; i < 60; i++) {
@@ -1261,12 +1312,30 @@ String getDeviceID() {
   return String(id);
 }
 void saveMotorStatus() {
-  preferences.begin("pump-control", false);
-  preferences.putInt("motor", pumpConfig.motorStatus);
-  preferences.putBool("override", pumpConfig.manualOverride);
-  preferences.putBool("wasRunV", pumpConfig.wasRunningBeforeVoltageError);
-  preferences.end();
+  // Static variables stay in RAM and remember their values between function calls
+  static int lastSavedMotor = -1;
+  static bool lastSavedOverride = false;
+  static bool lastSavedWasRunV = false;
+
+  // Check if anything has ACTUALLY changed compared to our last physical save
+  if (pumpConfig.motorStatus != lastSavedMotor || pumpConfig.manualOverride != lastSavedOverride || pumpConfig.wasRunningBeforeVoltageError != lastSavedWasRunV) {
+
+    // Only open Preferences and write to Flash if values are new
+    preferences.begin("pump-control", false);
+    preferences.putInt("motor", pumpConfig.motorStatus);
+    preferences.putBool("override", pumpConfig.manualOverride);
+    preferences.putBool("wasRunV", pumpConfig.wasRunningBeforeVoltageError);
+    preferences.end();
+
+    // Update the RAM trackers so we don't save these same values again
+    lastSavedMotor = pumpConfig.motorStatus;
+    lastSavedOverride = pumpConfig.manualOverride;
+    lastSavedWasRunV = pumpConfig.wasRunningBeforeVoltageError;
+
+    Serial.println("[NVS] Motor state saved to Flash memory safely.");
+  }
 }
+
 void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
   rgbLed.setPixelColor(0, rgbLed.Color(r, g, b));
   rgbLed.show();
@@ -1275,14 +1344,20 @@ void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
 void updateLEDStatus() {
   static unsigned long lastLED = 0;
   if (millis() - lastLED < 500) return;
-  lastLED = millis();
+
   PumpState tState;
   bool tRunning;
-  if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+
+  // Try to get the mutex for max 50ms. If busy, skip this update cycle to prevent freezing.
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(50))) {
+    lastLED = millis();  // Update timer only if successful
     tState = currentState;
     tRunning = pumpConfig.isRunning;
     xSemaphoreGiveRecursive(systemMutex);
+  } else {
+    return;  // Core was busy, gracefully skip this loop
   }
+
   if (tState == PumpState::DRY_RUN_ALARM || tState == PumpState::DRY_RUN_LOCKED || tState == PumpState::SENSOR_ERROR || tState == PumpState::VOLTAGE_ERROR) {
     static bool flash = false;
     flash = !flash;
@@ -1310,7 +1385,7 @@ void checkExpiry() {
   time(&now);
   unsigned long nowEpoch = (unsigned long)now;
   unsigned long expiryDate = installDate + (validDays * 86400UL);
-  if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(1000))) {
     isSystemExpired = (nowEpoch > expiryDate);
     xSemaphoreGiveRecursive(systemMutex);
   }
@@ -1360,18 +1435,24 @@ bool verifyAndApplyLicense(String tokenBase64, String& outMsg) {
     outMsg = "Invalid Signature";
     return false;
   }
-  if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+
+  // ---> FIXED TO 2000 TICK DELAY <---
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(2000))) {
     validDays += addDays;
     lastTokenTime = tokenTs;
     xSemaphoreGiveRecursive(systemMutex);
+
+    preferences.begin("pump-control", false);
+    preferences.putInt("validDays", validDays);
+    preferences.putULong("lastTokenTime", lastTokenTime);
+    preferences.end();
+    checkExpiry();
+    outMsg = "Success! Extended by " + String(addDays) + " days.";
+    return true;
+  } else {
+    outMsg = "System Busy. Try Again.";
+    return false;
   }
-  preferences.begin("pump-control", false);
-  preferences.putInt("validDays", validDays);
-  preferences.putULong("lastTokenTime", lastTokenTime);
-  preferences.end();
-  checkExpiry();
-  outMsg = "Success! Extended by " + String(addDays) + " days.";
-  return true;
 }
 
 void processLicenseTokenString(String token) {
@@ -1417,32 +1498,42 @@ void handleAdmin() {
     server.send(403, "text/plain", "Forbidden");
     return;
   }
-  preferences.begin("pump-control", false);
+
   if (server.hasArg("extend")) {
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+    // ---> FIXED TO 2000 TICK DELAY <---
+    if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(2000))) {
       validDays += server.arg("extend").toInt();
+      preferences.begin("pump-control", false);
+      preferences.putInt("validDays", validDays);
+      preferences.end();
       xSemaphoreGiveRecursive(systemMutex);
+      server.send(200, "text/plain", "Success! Total Valid Days: " + String(validDays));
+    } else {
+      server.send(503, "text/plain", "System Busy. Please try again.");
     }
-    preferences.putInt("validDays", validDays);
-    server.send(200, "text/plain", "Success! Total Valid Days: " + String(validDays));
   } else if (server.hasArg("reset")) {
-    if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+    // ---> FIXED TO 2000 TICK DELAY <---
+    if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(2000))) {
       installDate = 0;
+      preferences.begin("pump-control", false);
+      preferences.putULong("installDate", 0);
+      preferences.end();
       xSemaphoreGiveRecursive(systemMutex);
+      server.send(200, "text/plain", "License Reset.");
+    } else {
+      server.send(503, "text/plain", "System Busy. Please try again.");
     }
-    preferences.putULong("installDate", 0);
-    server.send(200, "text/plain", "License Reset.");
   } else {
     server.send(200, "text/plain", "Admin Mode OK\nValid Days: " + String(validDays) + "\nExpired: " + String(isSystemExpired ? "YES" : "NO"));
   }
-  preferences.end();
   checkExpiry();
 }
 
 void handleBuzzerPatterns() {
   unsigned long now = millis();
   if (currentState == PumpState::VOLTAGE_ERROR) {
-    digitalWrite(BUZZER_PIN, (now / 150) % 2);  // Rapid
+    //digitalWrite(BUZZER_PIN, (now / 150) % 2);  // Rapid
+    digitalWrite(BUZZER_PIN, LOW);  // No buzzer on over/under voltage
   } else if (currentState == PumpState::DRY_RUN_ALARM) {
     digitalWrite(BUZZER_PIN, (now / 500) % 2);  // Urgent
   } else if (currentState == PumpState::SENSOR_ERROR && !tankConfig.errorAck) {
@@ -1492,7 +1583,7 @@ void updatePumpLogic() {
   const float highResume = highCutoff - vGap;
   const float lowResume = lowCutoff + vGap;
   bool voltAbnormal = (voltageConfig.status == 1) ? (voltageConfig.currentVoltage > highCutoff || voltageConfig.currentVoltage < lowCutoff)
-                                                   : (voltageConfig.currentVoltage > highResume || voltageConfig.currentVoltage < lowResume);
+                                                  : (voltageConfig.currentVoltage > highResume || voltageConfig.currentVoltage < lowResume);
 
   // --- 2. CHECK DND STATUS ---
   currentDndActive = false;
@@ -1905,7 +1996,7 @@ void updateLCD() {
     float highResume = (float)voltageConfig.HIGH_THRESHOLD - vGap;
     float lowResume = (float)voltageConfig.LOW_THRESHOLD + vGap;
     voltAbnormal = (voltageConfig.status == 1) ? (voltageConfig.currentVoltage > voltageConfig.HIGH_THRESHOLD || voltageConfig.currentVoltage < voltageConfig.LOW_THRESHOLD)
-                                                : (voltageConfig.currentVoltage > highResume || voltageConfig.currentVoltage < lowResume);
+                                               : (voltageConfig.currentVoltage > highResume || voltageConfig.currentVoltage < lowResume);
     isWait = (!voltAbnormal && voltageConfig.status == 0);
     vVal = isWait ? voltageConfig.waitSeconds : (int)voltageConfig.currentVoltage;
     curVolt = voltageConfig.currentVoltage;
@@ -2105,11 +2196,14 @@ void handleConfig() {
 }
 
 void handleSave() {
-  preferences.begin("pump-control", false);
-  if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+  // Wait up to 3000ms. If it fails, reject gracefully.
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(3000))) {
+    preferences.begin("pump-control", false);
+
     if (server.hasArg("ssid_sel") && server.arg("ssid_sel") != "__man__") ssid_saved = server.arg("ssid_sel");
     else if (server.hasArg("ssid_man")) ssid_saved = server.arg("ssid_man");
     if (ssid_saved != "") preferences.putString("ssid", ssid_saved);
+
     if (server.hasArg("pass") && server.arg("pass") != "") {
       pass_saved = server.arg("pass");
       preferences.putString("pass", pass_saved);
@@ -2175,17 +2269,25 @@ void handleSave() {
       scheduleConfig.timezoneOffset = server.arg("tzOf").toFloat();
       preferences.putFloat("tzOf", scheduleConfig.timezoneOffset);
     }
+
+    preferences.end();
     xSemaphoreGiveRecursive(systemMutex);
+
+    String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"20;url=/\" >"
+                  "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Rebooting</title>"
+                  "<style>body{background:#121212;color:white;font-family:sans-serif;text-align:center;margin-top:50px;}</style></head>"
+                  "<body><h2>Settings Saved!</h2><p>Rebooting device. Page will refresh in 20 seconds...</p></body></html>";
+    server.send(200, "text/html", html);
+    delay(1000);
+    rebootSystem();
+
+  } else {
+    // Timeout occurred! Core saved from crash.
+    server.send(503, "text/plain", "System Busy (Mutex Locked). Please try saving again.");
+    Serial.println("[ERR] handleSave timed out waiting for Mutex!");
   }
-  preferences.end();
-  String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"20;url=/\" >"  // Changed to 20s
-                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Rebooting</title>"
-                "<style>body{background:#121212;color:white;font-family:sans-serif;text-align:center;margin-top:50px;}</style></head>"
-                "<body><h2>Settings Saved!</h2><p>Rebooting device. Page will refresh in 20 seconds...</p></body></html>";
-  server.send(200, "text/html", html);
-  delay(1000);  // Add a 1-second delay to ensure the Web Server finishes sending the HTML before rebooting
-  rebootSystem();
 }
+
 
 void handleUpdatePage() {
   checkOTA();
@@ -2217,15 +2319,18 @@ void handleToggle() {
 }
 
 void handleReset() {
-  if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+  if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(2000))) {
     dryRunConfig.error = 0;
     dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
     digitalWrite(BUZZER_PIN, LOW);
     saveMotorStatus();
     xSemaphoreGiveRecursive(systemMutex);
+
+    pendingMqttPublish = true;
+    server.send(200, "application/json", "{\"status\":\"success\"}");
+  } else {
+    server.send(503, "application/json", "{\"status\":\"error\", \"reason\":\"System Busy\"}");
   }
-  pendingMqttPublish = true;
-  server.send(200, "application/json", "{\"status\":\"success\"}");
 }
 
 String generateStatusJson() {
@@ -2267,8 +2372,8 @@ String generateStatusJson() {
   doc["vG"] = voltageConfig.RESUME_GAP;
   doc["dD"] = dryRunConfig.WAIT_SECONDS_SET;
   doc["opM"] = compConfig.opMode;
-  doc["vDly"] = compConfig.valveDelay;       // Fixed: Now sent to cloud
-  doc["rstM"] = coolDownConfig.restMinutes;  // Fixed: Now sent to cloud
+  doc["vDly"] = compConfig.valveDelay;       
+  doc["rstM"] = coolDownConfig.restMinutes;  
   doc["rM"] = dryRunConfig.autoRetryMinutes;
   doc["ssid"] = ssid_saved;
   doc["lang"] = sysLang;
@@ -2304,7 +2409,6 @@ String generateStatusJson() {
   return json;
 }
 
-
 void publishState() {
   if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
     String json = "";
@@ -2335,7 +2439,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (doc.containsKey("toggle")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
 
-      // --- CLOUD LICENSE LOCK FOR TOGGLE ---
       if (isSystemExpired) {
         DynamicJsonDocument resp(256);
         resp["alert"] = "Cloud Disabled";
@@ -2346,13 +2449,12 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         return;
       }
 
-      String result = processManualToggle();  // Capture the result
+      String result = processManualToggle();
 
-      // If the command was blocked locally (e.g. Venting), send an alert back to the Cloud dashboard
       if (result.startsWith("Blocked:")) {
         DynamicJsonDocument resp(256);
         resp["alert"] = "System Notice";
-        resp["reason"] = result.substring(8);  // Remove "Blocked:" and send the text
+        resp["reason"] = result.substring(8);
         String respStr;
         serializeJson(resp, respStr);
         mqttClient.publish(statusTopic.c_str(), respStr.c_str());
@@ -2377,14 +2479,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) startOTA();
   } else if (doc.containsKey("reset")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
-      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+
+      // ---> FIXED TO 2000 TICK DELAY <---
+      if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(2000))) {
         dryRunConfig.error = 0;
         dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
         digitalWrite(BUZZER_PIN, LOW);
         saveMotorStatus();
         xSemaphoreGiveRecursive(systemMutex);
+        pendingMqttPublish = true;
+      } else {
+        Serial.println("[ERR] MQTT Reset dropped - System Busy");
       }
-      pendingMqttPublish = true;
     }
   } else if (doc.containsKey("get")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) pendingMqttPublish = true;
@@ -2399,7 +2505,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   } else if (doc.containsKey("save")) {
     if (doc.containsKey("pin") && String(doc["pin"].as<const char*>()) == devicePin) {
 
-      // --- CLOUD LICENSE LOCK FOR SAVE ---
       if (isSystemExpired) {
         DynamicJsonDocument resp(256);
         resp["alert"] = "Cloud Disabled";
@@ -2410,9 +2515,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         return;
       }
 
-      preferences.begin("pump-control", false);
-      if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
-        // WiFi Safety: Only update if the string is NOT empty
+      // ---> FIXED TO 3000 TICK DELAY <---
+      if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(3000))) {
+        preferences.begin("pump-control", false);
+
         if (doc.containsKey("ssid") && doc["ssid"].as<String>() != "") {
           ssid_saved = doc["ssid"].as<String>();
           preferences.putString("ssid", ssid_saved);
@@ -2421,7 +2527,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
           pass_saved = doc["pass"].as<String>();
           preferences.putString("pass", pass_saved);
         }
-
         if (doc.containsKey("uH")) {
           tankConfig.upperHeight = doc["uH"].as<float>();
           preferences.putFloat("upperH", tankConfig.upperHeight);
@@ -2466,8 +2571,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
           sysLang = doc["sysLang"].as<int>();
           preferences.putInt("sysLang", sysLang);
         }
-
-        // DND Sync
         if (doc.containsKey("dndEn")) {
           scheduleConfig.enabled = (doc["dndEn"].as<int>() == 1);
           preferences.putBool("dndEn", scheduleConfig.enabled);
@@ -2486,11 +2589,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         }
 
         xSemaphoreGiveRecursive(systemMutex);
+        preferences.end();
+        Serial.println("Cloud Settings Saved. Rebooting...");
+        delay(500);
+        rebootSystem();
+      } else {
+        Serial.println("[ERR] MQTT Save dropped - System Busy");
       }
-      preferences.end();
-      Serial.println("Cloud Settings Saved. Rebooting...");
-      delay(500);
-      rebootSystem();
     }
   }
 }
@@ -2514,7 +2619,9 @@ void checkOTA() {
         if (isdigit(payload[i])) cleanVer += payload[i];
       if (cleanVer.length() > 0) {
         int remoteVer = cleanVer.toInt();
-        if (xSemaphoreTakeRecursive(systemMutex, portMAX_DELAY)) {
+
+        // ---> FIXED TO 2000 TICK DELAY <---
+        if (xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(2000))) {
           otaConfig.remoteVersion = remoteVer;
           if (remoteVer > FIRMWARE_VERSION) {
             otaConfig.updateAvailable = true;
@@ -2552,6 +2659,3 @@ void startOTA() {
     ESP.restart();
   }
 }
-
-
-
