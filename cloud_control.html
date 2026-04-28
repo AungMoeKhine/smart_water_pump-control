@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -667,18 +667,19 @@
 
         <div id="settingsView" style="display:none;">
             <div class="card">
-                <button id="refreshBtnS" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
-                <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;"><span id="statusDotS"
-                        class="conn-dot"></span><span id="statusTxtS" style="color:#aaa;">Connecting...</span></div>
+                <div style="font-size:0.8rem;text-align:left;margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div><span id="statusDotS" class="conn-dot"></span><span id="statusTxtS" style="color:#aaa;">Connecting...</span></div>
+                    <div id="liveStatS" style="color:#03ef; font-weight:bold; font-size:0.85rem;">--V | --</div>
+                </div>
                 <img src="logo.png" class="logo">
                 <div class="lbl-wrap"><label>WiFi SSID</label></div><input type="text" id="ssid"
-                    placeholder="Current WiFi SSID">
+                    placeholder="Current WiFi SSID" oninput="markDirty('ssid')">
                 <div class="lbl-wrap"><label>WiFi Password</label></div>
                 <div class="pass-row"><input type="password" id="wifiPass"
-                        placeholder="Leave empty to keep current"><label class="show-pass"><input type="checkbox"
+                        placeholder="Leave empty to keep current" oninput="markDirty('wifiPass')"><label class="show-pass"><input type="checkbox"
                             onclick="togglePass('wifiPass')"> Show WiFi Password</label></div>
                 <div class="lbl-wrap"><label>Device PIN (for Cloud)</label></div>
-                <div class="pass-row"><input type="password" id="newPin" placeholder="••••••"><label
+                <div class="pass-row"><input type="password" id="newPin" placeholder="••••••" oninput="markDirty('newPin')"><label
                         class="show-pass"><input type="checkbox" onclick="togglePass('newPin')"> Show PIN</label></div>
                 <hr>
                 <div class="lbl-wrap"><label>Interface Language</label></div><select id="appLang"
@@ -688,47 +689,47 @@
                 </select>
                 <hr>
                 <div class="lbl-wrap"><label>Operating Mode</label></div>
-                <select id="opM" onchange="toggleVDly()">
+                <select id="opM" onchange="toggleVDly(); markDirty('opM')">
                     <option value="0">Water Pump</option>
                     <option value="1">Air Compressor</option>
                 </select>
                 <div class="lbl-wrap" id="vWrap" style="display:none;"><label>Compressor Valve Delay</label><span
                         class="range">5 - 15s</span></div>
-                <select id="vDly" style="display:none;"></select>
+                <select id="vDly" style="display:none;" onchange="markDirty('vDly')"></select>
                 <hr>
                 <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select
-                    id="uH"></select>
+                    id="uH" onchange="markDirty('uH')"></select>
                 <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><select
-                    id="vH"></select>
+                    id="vH" onchange="markDirty('vH')"></select>
                 <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><select
-                    id="vL"></select>
+                    id="vL" onchange="markDirty('vL')"></select>
                 <div class="lbl-wrap"><label>Voltage Resume Gap</label><span class="range">1 - 10 V</span></div><select
-                    id="vG"></select>
+                    id="vG" onchange="markDirty('vG')"></select>
                 <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select
-                    id="dD"></select>
+                    id="dD" onchange="markDirty('dD')"></select>
                 <div class="lbl-wrap"><label>Pump Cool-down (After 1Hr)</label><span class="range">Disable / 5 -
-                        15m</span></div><select id="rstM">
+                        15m</span></div><select id="rstM" onchange="markDirty('rstM')">
                     <option value="0">Disabled</option>
                     <option value="5">5 Minutes</option>
                     <option value="10">10 Minutes</option>
                     <option value="15">15 Minutes</option>
                 </select>
                 <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div>
-                <select id="rM">
+                <select id="rM" onchange="markDirty('rM')">
                     <option value="0">Disabled</option>
                     <option value="30">30 Minutes</option>
                     <option value="60">60 Minutes</option>
                 </select>
                 <hr>
-                <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div><select id="dndEn">
+                <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div><select id="dndEn" onchange="markDirty('dndEn')">
                     <option value="0">Disabled</option>
                     <option value="1">Enabled</option>
                 </select>
                 <div style="display:flex; gap:10px; margin-top:10px;">
-                    <div style="flex:1;"><label>Start Hour</label><select id="dndS"></select></div>
-                    <div style="flex:1;"><label>End Hour</label><select id="dndE"></select></div>
+                    <div style="flex:1;"><label>Start Hour</label><select id="dndS" onchange="markDirty('dndS')"></select></div>
+                    <div style="flex:1;"><label>End Hour</label><select id="dndE" onchange="markDirty('dndE')"></select></div>
                 </div>
-                <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div><select id="tzOf"></select>
+                <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div><select id="tzOf" onchange="markDirty('tzOf')"></select>
                 <button class="btn btn-green" onclick="sendSave()">Save & Reboot</button>
                 <hr>
 
@@ -935,47 +936,106 @@
 
         function connect() {
             vibe();
-            if (isConnecting) return; isConnecting = true;
-            deviceID = document.getElementById('devID').value.trim().toUpperCase(); devicePin = document.getElementById('devPin').value.trim();
-            if (deviceID.length < 5) { alert("Invalid ID"); isConnecting = false; return; }
-            localStorage.setItem("cloudPumpID", deviceID); localStorage.setItem("cloudPumpPin", devicePin);
-            const btnLogin = document.getElementById('btnLogin'); btnLogin.innerText = "Connecting..."; btnLogin.disabled = true;
+            if (isConnecting) return;
+            deviceID = document.getElementById('devID').value.trim().toUpperCase();
+            devicePin = document.getElementById('devPin').value.trim();
+            if (deviceID.length < 5) { alert("Invalid ID"); return; }
+            
+            isConnecting = true;
+            localStorage.setItem("cloudPumpID", deviceID);
+            localStorage.setItem("cloudPumpPin", devicePin);
+            
+            const btnLogin = document.getElementById('btnLogin');
+            btnLogin.innerText = (sysLang == 1 ? "ချိတ်ဆက်နေသည်..." : "Connecting...");
+            btnLogin.disabled = true;
+
+            if (client) {
+                try { client.onMessageArrived = null; client.onConnectionLost = null; client.disconnect(); } catch (e) {}
+            }
+
             client = new Paho.MQTT.Client(BROKER, PORT, "Web_" + Math.random().toString(16).substr(2, 8));
 
             client.onMessageArrived = (msg) => {
                 const topic = msg.destinationName, raw = msg.payloadString;
                 if (topic.endsWith("/online")) { updateOnlineStatus(raw === "1"); return; }
 
-                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.remove('spinning'));
+                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.remove('spinning'));
                 document.getElementById('lastMsg').innerText = (sysLang == 1 ? "နောက်ဆုံးချိတ်ဆက်မှု- " : "Last sync: ") + formatTime();
 
                 try {
                     const data = JSON.parse(raw);
                     if (data.alert) {
-                        if (data.alert === "Access Denied" && !dataReceived) { const err = document.getElementById('loginError'); err.innerText = data.reason; err.style.display = 'block'; btnLogin.innerText = "Connect"; btnLogin.disabled = false; client.disconnect(); } else { showModal(data.reason || data.alert); if (data.alert === "Access Denied") setTimeout(() => location.reload(), 3000); }
-                        isConnecting = false; return;
+                        if (data.alert === "Access Denied" && !dataReceived) {
+                            const err = document.getElementById('loginError');
+                            err.innerText = data.reason;
+                            err.style.display = 'block';
+                            btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect");
+                            btnLogin.disabled = false;
+                            isConnecting = false;
+                            client.disconnect();
+                        } else {
+                            showModal(data.reason || data.alert);
+                            if (data.alert === "Access Denied") setTimeout(() => location.reload(), 3000);
+                        }
+                        return;
                     }
-                    if (!dataReceived) { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; }
-                    dataReceived = true;
+                    
+                    if (!dataReceived) {
+                        dataReceived = true;
+                        document.getElementById('loginScreen').style.display = 'none';
+                        document.getElementById('dashboard').style.display = 'block';
+                        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+                    }
                     updateUI(data);
                     resetWatchdog();
-                    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-                } catch (e) { }
+                } catch (e) { console.error("Parse error", e); }
             };
-            client.onConnectionLost = (e) => { updateOnlineStatus(false); dataReceived = false; isConnecting = false; if (e.errorCode !== 0) setTimeout(connect, 3000); };
+
+            client.onConnectionLost = (e) => {
+                updateOnlineStatus(false);
+                isConnecting = false;
+                if (e.errorCode !== 0) {
+                    console.warn("Connection lost:", e.errorMessage);
+                    // Only auto-reconnect if we already successfully logged in once
+                    if (dataReceived) setTimeout(connect, 5000);
+                    else {
+                        btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect");
+                        btnLogin.disabled = false;
+                    }
+                }
+            };
+
             client.connect({
                 useSSL: true, userName: USER, password: PASS,
+                timeout: 10,
                 onSuccess: () => {
-                    isConnecting = false; btnLogin.innerText = "Syncing...";
-                    client.subscribe(`smartpump/${deviceID}/status`); client.subscribe(`smartpump/${deviceID}/online`);
-                    dataReceived = false; resetWatchdog(); setTimeout(requestData, 500);
-                    pollInterval = setInterval(() => { if (!dataReceived) requestData(); else clearInterval(pollInterval); }, 2000);
+                    isConnecting = false;
+                    btnLogin.innerText = (sysLang == 1 ? "စင့်ခ်လုပ်နေသည်..." : "Syncing...");
+                    client.subscribe(`smartpump/${deviceID}/status`);
+                    client.subscribe(`smartpump/${deviceID}/online`);
+                    
+                    // Request data once
+                    setTimeout(requestData, 500);
+                    
+                    // If no data received in 5 seconds, retry request
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = setInterval(() => {
+                        if (!dataReceived && client && client.isConnected()) requestData();
+                        else if (dataReceived) { clearInterval(pollInterval); pollInterval = null; }
+                    }, 3000);
                 },
-                onFailure: (e) => { isConnecting = false; alert("Connection failed: " + e.errorMessage); btnLogin.innerText = "Connect"; btnLogin.disabled = false;[document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.remove('spinning')); }
+                onFailure: (e) => {
+                    isConnecting = false;
+                    const err = document.getElementById('loginError');
+                    err.innerText = "Connection failed: " + e.errorMessage;
+                    err.style.display = 'block';
+                    btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect");
+                    btnLogin.disabled = false;
+                }
             });
         }
 
-        function requestData() { vibe(); if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b.classList.add('spinning')); sendCmd({ get: 1 }); } else { connect(); } }
+        function requestData() { vibe(); if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.add('spinning')); sendCmd({ get: 1 }); } }
         function logout() { vibe(); if (confirm("Are you sure you want to logout?")) { if (client && client.isConnected()) { try { client.disconnect(); } catch (e) { } } localStorage.removeItem("cloudPumpPin"); location.reload(); } }
 
         function sendReset() { vibe(); sendCmd({ reset: 1 }); }
@@ -1017,9 +1077,23 @@
         function sendLicense(token) { if (token.length > 10) { sendCmd({ lic: token }); alert("License Token Sent! The device will reply shortly."); setTimeout(() => { document.getElementById('licFile').value = ""; document.getElementById('licText').value = ""; }, 500); } else { alert("Invalid license content."); } }
         function sendCmd(p) { if (!client || !client.isConnected()) return; p.pin = devicePin; let msg = new Paho.MQTT.Message(JSON.stringify(p)); msg.destinationName = `smartpump/${deviceID}/set`; client.send(msg); }
 
+        const dirtyFields = new Set();
+        function markDirty(id) { dirtyFields.add(id); }
+
         function safeUpdate(id, val, suffix) {
-            const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null) return;
-            if (el.tagName === 'SELECT') { let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) { let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt); } }
+            const el = document.getElementById(id); 
+            if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return;
+            
+            if (el.tagName === 'SELECT') { 
+                let exists = Array.from(el.options).some(opt => opt.value == val); 
+                if (!exists) { 
+                    let opt = document.createElement('option'); 
+                    opt.value = val; 
+                    opt.innerText = val + (suffix ? " " + suffix : ""); 
+                    el.appendChild(opt); 
+                } 
+            }
+            
             if (el.tagName === 'SELECT') el.value = val;
             else if (activeTab === 'home' || el.value === "") el.value = val;
         }
@@ -1110,6 +1184,11 @@
 
             [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = sysLang == 1 ? 'ဗားရှင်းသစ် v' + (d.nVer || "") + ' ရနိုင်ပါပြီ!' : 'New Version v' + (d.nVer || "") + ' Available!'; });
+            
+            // Settings Tab Live Status
+            const liveStatS = document.getElementById('liveStatS');
+            if(liveStatS) liveStatS.innerText = (d.volt || "--") + "V | " + (pS || "--");
+
             if (d.opM !== undefined) { safeUpdate('opM', d.opM); toggleVDly(); }
             if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds");
             if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts");
@@ -1125,6 +1204,3 @@
 </body>
 
 </html>
-
-
-
