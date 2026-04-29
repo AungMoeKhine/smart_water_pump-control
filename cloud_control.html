@@ -994,6 +994,7 @@
             client.onConnectionLost = (e) => {
                 updateOnlineStatus(false);
                 isConnecting = false;
+                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.remove('spinning'));
                 if (e.errorCode !== 0) {
                     console.warn("Connection lost:", e.errorMessage);
                     // Only auto-reconnect if we already successfully logged in once
@@ -1026,6 +1027,7 @@
                 },
                 onFailure: (e) => {
                     isConnecting = false;
+                    [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.remove('spinning'));
                     const err = document.getElementById('loginError');
                     err.innerText = "Connection failed: " + e.errorMessage;
                     err.style.display = 'block';
@@ -1035,7 +1037,15 @@
             });
         }
 
-        function requestData() { vibe(); if (client && client.isConnected()) { [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.add('spinning')); sendCmd({ get: 1 }); } }
+        function requestData() {
+            vibe();
+            [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.add('spinning'));
+            if (client && client.isConnected()) {
+                sendCmd({ get: 1 });
+            } else {
+                connect();
+            }
+        }
         function logout() { vibe(); if (confirm("Are you sure you want to logout?")) { if (client && client.isConnected()) { try { client.disconnect(); } catch (e) { } } localStorage.removeItem("cloudPumpPin"); location.reload(); } }
 
         function sendReset() { vibe(); sendCmd({ reset: 1 }); }
