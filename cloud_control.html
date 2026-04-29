@@ -669,18 +669,20 @@
             <div class="card">
                 <button id="refreshBtnS" class="refresh-btn" onclick="requestData()" title="Refresh Data">🔄</button>
                 <div style="font-size:0.8rem;text-align:left;margin-bottom:10px;">
-                    <div><span id="statusDotS" class="conn-dot"></span><span id="statusTxtS" style="color:#aaa;">Connecting...</span></div>
+                    <div><span id="statusDotS" class="conn-dot"></span><span id="statusTxtS"
+                            style="color:#aaa;">Connecting...</span></div>
                 </div>
                 <img src="logo.png" class="logo">
                 <div class="lbl-wrap"><label>WiFi SSID</label></div><input type="text" id="ssid"
                     placeholder="Current WiFi SSID" oninput="markDirty('ssid')">
                 <div class="lbl-wrap"><label>WiFi Password</label></div>
-                <div class="pass-row"><input type="password" id="wifiPass"
-                        placeholder="Leave empty to keep current" oninput="markDirty('wifiPass')"><label class="show-pass"><input type="checkbox"
+                <div class="pass-row"><input type="password" id="wifiPass" placeholder="Leave empty to keep current"
+                        oninput="markDirty('wifiPass')"><label class="show-pass"><input type="checkbox"
                             onclick="togglePass('wifiPass')"> Show WiFi Password</label></div>
                 <div class="lbl-wrap"><label>Device PIN (for Cloud)</label></div>
-                <div class="pass-row"><input type="password" id="newPin" placeholder="••••••" oninput="markDirty('newPin')"><label
-                        class="show-pass"><input type="checkbox" onclick="togglePass('newPin')"> Show PIN</label></div>
+                <div class="pass-row"><input type="password" id="newPin" placeholder="••••••"
+                        oninput="markDirty('newPin')"><label class="show-pass"><input type="checkbox"
+                            onclick="togglePass('newPin')"> Show PIN</label></div>
                 <hr>
                 <div class="lbl-wrap"><label>Interface Language</label></div><select id="appLang"
                     onchange="setAppLang()">
@@ -721,15 +723,19 @@
                     <option value="60">60 Minutes</option>
                 </select>
                 <hr>
-                <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div><select id="dndEn" onchange="markDirty('dndEn')">
+                <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div><select id="dndEn"
+                    onchange="markDirty('dndEn')">
                     <option value="0">Disabled</option>
                     <option value="1">Enabled</option>
                 </select>
                 <div style="display:flex; gap:10px; margin-top:10px;">
-                    <div style="flex:1;"><label>Start Hour</label><select id="dndS" onchange="markDirty('dndS')"></select></div>
-                    <div style="flex:1;"><label>End Hour</label><select id="dndE" onchange="markDirty('dndE')"></select></div>
+                    <div style="flex:1;"><label>Start Hour</label><select id="dndS"
+                            onchange="markDirty('dndS')"></select></div>
+                    <div style="flex:1;"><label>End Hour</label><select id="dndE" onchange="markDirty('dndE')"></select>
+                    </div>
                 </div>
-                <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div><select id="tzOf" onchange="markDirty('tzOf')"></select>
+                <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div><select id="tzOf"
+                    onchange="markDirty('tzOf')"></select>
                 <button class="btn btn-green" onclick="sendSave()">Save & Reboot</button>
                 <hr>
 
@@ -816,6 +822,7 @@
             const fileNameEl = document.getElementById('fileName');
 
             if (sysLang == 1) {
+                document.getElementById('btnLogin').innerText = "ချိတ်ဆက်ပါ";
                 document.getElementById('tabHome').innerText = "🏠 ပင်မစာမျက်နှာ";
                 document.getElementById('tabSettings').innerText = "⚙️ ဆက်တင်များ";
 
@@ -940,17 +947,17 @@
             deviceID = document.getElementById('devID').value.trim().toUpperCase();
             devicePin = document.getElementById('devPin').value.trim();
             if (deviceID.length < 5) { alert("Invalid ID"); return; }
-            
+
             isConnecting = true;
             localStorage.setItem("cloudPumpID", deviceID);
             localStorage.setItem("cloudPumpPin", devicePin);
-            
+
             const btnLogin = document.getElementById('btnLogin');
             btnLogin.innerText = (sysLang == 1 ? "ချိတ်ဆက်နေသည်..." : "Connecting...");
             btnLogin.disabled = true;
 
             if (client) {
-                try { client.onMessageArrived = null; client.onConnectionLost = null; client.disconnect(); } catch (e) {}
+                try { client.onMessageArrived = null; client.onConnectionLost = null; client.disconnect(); } catch (e) { }
             }
 
             client = new Paho.MQTT.Client(BROKER, PORT, "Web_" + Math.random().toString(16).substr(2, 8));
@@ -979,7 +986,7 @@
                         }
                         return;
                     }
-                    
+
                     if (!dataReceived) {
                         dataReceived = true;
                         document.getElementById('loginScreen').style.display = 'none';
@@ -1014,10 +1021,10 @@
                     btnLogin.innerText = (sysLang == 1 ? "စင့်ခ်လုပ်နေသည်..." : "Syncing...");
                     client.subscribe(`smartpump/${deviceID}/status`);
                     client.subscribe(`smartpump/${deviceID}/online`);
-                    
+
                     // Request data once
                     setTimeout(requestData, 500);
-                    
+
                     // If no data received in 5 seconds, retry request
                     if (pollInterval) clearInterval(pollInterval);
                     pollInterval = setInterval(() => {
@@ -1091,19 +1098,19 @@
         function markDirty(id) { dirtyFields.add(id); }
 
         function safeUpdate(id, val, suffix) {
-            const el = document.getElementById(id); 
+            const el = document.getElementById(id);
             if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return;
-            
-            if (el.tagName === 'SELECT') { 
-                let exists = Array.from(el.options).some(opt => opt.value == val); 
-                if (!exists) { 
-                    let opt = document.createElement('option'); 
-                    opt.value = val; 
-                    opt.innerText = val + (suffix ? " " + suffix : ""); 
-                    el.appendChild(opt); 
-                } 
+
+            if (el.tagName === 'SELECT') {
+                let exists = Array.from(el.options).some(opt => opt.value == val);
+                if (!exists) {
+                    let opt = document.createElement('option');
+                    opt.value = val;
+                    opt.innerText = val + (suffix ? " " + suffix : "");
+                    el.appendChild(opt);
+                }
             }
-            
+
             if (el.tagName === 'SELECT') el.value = val;
             else if (activeTab === 'home' || el.value === "") el.value = val;
         }
@@ -1194,7 +1201,7 @@
 
             [document.getElementById('otaHub'), document.getElementById('otaHubS')].forEach(h => { if (h) h.style.display = d.ota ? 'block' : 'none'; });
             [document.getElementById('otaMsg'), document.getElementById('otaMsgS')].forEach(m => { if (m) m.innerText = sysLang == 1 ? 'ဗားရှင်းသစ် v' + (d.nVer || "") + ' ရနိုင်ပါပြီ!' : 'New Version v' + (d.nVer || "") + ' Available!'; });
-            
+
 
             if (d.opM !== undefined) { safeUpdate('opM', d.opM); toggleVDly(); }
             if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds");
