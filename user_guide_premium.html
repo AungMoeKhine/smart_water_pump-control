@@ -889,7 +889,7 @@
         </table>
 
         <div class="my-block">
-            <b>📟 LCD မျက်နှာပြင်ပြသမှု -</b> မျက်နှာပြင်의 ဘယ်ဘက်ခြမ်းတွင် ရေပမာဏ (%) နှင့် မီးအား (V) ကို
+            <b>📟 LCD မျက်နှာပြင်ပြသမှု -</b> မျက်နှာပြင်၏ ဘယ်ဘက်ခြမ်းတွင် ရေပမာဏ (%) နှင့် မီးအား (V) ကို
             ဂဏန်းကြီးများဖြင့် ပြသပေးပါသည်။ ညာဘက်ခြမ်းတွင် အခြေအနေများကို စာသားဖြင့် ပြသပေးပါသည်။ <br><br>
             ၁။ <span class="highlight-my">PUMP ON/OFF:</span> မော်တာ လည်ပတ်နေမှု အခြေအနေ။<br>
             ၂။ <span class="highlight-my">FLOW OK/CHK:</span> ရေစီးဆင်းမှု မှန်ကန်ခြင်း သို့မဟုတ် ရေစတင်တက်လာရန်
@@ -928,11 +928,12 @@
         <p>Operating Window: <span class="tech-val">170V - 250V</span>. The ZMPT sensor samples RMS voltage
             continuously. If outside the range, the motor cuts off in <strong>&lt; 100ms</strong>. A <span
                 class="tech-val">10-second wait</span> is required after power stabilization before the motor restarts.
-        </p>
+            A live countdown will be displayed on the screen and dashboard.</p>
         <div class="my-block">
             <b>⚡ ဗို့အား ကာကွယ်ခြင်း -</b> စိတ်ချရသော မီးအားမှာ ၁၇၀ မှ ၂၅၀ ဗို့ ဖြစ်ပါသည်။ မီးအား ကျခြင်း သို့မဟုတ်
             ရုတ်တရက်တက်ခြင်း ဖြစ်ပါက မော်တာကို ချက်ချင်း ပိတ်ပေးပါသည်။ မီးအား ပြန်မှန်လာပါကလည်း စက်ကို မထိခိုက်စေရန် ၁၀
-            စက္ကန့် စောင့်ဆိုင်းပြီးမှသာ ပြန်လည် မောင်းနှင်ပေးပါသည်။
+            စက္ကန့် စောင့်ဆိုင်းပြီးမှသာ ပြန်လည် မောင်းနှင်ပေးပါသည်။ (မျက်နှာပြင်တွင် စောင့်ဆိုင်းချိန်အား စက္ကန့်ဖြင့်
+            ပြသပေးမည်ဖြစ်သည်။)
         </div>
 
         <!-- 09 DRY-RUN AUTO-RETRY -->
@@ -1030,7 +1031,9 @@
             remain silently connected to your router and continue all automatic pumping tasks. If you need to access the
             local dashboard while the internet is down, simply <strong>press and hold the manual button for 3
                 seconds</strong> to broadcast the <strong class="tech-val">Auto-Pump-Config</strong> network manually.
-            Once your internet is fixed, the system automatically reconnects to the Cloud.</p>
+            Once your internet is fixed, the system automatically reconnects to the Cloud. Additionally, the
+            <strong>Dashboard Refresh Button</strong> intelligently falls back to local Wi-Fi data if the cloud is
+            unreachable, keeping the interface responsive.</p>
         <div class="my-block">
             <b>📶 အင်တာနက်ပြတ်တောက်သွားသည့် အခြေအနေ (Manual AP) -</b> အကယ်၍ အိမ်ရှိ အင်တာနက်လိုင်း ပြတ်သွားပါက စက်သည်
             Restart ကျမည် မဟုတ်ဘဲ ပုံမှန်အတိုင်း ဆက်လက် အလုပ်လုပ်နေမည် ဖြစ်သည်။ အကယ်၍ ဖုန်းဖြင့် တိုက်ရိုက်ချိတ်ဆက်
@@ -1084,10 +1087,10 @@
                         source emptiness. Reset via button.</td>
                 </tr>
                 <tr>
-                    <td><strong>OVER / UNDER</strong></td>
-                    <td>Red Flash</td>
+                    <td><strong>OVER / UNDER / DELAY</strong></td>
+                    <td>Red/Amber Flash</td>
                     <td><strong>Grid Volatility:</strong> Voltage is outside 170V-250V. System will
-                        <strong>auto-reset</strong> in 10s after stabilization.
+                        <strong>auto-reset</strong> with a live 10s countdown after stabilization.
                     </td>
                 </tr>
                 <tr>
@@ -1117,8 +1120,10 @@
             ဆင်ဆာမျက်နှာပြင်ကို သန့်ရှင်းရေးလုပ်ပြီး စက်ကို ပိတ်ဖွင့်လုပ်ပေးပါ။<br>
             ၂။ <span class="highlight-my">FLOW CHK:</span> မော်တာလည်သော်လည်း ရေတက်မလာခြင်း။ အဝင်ပိုက်လိုင်းတွင်
             ရေရှိမရှိ သို့မဟုတ် လေခိုနေမှု ရှိမရှိ စစ်ဆေးပါ။<br>
-            ၃။ <span class="highlight-my">OVER / UNDER:</span> မီးအား အတက်အကျ များလွန်းခြင်း။ မီးအား ပြန်မှန်လာပါက ၁၀
-            စက္ကန့်အတွင်း စက်သည် အလိုအလျောက် ပြန်ပွင့်မည် ဖြစ်ပါသည်။<br>
+            ၃။ <span class="highlight-my">OVER / UNDER / DELAY:</span> မီးအား အတက်အကျ များလွန်းခြင်း။ မီးအား
+            ပြန်မှန်လာပါက ၁၀
+            စက္ကန့်အတွင်း စက်သည် အလိုအလျောက် ပြန်ပွင့်မည် ဖြစ်ပါသည်။ (မျက်နှာပြင်တွင် စောင့်ဆိုင်းချိန်အား စက္ကန့်ဖြင့်
+            ပြသပေးမည်ဖြစ်သည်။)<br>
             ၄။ <span class="highlight-my">DRY ALRM:</span> ရေပြတ်သွားခြင်း။ မော်တာကို စက်မှ အပြီးပိတ်လိုက်ခြင်း
             ဖြစ်ပါသည်။ ပြန်လည် မောင်းနှင်ရန် <span class="highlight-my">Reset ခလုတ် (GPIO 9)</span> ကို နှိပ်မှသာ
             ရပါမည်။
