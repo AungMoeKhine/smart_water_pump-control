@@ -180,7 +180,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
 
         .bg-success {
@@ -787,7 +787,10 @@
                         Updates</button>
                     <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: <span
                             id="curVer">--</span></p>
-                    <button class="btn" style="margin-top:15px; background:rgba(0,106,255,0.7); border:1px solid rgba(0,106,255,0.9);" onclick="vibe(); window.open('https://aungmoekhine.github.io/smart_water_pump-control/user_guide_premium.html', '_blank')">📖 User Guide</button>
+                    <button class="btn"
+                        style="margin-top:15px; background:rgba(0,106,255,0.7); border:1px solid rgba(0,106,255,0.9);"
+                        onclick="vibe(); window.open('https://aungmoekhine.github.io/smart_water_pump-control/user_guide_premium.html', '_blank')">📖
+                        User Guide</button>
                 </div>
             </div>
         </div>
@@ -1156,7 +1159,7 @@
             let vS = d.vStat || "--"; let iF = d.info || "--"; let pS = d.pStat || "--"; let tS = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
             if (sysLang == 1) {
                 if (vS == "NORMAL") vS = "ပုံမှန်"; else if (vS == "OVER") vS = "ကျော်လွန်"; else if (vS == "UNDER") vS = "လျော့နည်း"; else if (vS == "DELAY") vS = "စောင့်ဆိုင်း";
-                if (iF == "DRY_RUN_ALARM!") iF = "ရေမရှိ အချက်ပေး!"; else if (iF == "PUMP_LOCKED!") iF = "ပိတ်သိမ်းထားသည်!"; else if (iF == "WAITING_RETRY!") iF = "ပြန်စရန်စောင့်နေသည်!"; else if (iF == "SENSOR_ERROR!") iF = "ဆင်ဆာ ချို့ယွင်းချက်!"; else if (iF == "SYSTEM_STANDBY!") iF = "အသင့်အနေအထား!"; else if (iF == "FLOW_DETECTED!") iF = "ရေစီးဆင်းမှုရှိသည်!"; else if (iF == "FLOW_CHECKING!") iF = "ရေစီးဆင်းမှုစစ်ဆေးနေ!"; else if (iF == "COOLING_DOWN!") iF = "အအေးခံနေသည်!"; else if (iF == "VENTING_VALVE!") iF = "လေလျှော့နေသည်!"; else if (iF == "OVER_VOLTAGE!") iF = "ဗို့အားကျော်လွန်နေသည်!"; else if (iF == "UNDER_VOLTAGE!") iF = "ဗို့အားလျော့နည်းနေသည်!"; else if (iF.startsWith("VOLT_DELAY")) { let secs = iF.replace("VOLT_DELAY", "").trim(); iF = "ဗို့အားပြန်တည်ငြိမ်ရန်စောင့်နေသည်! (" + secs + ")"; }
+                if (iF == "DRY_RUN_ALARM!") iF = "ရေမရှိ အချက်ပေး!"; else if (iF == "PUMP_LOCKED!") iF = "ပိတ်သိမ်းထားသည်!"; else if (iF == "WAITING_RETRY!") iF = "ပြန်စရန်စောင့်နေသည်!"; else if (iF == "SENSOR_ERROR!") iF = "ဆင်ဆာ ချို့ယွင်းချက်!"; else if (iF == "SYSTEM_STANDBY!") iF = "အသင့်အနေအထား!"; else if (iF == "FLOW_DETECTED!") iF = "ရေစီးဆင်းမှုရှိသည်!"; else if (iF == "FLOW_CHECKING!") iF = "ရေစီးဆင်းမှုစစ်ဆေးနေ!"; else if (iF == "COOLING_DOWN!") iF = "အအေးခံနေသည်!"; else if (iF == "VENTING_VALVE!") iF = "လေလျှော့နေသည်!"; else if (iF == "OVER_VOLTAGE!") iF = "ဗို့အားကျော်လွန်နေသည်!"; else if (iF == "UNDER_VOLTAGE!") iF = "ဗို့အားလျော့နည်းနေသည်!"; else if (iF.startsWith("VOLT_DELAY")) { let secs = iF.replace("VOLT_DELAY", "").replace(/[()s]/g, "").trim(); iF = "ဗို့အားပြန်တည်ငြိမ်ရန်စောင့်နေသည်! (" + secs + ")"; }
                 if (d.pStat == "ON") pS = "ဖွင့်"; else if (d.pStat == "OFF") pS = "ပိတ်"; else if (d.pStat == "PUMPING") pS = "ရေတင်နေသည်"; else if (d.pStat == "STANDBY") pS = "အသင့်အနေအထား"; else if (d.pStat == "DRY ALRM") pS = "ရေမရှိ အချက်ပေး"; else if (d.pStat == "LOCKED") pS = "ပိတ်သိမ်းထားသည်";
                 if (d.tStr == "FULL") tS = "ပြည့်"; else if (d.tStr == "LOW") tS = "နည်း"; else if (d.tStr == "ERR") tS = "ချို့";
             }
@@ -1205,7 +1208,7 @@
             const cdRow = document.getElementById('cdRow');
             if (cdRow) {
                 if (d.err == 2 && d.rM > 0) { cdRow.style.display = 'flex'; cdRow.children[0].innerText = sysLang == 1 ? 'ပြန်လည်စတင်ရန်-' : 'Retry in:'; localRetryCd = d.rCd; let m = Math.floor(localRetryCd / 60); let s = localRetryCd % 60; document.getElementById('cd').innerText = m + 'm ' + s + 's'; if (!localCdInterval) { localCdInterval = setInterval(() => { if (localRetryCd > 0) { localRetryCd--; let cm = Math.floor(localRetryCd / 60); let cs = localRetryCd % 60; document.getElementById('cd').innerText = cm + 'm ' + cs + 's'; } }, 1000); } }
-                else if (d.isDR) { if (localCdInterval) { clearInterval(localCdInterval); localCdInterval = null; } cdRow.style.display = 'flex'; cdRow.children[0].innerText = sysLang == 1 ? 'ရေမရှိ အချက်ပေးရန်-' : 'Dry-Run in:'; document.getElementById('cd').innerText = d.cd + "s"; }
+                else if (d.isDR) { if (localCdInterval) { clearInterval(localCdInterval); localCdInterval = null; } cdRow.style.display = 'flex'; cdRow.children[0].innerText = sysLang == 1 ? 'ရေမရှိ အချက်ပေးရန်-' : 'Dry-Run in:'; let cleanVal = String(d.cd).replace(/[()s]/g, ""); document.getElementById('cd').innerText = d.cd + "s"; }
                 else if (d.info == "COOLING_DOWN!" || d.info == "အအေးခံနေသည်!") { cdRow.style.display = 'flex'; cdRow.children[0].innerText = sysLang == 1 ? 'အအေးခံရန် ကျန်ချိန်-' : 'Cooling in:'; localRetryCd = d.rstCd || 0; let m = Math.floor(localRetryCd / 60); let s = localRetryCd % 60; document.getElementById('cd').innerText = m + 'm ' + s + 's'; if (!localCdInterval) { localCdInterval = setInterval(() => { if (localRetryCd > 0) { localRetryCd--; let cm = Math.floor(localRetryCd / 60); let cs = localRetryCd % 60; document.getElementById('cd').innerText = cm + 'm ' + cs + 's'; } }, 1000); } }
                 else { if (localCdInterval) { clearInterval(localCdInterval); localCdInterval = null; } cdRow.style.display = 'none'; }
             }
