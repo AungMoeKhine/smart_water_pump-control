@@ -180,30 +180,35 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
 
         .bg-success {
             background: rgba(40, 167, 69, 0.2);
             color: #28a745;
             border: 1px solid rgba(40, 167, 69, 0.5);
+            box-shadow: 0 0 12px rgba(40, 167, 69, 0.4), inset 0 0 8px rgba(40, 167, 69, 0.2);
         }
 
         .bg-danger {
             background: rgba(220, 53, 69, 0.2);
             color: #ff6b6b;
             border: 1px solid rgba(220, 53, 69, 0.5);
+            box-shadow: 0 0 12px rgba(220, 53, 69, 0.5), inset 0 0 8px rgba(220, 53, 69, 0.2);
         }
 
         .bg-warning {
             background: rgba(255, 193, 7, 0.15);
             color: #ffc107;
             border: 1px solid rgba(255, 193, 7, 0.5);
+            box-shadow: 0 0 12px rgba(255, 193, 7, 0.3), inset 0 0 8px rgba(255, 193, 7, 0.15);
         }
 
         .bg-info {
             background: rgba(23, 162, 184, 0.2);
             color: #17a2b8;
             border: 1px solid rgba(23, 162, 184, 0.5);
+            box-shadow: 0 0 12px rgba(23, 162, 184, 0.4), inset 0 0 8px rgba(23, 162, 184, 0.2);
         }
 
         .bg-secondary {
@@ -782,6 +787,7 @@
                         Updates</button>
                     <p style="font-size:0.8rem; color:#555; margin-top:10px;">Current Version: <span
                             id="curVer">--</span></p>
+                    <button class="btn" style="margin-top:15px; background:rgba(0,106,255,0.7); border:1px solid rgba(0,106,255,0.9);" onclick="vibe(); window.open('https://aungmoekhine.github.io/smart_water_pump-control/user_guide_premium.html', '_blank')">📖 User Guide</button>
                 </div>
             </div>
         </div>
@@ -886,7 +892,8 @@
                 document.body.innerHTML = document.body.innerHTML
                     .replace(/>\s*Check for\s*Updates\s*</g, ">ဗားရှင်း အသစ်စစ်ရန်<")
                     .replace(/>\s*Reset\s*Alarm\s*</g, ">အချက်ပေး ပြန်ပိတ်မည်<")
-                    .replace(/>\s*Choose\s*File\s*</g, ">ဖိုင်ရွေးမည်<");
+                    .replace(/>\s*Choose\s*File\s*</g, ">ဖိုင်ရွေးမည်<")
+                    .replace(/>\s*📖 User Guide\s*</g, ">📖 အသုံးပြုနည်း လမ်းညွှန်<");
 
                 document.getElementById('tabHome').onclick = () => showTab('home');
                 document.getElementById('tabSettings').onclick = () => showTab('settings');
