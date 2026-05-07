@@ -1257,9 +1257,30 @@
             }
 
             if (d.ota) { document.getElementById('otaHub').style.display = 'block'; document.getElementById('otaMsg').innerText = "Update Available!"; }
+
+            // Core Settings
             if (d.opM !== undefined) { safeUpdate('opM', d.opM); toggleVDly(); }
             if (d.uH !== undefined) safeUpdate('uH', d.uH);
             if (d.ssid !== undefined) safeUpdate('ssid', d.ssid);
+
+            // Tank Level Settings (The lines you were missing)
+            if (d.lowTank !== undefined) safeUpdate('lowTank', d.lowTank);
+            if (d.fullPoint !== undefined) safeUpdate('fullPoint', d.fullPoint);
+
+            // Voltage & Protection Settings
+            if (d.vH !== undefined) safeUpdate('vH', d.vH);
+            if (d.vL !== undefined) safeUpdate('vL', d.vL);
+            if (d.vG !== undefined) safeUpdate('vG', d.vG);
+            if (d.dD !== undefined) safeUpdate('dD', d.dD);
+            if (d.rstM !== undefined) safeUpdate('rstM', d.rstM);
+            if (d.rM !== undefined) safeUpdate('rM', d.rM);
+
+            // Scheduling & Timezone Settings
+            if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn);
+            if (d.dndS !== undefined) safeUpdate('dndS', d.dndS);
+            if (d.dndE !== undefined) safeUpdate('dndE', d.dndE);
+            if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
+
             if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
         }
 
