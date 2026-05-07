@@ -1232,7 +1232,12 @@
             document.getElementById('volt').innerText = (d.volt || "--") + " V";
             setBadge('vstat', vS, (d.vStat == "NORMAL") ? 'success' : 'danger');
             setBadge('pstate', pS, (d.pStat == "ON") ? 'success' : 'secondary');
-            setBadge('info', iF, 'info');
+            // Set info badge color to green (success) if flow is detected
+            let infoType = 'info';
+            if (d.info === "FLOW_DETECTED!" || d.info === "FLOW_CHECKING!") infoType = 'success';
+            else if (d.info === "DRY_RUN_ALARM!" || d.info === "PUMP_LOCKED!") infoType = 'danger';
+
+            setBadge('info', iF, infoType);
 
             updateOnlineStatus(true);
             const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset');
