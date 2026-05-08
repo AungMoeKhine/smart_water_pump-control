@@ -367,6 +367,90 @@
             box-shadow: 0 45px 0 rgba(0, 0, 0, 0.4), 0 90px 0 rgba(0, 0, 0, 0.4);
         }
 
+        .tank-guides {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        /* --- UPDATED RULER CSS --- */
+        .tank-ruler {
+            position: absolute;
+            left: -15px;
+            /* Pull ruler closer to tank */
+            top: 0;
+            bottom: 0;
+            width: 12px;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .tank-ruler-tick {
+            position: absolute;
+            left: 0;
+            width: 5px;
+            /* Slightly shorter ticks */
+            height: 1px;
+            background: rgba(210, 220, 235, 0.20);
+        }
+
+        .tank-ruler-tick.major {
+            width: 8px;
+            /* Slightly shorter major ticks */
+            background: rgba(210, 220, 235, 0.30);
+        }
+
+        .tank-guide-line {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        .tank-guide-line.low-marker {
+            left: 4px;
+            right: 4px;
+            height: 2px;
+            background: rgba(255, 193, 7, 0.45);
+            box-shadow: 0 0 4px rgba(255, 193, 7, 0.25);
+        }
+
+        .tank-guide-line.full-marker {
+            left: 4px;
+            right: 4px;
+            height: 2px;
+            background: rgba(40, 167, 69, 0.45);
+            box-shadow: 0 0 4px rgba(40, 167, 69, 0.25);
+        }
+
+        .tank-guide-label {
+            position: absolute;
+            left: -82px;
+            /* Pull text closer to ruler to fix mobile overflow */
+            transform: translateY(-50%);
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-align: right;
+            width: 60px;
+            /* Reduce width so it stays compact */
+            opacity: 0.55;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+            white-space: nowrap;
+        }
+
+        /* ------------------------- */
+
+        .low-marker .tank-guide-label {
+            color: rgba(255, 193, 7, 0.62);
+        }
+
+        .full-marker .tank-guide-label {
+            color: rgba(40, 167, 69, 0.62);
+        }
+
         .tank-text {
             position: absolute;
             top: 50%;
@@ -646,7 +730,16 @@
                         <div id="tankFill" class="tank-fill"></div>
                         <div class="tank-glaze"></div>
                     </div>
+                    <div class="tank-ruler" id="tankRuler" aria-hidden="true"></div>
                     <div class="tank-ridges"></div>
+                    <div class="tank-guides" id="tankGuides">
+                        <div class="tank-guide-line low-marker" id="lowTankMarker" style="bottom: 30%;">
+                            <span class="tank-guide-label" id="lowTankMarkerLabel">LOW 30%</span>
+                        </div>
+                        <div class="tank-guide-line full-marker" id="fullTankMarker" style="bottom: 100%;">
+                            <span class="tank-guide-label" id="fullTankMarkerLabel">FULL 100%</span>
+                        </div>
+                    </div>
                     <div id="tankVal" class="tank-text">-- %</div>
                 </div>
                 <div class="row"><span>Voltage:</span> <span id="volt" style="font-weight:bold; font-size:1.2rem;">--
@@ -1129,7 +1222,30 @@
             else if (activeTab === 'home' || el.value === "") el.value = val;
         }
 
+        function setTankGuides(d) {
+            const low = parseInt(d.lowTank, 10) || 30;
+            const full = parseInt(d.fullPoint || d.fullTank, 10) || 100;
+            const lowMarker = document.getElementById('lowTankMarker');
+            const fullMarker = document.getElementById('fullTankMarker');
+            if (lowMarker) lowMarker.style.bottom = low + '%';
+            if (fullMarker) fullMarker.style.bottom = full + '%';
+            document.getElementById('lowTankMarkerLabel').innerText = (sysLang == 1 ? 'စတင် ' : 'LOW ') + low + '%';
+            document.getElementById('fullTankMarkerLabel').innerText = (sysLang == 1 ? 'ပြည့် ' : 'FULL ') + full + '%';
+        }
+
+        function renderTankRulerTicks() {
+            const ruler = document.getElementById('tankRuler');
+            if (!ruler || ruler.dataset.ready === '1') return;
+            let html = '';
+            for (let v = 0; v <= 100; v += 5) {
+                const cls = (v % 25 === 0) ? 'tank-ruler-tick major' : 'tank-ruler-tick';
+                html += '<div class="' + cls + '" style="bottom:' + v + '%;"></div>';
+            }
+            ruler.innerHTML = html; ruler.dataset.ready = '1';
+        }
+
         function updateUI(d) {
+            renderTankRulerTicks();
             if (sysLang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm');
             if (document.getElementById('dndBadgeC')) {
                 if (d.dndAct == 1) { document.getElementById('dndBadgeC').style.display = 'block'; } else { document.getElementById('dndBadgeC').style.display = 'none'; }
@@ -1152,6 +1268,7 @@
 
             const tankFill = document.getElementById('tankFill');
             if (!tankFill || activeTab === 'saving') return;
+            setTankGuides(d);
             tankFill.style.height = (d.tank || 0) + '%';
             if (d.tank <= (d.lowTank || 30)) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water');
             if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');
