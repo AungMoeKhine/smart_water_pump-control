@@ -642,11 +642,11 @@
                 <li><span>03. Engineering Pin-Mapping</span><span>03</span></li>
                 <li><span>04. RGB LED Logic Matrix</span><span>04</span></li>
                 <li><span>05. LCD Visual Interface</span><span>05</span></li>
-                <li><span>06. 💧 Water Level Logic</span><span>06</span></li>
+                <li><span>06. 💧 Precision Water Level Logic</span><span>06</span></li>
                 <li><span>07. 🌙 Smart Scheduling (DND)</span><span>07</span></li>
                 <li><span>08. ⚡ Voltage Security Engine</span><span>08</span></li>
                 <li><span>09. 🌊 Dry-Run & Auto-Retry</span><span>09</span></li>
-                <li><span>10. ❄️ Thermal Cool-Down</span><span>10</span></li>
+                <li><span>10. ❄️ Thermal Cool-Down Protection</span><span>10</span></li>
                 <li><span>11. 💨 Compressor Mode Logic</span><span>11</span></li>
                 <li><span>12. 📏 Calibration & Tuning</span><span>12</span></li>
                 <li><span>13. 🏠 Wi-Fi & Offline Fallback</span><span>13</span></li>
@@ -899,15 +899,17 @@
             ပြန်လည်စမ်းသပ်ရန် စောင့်ဆိုင်းနေခြင်း။
         </div>
 
-        <!-- 06 WATER LEVEL -->
-        <h1 class="section-title"><span class="num">06.</span> 💧 Water Level Logic</h1>
+        <!-- 06 WATER LEVEL LOGIC -->
+        <h1 class="section-title"><span class="num">06.</span> 💧 Precision Water Level Logic</h1>
         <p>The system polls the Ultrasonic sensor every <span class="tech-val">4 seconds</span> and uses a <span
-                class="tech-val">20-sample Median Filter</span> to ignore water turbulence. <strong>Auto-Start:</strong>
-            Below 20%. <strong>Auto-Stop:</strong> At 100%.</p>
+                class="tech-val">20-sample Median Filter</span> to ignore water turbulence. The Start/Stop thresholds
+            are now <strong class="tech-val">fully configurable</strong> (Low: 20%-50%, Full: 80%-100%) via the cloud or
+            local dashboard to match your specific tank geometry.</p>
         <div class="my-block">
-            <b>💧 ရေတင်ပုံ အလိုအလျောက် စနစ် -</b> ရေတိုင်ကီ၏ အတက်အကျကို ၄ စက္ကန့်လျှင် တစ်ကြိမ် တိုင်းတာပါသည်။
-            ရေလှိုင်းထခြင်းကြောင့် အဖြေမမှားစေရန် အကြိမ် ၂၀ တိုင်းတာပြီး ပျမ်းမျှအဖြေကို အသုံးပြုပါသည်။ ရေ ၂၀%
-            အောက်ရောက်ပါက အလိုအလျောက် ရေတင်ပေးပြီး ၁၀ဝ% ပြည့်ပါက ရပ်တန့်ပေးမည် ဖြစ်ပါသည်။
+            <b>💧 ရေမှတ်ထိန်းချုပ်မှုစနစ် -</b> ရေတိုင်ကီ၏ အတက်အကျကို ၄ စက္ကန့်လျှင် တစ်ကြိမ် တိုင်းတာပါသည်။ ယခုအခါ
+            ရေစတင်တင်မည့် ရေမှတ် <span class="highlight-my">(20%-50%)</span> နှင့် ရေအပြည့်သတ်မှတ်ချက် <span
+                class="highlight-my">(80%-100%)</span> တို့ကို မိမိတိုင်ကီအမျိုးအစားအလိုက် စိတ်ကြိုက် ချိန်ညှိနိုင်ပြီ
+            ဖြစ်ပါသည်။
         </div>
 
         <!-- 07 SMART SCHEDULING -->
@@ -925,29 +927,37 @@
 
         <!-- 08 VOLTAGE SECURITY -->
         <h1 class="section-title"><span class="num">08.</span> ⚡ Voltage Security Engine</h1>
-        <p>Operating Window: <span class="tech-val">170V - 250V</span>. The ZMPT sensor samples RMS voltage
-            continuously. If outside the range, the motor cuts off in <strong>&lt; 100ms</strong>. A <span
-                class="tech-val">10-second wait</span> is required after power stabilization before the motor restarts.
-            A live countdown will be displayed on the screen and dashboard.</p>
+        <p>The system constantly monitors the AC mains voltage via the ZMPT sensor. To protect the motor from burnout, the system now features <strong class="tech-val">Customizable Power Guards</strong>.</p>
+        <div class="grid">
+            <div class="card">
+                <h4><span class="feature-icon">⚠️</span> Cut-off Limits</h4>
+                <p>Configurable: Low <strong class="tech-val">150V-190V</strong> | High <strong class="tech-val">230V-260V</strong>. Precise protection for your motor windings.</p>
+            </div>
+            <div class="card">
+                <h4><span class="feature-icon">⚖️</span> Resume Gap</h4>
+                <p>Configurable <strong class="tech-val">1V to 10V</strong>. Prevents rapid on/off switching (chattering) when voltage is hovering near the threshold.</p>
+            </div>
+        </div>
         <div class="my-block">
-            <b>⚡ ဗို့အား ကာကွယ်ခြင်း -</b> စိတ်ချရသော မီးအားမှာ ၁၇၀ မှ ၂၅၀ ဗို့ ဖြစ်ပါသည်။ မီးအား ကျခြင်း သို့မဟုတ်
-            ရုတ်တရက်တက်ခြင်း ဖြစ်ပါက မော်တာကို ချက်ချင်း ပိတ်ပေးပါသည်။ မီးအား ပြန်မှန်လာပါကလည်း စက်ကို မထိခိုက်စေရန် ၁၀
-            စက္ကန့် စောင့်ဆိုင်းပြီးမှသာ ပြန်လည် မောင်းနှင်ပေးပါသည်။ (မျက်နှာပြင်တွင် စောင့်ဆိုင်းချိန်အား စက္ကန့်ဖြင့်
-            ပြသပေးမည်ဖြစ်သည်။)
+            <b>⚡ ဗို့အား ကာကွယ်ခြင်း -</b> မီးအား အတက်အကျကြောင့် မော်တာလောင်ခြင်းမှ ကာကွယ်ရန် ဗို့အားမြင့်/နိမ့် သတ်မှတ်ချက်များကို စိတ်ကြိုက်ပြင်ဆင်နိုင်ပါသည်။ မီးအားပြန်တက်လာချိန်တွင် စက်ခဏခဏ ပိတ်ဖွင့်မဖြစ်စေရန် <span class="highlight-my">Resume Gap (1V-10V)</span> စနစ်ကိုလည်း ထည့်သွင်းပေးထားပါသည်။
         </div>
 
         <!-- 09 DRY-RUN AUTO-RETRY -->
         <h1 class="section-title"><span class="num">09.</span> 🌊 Dry-Run & Auto-Retry</h1>
-        <h2 class="sub-title">1. Dry-Run Safety & Auto-Retry</h2>
-        <p>When the motor starts, the system enters a <strong>60-second Grace Period</strong>. If no flow is detected
-            for <span class="tech-val">> 60 seconds</span>, the <strong>"DRY ALRM"</strong> is triggered and the motor
-            is stopped. <br><br>Instead of staying off forever, the system enters a <strong>"LOCKED"</strong> state and
-            initiates an <strong>Auto-Retry Countdown</strong> (30 or 60 mins). Once the timer hits zero, it will
-            automatically attempt to restart the pump to see if water has returned to the city pipes.</p>
+        <h2 class="sub-title">1. Configurable Dry-Run Safety</h2>
+        <p>When the motor starts, the system monitors water flow. You can now adjust the detection sensitivity and retry behavior.</p>
+        <div class="grid">
+            <div class="card">
+                <h4><span class="feature-icon">⏱️</span> Dry-Run Delay</h4>
+                <p>Configurable: <strong class="tech-val">60s to 180s</strong>. Set the timeout duration before the "DRY ALRM" is triggered.</p>
+            </div>
+            <div class="card">
+                <h4><span class="feature-icon">🔄</span> Auto-Retry Time</h4>
+                <p>Options: <strong class="tech-val">OFF, 30m, 60m</strong>. Automatically attempts to restart the pump to check if water has returned.</p>
+            </div>
+        </div>
         <div class="my-block">
-            <b>🌊 ရေပြတ်လပ်မှု ကာကွယ်ခြင်းနှင့် အလိုအလျောက် ပြန်စမ်းသပ်ခြင်း -</b> စက္ကန့် ၆၀ အတွင်း ရေရောက်မလာပါက "DRY
-            ALRM" အချက်ပြပြီး မော်တာကို ပိတ်ပေးပါသည်။ ထို့နောက် စက်သည် <b>"LOCKED"</b> အခြေအနေသို့ ရောက်သွားပြီး မိနစ်
-            ၃၀ သို့မဟုတ် ၆၀ အကြာတွင် ရေပြန်လာခြင်း ရှိမရှိကို အလိုအလျောက် ပြန်လည် စမ်းသပ် မောင်းနှင်ပေးမည် ဖြစ်ပါသည်။
+            <b>🌊 ရေပြတ်လပ်မှု ကာကွယ်ခြင်း -</b> ရေပြတ်လပ်မှု စောင့်ဆိုင်းချိန် <span class="highlight-my">(စက္ကန့် ၆၀ မှ ၁၈၀)</span> နှင့် အလိုအလျောက် ပြန်လည်စမ်းသပ်မည့်အချိန် <span class="highlight-my">(မိနစ် ၃၀ သို့မဟုတ် ၆၀)</span> တို့ကို စိတ်ကြိုက် ရွေးချယ်နိုင်ပါသည်။
         </div>
 
         <h2 class="sub-title">2. Manual Button Control (Industrial Logic)</h2>
@@ -974,33 +984,51 @@
 
         <!-- 10 THERMAL -->
         <h1 class="section-title"><span class="num">10.</span> ❄️ Thermal Cool-Down Protection</h1>
-        <p>If the motor runs continuously for <strong>1 Hour</strong> without stopping, the system will force a thermal
-            cut-off and enter <strong>"PUMP REST"</strong> mode for 5 to 15 minutes (configurable). Once cooled down, it
-            will automatically resume pumping if the tank is not yet full.</p>
+        <p>To prevent motor fatigue, the system monitors continuous run-time. If the motor runs for 1 hour, it enters mandatory cooling.</p>
+        <div class="grid">
+            <div class="card">
+                <h4><span class="feature-icon">💤</span> Adjustable Pump Rest</h4>
+                <p>Options: <strong class="tech-val">0, 5, 10, 15 mins</strong>. Set the "REST" duration to match your motor's thermal capacity.</p>
+            </div>
+        </div>
         <div class="my-block">
-            <b>❄️ မော်တာ အပူလွန်ကဲမှု ကာကွယ်ခြင်း -</b> မော်တာသည် ၁ နာရီတိတိ ဆက်တိုက် လည်ပတ်နေပါက အပူလွန်ကဲ၍
-            လောင်ကျွမ်းခြင်းမှ ကာကွယ်ရန် စက်ကို အလိုအလျောက် ရပ်နားပေးပြီး <b>"PUMP REST"</b> အခြေအနေသို့
-            ပြောင်းသွားပါမည်။ သတ်မှတ်ထားသော အနားပေးချိန် ပြည့်ပါက အလိုအလျောက် ပြန်လည် မောင်းနှင်ပေးမည် ဖြစ်ပါသည်။
+            <b>❄️ မော်တာ အပူလွန်ကဲမှု ကာကွယ်ခြင်း -</b> မော်တာ အနားပေးချိန် <span class="highlight-my">(၅ မိနစ် မှ ၁၅ မိနစ်)</span> ကိုလည်း မိမိမော်တာ၏ အခြေအနေပေါ်မူတည်၍ စိတ်ကြိုက် သတ်မှတ်နိုင်ပါသည်။
         </div>
 
         <!-- 11 COMPRESSOR MODE -->
         <h1 class="section-title"><span class="num">11.</span> 💨 Compressor Mode Logic</h1>
-        <p>In this mode, the Solenoid Valve executes <strong>Head-Pressure Venting</strong>. The Valve opens for <span
-                class="tech-val">5s - 15s</span> (selectable) before the motor starts (Pre-Vent) and after it stops
-            (Post-Vent).</p>
+        <p>In this mode, the Solenoid Valve executes <strong>Head-Pressure Venting</strong>. You can now tune the timing for optimal efficiency.</p>
+        <div class="grid">
+            <div class="card">
+                <h4><span class="feature-icon">🌬️</span> Adjustable Valve Delay</h4>
+                <p>Configurable: <strong class="tech-val">5s to 15s</strong>. Sets the venting time before motor start and after motor stop.</p>
+            </div>
+        </div>
         <div class="my-block">
-            <b>💨 လေကွန်ပရက်ဆာ စနစ် -</b> ဤစနစ်တွင် လေဖိအားကို အရင်လျှော့ချပေးသော Solenoid အဆို့ရှင် ပါဝင်ပါသည်။ မော်တာ
-            ဝန်မပိစေရန် မော်တာမမောင်းမီနှင့် မောင်းပြီးနောက် ၁၀ စက္ကန့်စီ လေဖိအားကို အရင်ထုတ်ပေးပါသည်။
+            <b>💨 လေကွန်ပရက်ဆာ စနစ် -</b> လေကွန်ပရက်ဆာ စနစ်အတွက် လေဖိအားလျှော့ချချိန် <span class="highlight-my">(၅ စက္ကန့် မှ ၁၅ စက္ကန့်)</span> ကိုလည်း ချိန်ညှိနိုင်ပါသည်။
         </div>
 
         <!-- 12 CALIBRATION -->
         <h1 class="section-title"><span class="num">12.</span> 📏 Calibration & Tuning</h1>
         <p>The system supports tanks from <span class="tech-val">1.0 ft</span> to <span class="tech-val">7.0 ft</span>
-            height. When configuring, set the exact distance from the **sensor face** to the **tank bottom**. The system
-            calculates a 6-inch buffer automatically.</p>
+            height. All configurations are stored in <strong class="tech-val">Non-Volatile Storage (NVS)</strong>,
+            ensuring your settings are preserved during power outages.</p>
+        <div class="grid">
+            <div class="card">
+                <h4><span class="feature-icon">💾</span> NVS Persistence</h4>
+                <p>Settings are hard-saved to internal memory. No battery backup required for configuration data.</p>
+            </div>
+            <div class="card">
+                <h4><span class="feature-icon">🔄</span> System Sync</h4>
+                <p>Note: Changing core parameters may trigger a <strong class="tech-val">system reboot</strong> to
+                    synchronize the logic with new memory values.</p>
+            </div>
+        </div>
         <div class="my-block">
-            <b>📏 ချိန်ညှိခြင်း -</b> ၁ ပေ မှ ၇ ပေ အမြင့်ရှိသော တိုင်ကီများတွင် အသုံးပြုနိုင်ပါသည်။ ရေဆင်ဆာ၏ အောက်ခြေမှ
-            တိုင်ကီအောက်ခြေအထိ အမြင့်ကို တိကျစွာ တိုင်းတာ၍ ထည့်သွင်းပေးပါ။
+            <b>📏 ချိန်ညှိခြင်းနှင့် သိမ်းဆည်းမှု -</b> ၁ ပေ မှ ၇ ပေ အမြင့်ရှိသော တိုင်ကီများတွင် အသုံးပြုနိုင်ပါသည်။ သင်၏
+            သတ်မှတ်ချက်များအားလုံးကို စက်ထဲရှိ <span class="highlight-my">NVS</span> မှတ်ဉာဏ်တွင် အမြဲတမ်း သိမ်းဆည်းထားမည်
+            ဖြစ်သောကြောင့် မီးပျက်သွားသော်လည်း ပျက်ပြယ်သွားမည် မဟုတ်ပါ။ (မှတ်ချက် - အချို့သော သတ်မှတ်ချက်များမှာ စက်ကို
+            ပိတ်ပြီး ပြန်ဖွင့်မှသာ အသက်ဝင်မည် ဖြစ်ပါသည်။)
         </div>
 
         <!-- 13 WEB DASHBOARD -->
