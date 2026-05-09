@@ -647,8 +647,8 @@ const char settings_html[] PROGMEM = R"rawliteral(
       <div class="lbl-wrap" id="vWrap" style="display:none;"><label>Compressor Valve Delay</label><span class="range">5 - 15s</span></div><select name="vDly" id="vDly" style="display:none;"></select>
       <hr>
       <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select name="uH" id="uH_s"></select>
-      <div class="lbl-wrap"><label>Low Tank Start Level</label><span class="range">20 - 50 %</span></div><select name="lowTank" id="lowTank_s"></select>
       <div class="lbl-wrap"><label>High Tank Stop Level</label><span class="range">80 - 100 %</span></div><select name="fullTank" id="fullTank_s"></select>
+      <div class="lbl-wrap"><label>Low Tank Start Level</label><span class="range">20 - 50 %</span></div><select name="lowTank" id="lowTank_s"></select>
       <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><select name="vH" id="vH_s"></select>
       <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><select name="vL" id="vL_s"></select>
       <div class="lbl-wrap"><label>Voltage Resume Gap</label><span class="range">1 - 10 V</span></div><select name="vG" id="vG_s"></select>
