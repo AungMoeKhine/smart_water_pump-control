@@ -5,23 +5,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APC-S3 Pro — Master Technical Manual (Deep-Dive Edition)</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* ─── DESIGN TOKENS ─────────────────────────────────────── */
         :root {
-            --primary: #006aff;
-            --primary-glow: rgba(0, 106, 255, 0.4);
-            --secondary: #00d084;
-            --secondary-glow: rgba(0, 208, 132, 0.4);
-            --accent: #ffc107;
-            --danger: #ff4d4d;
-            --dark: #0a1120;
-            --light-dark: #121c2f;
-            --text-main: #ffffff;
-            --text-dim: #a0aec0;
-            --border: rgba(255, 255, 255, 0.08);
-            --glass: rgba(255, 255, 255, 0.03);
+            --bg-deep:      #080c17;
+            --bg-card:      #0e1525;
+            --bg-surface:   #161e30;
+            --accent-blue:  #00b4f0;
+            --accent-cyan:  #00e5d1;
+            --accent-green: #00e87a;
+            --accent-red:   #ff3b5c;
+            --accent-amber: #ffb020;
+            --text-primary: #e8eef7;
+            --text-muted:   #5a6a85;
+            --text-dim:     #2e3d58;
+            --border:       rgba(0,180,240,0.12);
+            --glow-blue:    rgba(0,180,240,0.35);
+            --glass:        rgba(14, 21, 37, 0.85);
         }
 
         @font-face {
@@ -37,10 +40,28 @@
 
         body {
             font-family: 'Inter', 'Pyidaungsu', sans-serif;
-            background: var(--dark);
-            color: var(--text-main);
+            background: var(--bg-deep);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,100,200,0.18) 0%, transparent 65%),
+                radial-gradient(ellipse 40% 30% at 90% 90%,  rgba(0,80,120,0.10)  0%, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
             line-height: 1.7;
             counter-reset: page;
+        }
+
+        /* Subtle star-field overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 15% 25%, rgba(0,180,240,0.5) 0%, transparent 100%),
+                radial-gradient(1px 1px at 80% 55%, rgba(0,229,209,0.4) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 45% 75%, rgba(0,232,122,0.3) 0%, transparent 100%),
+                radial-gradient(1px 1px at 70% 20%, rgba(168,85,247,0.3) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         img {
@@ -52,22 +73,23 @@
         .cover {
             min-height: 100vh;
             position: relative;
+            z-index: 1;
             overflow: visible;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            background: radial-gradient(circle at 10% 10%, rgba(0, 106, 255, 0.1), transparent), radial-gradient(circle at 90% 90%, rgba(0, 208, 132, 0.1), transparent), var(--dark);
+            background: transparent;
             page-break-after: always;
             padding: 60px 20px;
             box-sizing: border-box;
         }
 
         .cover-badge {
-            background: rgba(0, 106, 255, 0.1);
-            border: 1px solid var(--primary);
-            color: #90c8ff;
+            background: rgba(0, 180, 240, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
             font-size: 0.85rem;
             font-weight: 700;
             letter-spacing: 4px;
@@ -75,21 +97,27 @@
             padding: 12px 35px;
             border-radius: 50px;
             margin-bottom: 40px;
-            box-shadow: 0 0 20px var(--primary-glow);
+            box-shadow: 0 0 20px var(--glow-blue);
         }
 
         .cover img {
             width: 180px;
             height: auto;
             margin-bottom: 35px;
-            filter: drop-shadow(0 0 40px var(--primary-glow));
+            filter: drop-shadow(0 0 40px var(--glow-blue));
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(0,180,240,0.4)); }
+            50%       { filter: drop-shadow(0 0 45px rgba(0,180,240,0.7)); }
         }
 
         h1.cover-title {
             font-family: 'Outfit', sans-serif;
             font-size: 4rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #fff 40%, var(--primary) 100%);
+            background: linear-gradient(135deg, #fff 40%, var(--accent-blue) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             line-height: 1.1;
@@ -108,7 +136,7 @@
         .cover-divider {
             width: 100px;
             height: 4px;
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
             margin: 20px 0;
             border-radius: 2px;
         }
@@ -129,12 +157,42 @@
             max-width: 1000px;
             margin: 0 auto;
             padding: 40px 80px;
+            position: relative;
+            z-index: 1;
+            background: var(--glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 32px;
+            box-shadow:
+                0 0 0 1px rgba(0,180,240,0.04),
+                0 24px 70px rgba(0,0,0,0.65),
+                inset 0 1px 0 rgba(255,255,255,0.04);
+            animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Top accent line */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 10%; right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-cyan), transparent);
+            border-radius: 1px;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         h1.section-title {
             font-family: 'Outfit', sans-serif;
             font-size: 2.8rem;
-            color: var(--primary);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin: 100px 0 30px;
             padding-bottom: 20px;
             border-bottom: 2px solid var(--border);
@@ -152,11 +210,11 @@
 
         h2.sub-title {
             font-family: 'Outfit', sans-serif;
-            color: var(--secondary);
+            color: var(--accent-green);
             font-size: 1.8rem;
             margin: 50px 0 20px;
             padding-left: 18px;
-            border-left: 5px solid var(--secondary);
+            border-left: 5px solid var(--accent-green);
             font-weight: 700;
         }
 
@@ -164,7 +222,7 @@
             font-family: 'Inter', sans-serif;
             font-size: 1.25rem;
             font-weight: 700;
-            color: #fff;
+            color: var(--text-primary);
             margin-top: 35px;
             margin-bottom: 15px;
             opacity: 0.95;
@@ -183,10 +241,10 @@
         .my-block {
             font-family: 'Pyidaungsu';
             color: #b7c1cf;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 180, 240, 0.05);
             padding: 25px 30px;
             border-radius: 20px;
-            border-left: 4px solid var(--primary);
+            border-left: 4px solid var(--accent-blue);
             margin: 30px 0;
             line-height: 2.2;
             font-size: 1.1rem;
@@ -194,7 +252,7 @@
         }
 
         .highlight-my {
-            color: var(--primary);
+            color: var(--accent-blue);
             font-weight: 600;
         }
 
@@ -209,14 +267,14 @@
             border-spacing: 0;
             margin: 40px 0;
             border: 1px solid var(--border);
-            border-radius: 15px;
+            border-radius: 18px;
             overflow: hidden;
-            background: rgba(255, 255, 255, 0.01);
+            background: rgba(10, 16, 30, 0.7);
         }
 
         th {
-            background: rgba(0, 106, 255, 0.1);
-            color: var(--primary);
+            background: rgba(0, 180, 240, 0.1);
+            color: var(--accent-blue);
             padding: 20px;
             text-align: left;
             font-size: 0.85rem;
@@ -246,18 +304,19 @@
         }
 
         .card {
-            background: var(--light-dark);
+            background: rgba(14, 21, 37, 0.7);
             border: 1px solid var(--border);
             border-radius: 24px;
             padding: 35px;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, border-color 0.3s, box-shadow 0.3s;
             position: relative;
             overflow: hidden;
         }
 
         .card:hover {
             transform: translateY(-5px);
-            border-color: var(--primary);
+            border-color: var(--accent-blue);
+            box-shadow: 0 14px 45px rgba(0,0,0,0.5), 0 0 22px rgba(0,180,240,0.1);
         }
 
         .card h4 {
@@ -304,12 +363,12 @@
 
         .faq-q::before {
             content: "Q:";
-            color: var(--primary);
-            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-blue);
+            font-family: 'JetBrains Mono', monospace;
         }
 
         .faq-a {
-            color: var(--text-dim);
+            color: var(--text-muted);
             line-height: 1.8;
             padding-left: 35px;
             position: relative;
@@ -317,8 +376,8 @@
 
         .faq-a::before {
             content: "A:";
-            color: var(--secondary);
-            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
             position: absolute;
             left: 0;
             font-weight: 700;
@@ -345,28 +404,28 @@
         }
 
         .dot-blue {
-            background-color: #006aff;
-            color: #006aff;
+            background-color: var(--accent-blue);
+            color: var(--accent-blue);
         }
 
         .dot-cyan {
-            background-color: #00ffff;
-            color: #00ffff;
+            background-color: var(--accent-cyan);
+            color: var(--accent-cyan);
         }
 
         .dot-green {
-            background-color: #00d084;
-            color: #00d084;
+            background-color: var(--accent-green);
+            color: var(--accent-green);
         }
 
         .dot-red {
-            background-color: #ff4d4d;
-            color: #ff4d4d;
+            background-color: var(--accent-red);
+            color: var(--accent-red);
         }
 
         .dot-amber {
-            background-color: #ffc107;
-            color: #ffc107;
+            background-color: var(--accent-amber);
+            color: var(--accent-amber);
         }
 
         /* --- ALERTS --- */
@@ -399,27 +458,157 @@
         }
 
         .alert-safe {
-            background: rgba(0, 208, 132, 0.1);
-            border-color: rgba(0, 208, 132, 0.2);
+            background: rgba(0, 232, 122, 0.1);
+            border-color: rgba(0, 232, 122, 0.2);
             color: #ccffeb;
         }
 
+        /* ─── WIRING WRAPPER ────────────────────────────────────── */
+        .wiring-wrapper {
+            overflow-x: auto;
+            background: rgba(4, 10, 20, 0.8);
+            border: 1px solid rgba(0,180,240,0.12);
+            padding: 20px 10px;
+            border-radius: 24px;
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .wiring-table {
+            margin: 0 auto;
+            border-spacing: 0;
+            border-collapse: separate;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .wiring-table td {
+            padding: 4px 2px;
+            vertical-align: middle;
+            height: 34px;
+            white-space: nowrap;
+            border-bottom: none !important;
+        }
+
+        /* Component Boxes */
+        .comp-base {
+            border-radius: 8px;
+            font-weight: 700;
+            padding: 7px 5px;
+            display: inline-block;
+            width: 95px;
+            text-align: center;
+            font-size: 11px;
+            transition: box-shadow 0.3s;
+        }
+        .comp-base:hover { box-shadow: 0 0 14px rgba(0,180,240,0.5); }
+
+        .comp-sensor {
+            background: rgba(0, 80, 160, 0.25);
+            border: 1.5px solid rgba(0,180,240,0.6);
+            color: var(--accent-blue);
+        }
+        .comp-actuator {
+            background: rgba(160, 0, 40, 0.2);
+            border: 1.5px solid rgba(255,59,92,0.5);
+            color: #ff7090;
+        }
+        .comp-display {
+            background: rgba(0, 100, 90, 0.2);
+            border: 1.5px solid rgba(0,229,209,0.5);
+            color: var(--accent-cyan);
+        }
+        .comp-input {
+            background: rgba(60,60,80,0.25);
+            border: 1.5px solid rgba(160,160,200,0.4);
+            color: #a0a8c0;
+        }
+
+        /* ESP32 Board */
+        .board-body-left {
+            background: #071408;
+            color: #00ff88;
+            text-align: left;
+            border-left: 2px solid #1a4a1a;
+            padding-left: 6px;
+            width: 66px;
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: 0 0 8px rgba(0,255,136,0.6);
+            font-size: 10px;
+        }
+        .board-body-right {
+            background: #071408;
+            color: #00ff88;
+            text-align: right;
+            border-right: 2px solid #1a4a1a;
+            padding-right: 6px;
+            width: 66px;
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: 0 0 8px rgba(0,255,136,0.6);
+            font-size: 10px;
+        }
+        .board-header {
+            background: linear-gradient(90deg, #0a2215, #154030);
+            color: #00ff88;
+            text-align: center;
+            font-weight: 700;
+            padding: 9px;
+            font-size: 0.85em;
+            letter-spacing: 2px;
+            border-radius: 8px 8px 0 0;
+            text-shadow: 0 0 12px rgba(0,255,136,0.8);
+        }
+        .board-footer {
+            background: linear-gradient(90deg, #0a2215, #154030);
+            height: 8px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        /* Wires */
+        .wire-line {
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+            box-shadow: 0 0 4px rgba(0,180,240,0.7);
+            width: 12px;
+            display: inline-block;
+            vertical-align: middle;
+            position: relative;
+            animation: wirePulse 2.2s ease-in-out infinite;
+        }
+
+        @keyframes wirePulse {
+            0%, 100% { opacity: 0.55; box-shadow: 0 0 4px rgba(0,180,240,0.6); }
+            50%       { opacity: 1;    box-shadow: 0 0 10px rgba(0,229,209,1); }
+        }
+
+        .wire-dot {
+            width: 5px; height: 5px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            position: absolute;
+            top: -1.5px;
+            box-shadow: 0 0 5px var(--accent-cyan);
+        }
+        .dot-left  { right: 0; }
+        .dot-right { left: 0; }
+
         /* --- TOC --- */
         .toc {
-            background: var(--light-dark);
+            background: rgba(14, 21, 37, 0.8);
+            backdrop-filter: blur(20px);
             padding: 55px;
             border-radius: 45px;
             margin: 70px 0;
             border: 1px solid var(--border);
             page-break-after: always;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
         }
 
         .toc h2 {
             font-family: 'Outfit', sans-serif;
             font-size: 2rem;
             margin-bottom: 35px;
-            border-bottom: 3px solid var(--primary);
+            border-bottom: 3px solid var(--accent-blue);
             padding-bottom: 15px;
             display: flex;
             align-items: center;
@@ -444,8 +633,8 @@
         }
 
         .toc-grid li span:last-child {
-            color: var(--primary);
-            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-blue);
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 700;
         }
 
@@ -584,17 +773,17 @@
 
         /* --- KEYWORD HIGHLIGHTS --- */
         .tech-val {
-            font-family: 'Roboto Mono', monospace;
-            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-amber);
             font-weight: 700;
-            background: rgba(255, 193, 7, 0.1);
+            background: rgba(255, 176, 32, 0.1);
             padding: 2px 8px;
             border-radius: 5px;
         }
 
         .badge-small {
             font-size: 0.75rem;
-            background: var(--primary);
+            background: var(--accent-blue);
             color: white;
             padding: 2px 10px;
             border-radius: 10px;
@@ -603,12 +792,12 @@
         }
 
         .label-code {
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 700;
             background: #000;
-            color: #00f2ff;
+            color: var(--accent-cyan);
             padding: 2px 5px;
-            border: 1px solid #00f2ff;
+            border: 1px solid var(--accent-cyan);
             font-size: 0.85rem;
             border-radius: 3px;
         }
@@ -698,68 +887,78 @@
 
         <!-- 03 PINOUT -->
         <h1 class="section-title"><span class="num">03.</span> Engineering Pin-Mapping</h1>
-        <p>Official GPIO assignments for the ESP32-S3 WROOM interface. Do not modify the hardware traces without
-            consulting the factory manual.</p>
-        <table>
-            <thead>
+        <p>Official GPIO assignments for the ESP32-S3 WROOM interface. Do not modify the hardware traces without consulting the factory manual.</p>
+        
+        <div class="wiring-wrapper">
+            <table class="wiring-table">
+                <!-- Header -->
                 <tr>
-                    <th>Component</th>
-                    <th>Pin (GPIO)</th>
-                    <th>Protocol</th>
-                    <th>Direction</th>
+                    <td></td><td></td>
+                    <td colspan="2" class="board-header">⚙ ESP32-S3</td>
+                    <td></td><td></td>
                 </tr>
-            </thead>
-            <tbody>
+                <!-- LCD SDA / SCL -->
                 <tr>
-                    <td>LCD SDA / SCL</td>
-                    <td>GPIO 1 / 2</td>
-                    <td>I2C</td>
-                    <td>Output/Input</td>
+                    <td><div class="comp-base comp-display">🖥️ LCD (SDA)</div></td>
+                    <td><div class="wire-line"><div class="wire-dot dot-left"></div></div></td>
+                    <td class="board-body-left">GPIO 01</td>
+                    <td class="board-body-right">GPIO 02</td>
+                    <td><div class="wire-line"><div class="wire-dot dot-right"></div></div></td>
+                    <td><div class="comp-base comp-display">🖥️ LCD (SCL)</div></td>
                 </tr>
+                <!-- Volt / Trig -->
                 <tr>
-                    <td>Voltage Sensor (ZMPT)</td>
-                    <td>GPIO 4</td>
-                    <td>Analog (ADC)</td>
-                    <td>Input</td>
+                    <td><div class="comp-base comp-sensor">⚡ Volt Sensor</div></td>
+                    <td><div class="wire-line"><div class="wire-dot dot-left"></div></div></td>
+                    <td class="board-body-left">GPIO 04</td>
+                    <td class="board-body-right">GPIO 05</td>
+                    <td><div class="wire-line"><div class="wire-dot dot-right"></div></div></td>
+                    <td><div class="comp-base comp-sensor">📏 Ultra Trig</div></td>
                 </tr>
+                <!-- Echo / Buzzer -->
                 <tr>
-                    <td>Ultrasonic TRIG / ECHO</td>
-                    <td>GPIO 5 / 6</td>
-                    <td>Pulse Digital</td>
-                    <td>Out/In</td>
+                    <td><div class="comp-base comp-sensor">📏 Ultra Echo</div></td>
+                    <td><div class="wire-line"><div class="wire-dot dot-left"></div></div></td>
+                    <td class="board-body-left">GPIO 06</td>
+                    <td class="board-body-right">GPIO 07</td>
+                    <td><div class="wire-line"><div class="wire-dot dot-right"></div></div></td>
+                    <td><div class="comp-base comp-actuator">🔔 Buzzer</div></td>
                 </tr>
+                <!-- Motor / Manual Btn -->
                 <tr>
-                    <td><strong>Main Motor Relay</strong></td>
-                    <td>GPIO 8</td>
-                    <td>High/Low</td>
-                    <td>Output</td>
+                    <td><div class="comp-base comp-actuator">⚙️ Motor</div></td>
+                    <td><div class="wire-line"><div class="wire-dot dot-left"></div></div></td>
+                    <td class="board-body-left">GPIO 08</td>
+                    <td class="board-body-right">GPIO 09</td>
+                    <td><div class="wire-line"><div class="wire-dot dot-right"></div></div></td>
+                    <td><div class="comp-base comp-input">🔘 Manual Btn</div></td>
                 </tr>
+                <!-- Solenoid / Flow -->
                 <tr>
-                    <td><strong>Manual Reset / Override</strong></td>
-                    <td>GPIO 9</td>
-                    <td>Digital In (Pull)</td>
-                    <td>Input</td>
+                    <td><div class="comp-base comp-actuator">💨 Solenoid</div></td>
+                    <td><div class="wire-line"><div class="wire-dot dot-left"></div></div></td>
+                    <td class="board-body-left">GPIO 10</td>
+                    <td class="board-body-right">GPIO 18</td>
+                    <td><div class="wire-line"><div class="wire-dot dot-right"></div></div></td>
+                    <td><div class="comp-base comp-sensor">🌊 Flow Sens</div></td>
                 </tr>
+                <!-- RGB LED -->
                 <tr>
-                    <td>Pressure Solenoid</td>
-                    <td>GPIO 10</td>
-                    <td>High/Low</td>
-                    <td>Output</td>
+                    <td><div class="comp-base comp-actuator">🌈 RGB LED</div></td>
+                    <td><div class="wire-line"><div class="wire-dot dot-left"></div></div></td>
+                    <td class="board-body-left">GPIO 48</td>
+                    <td class="board-body-right">---</td>
+                    <td><div class="wire-line"></div></td>
+                    <td><div style="width:95px;height:10px;"></div></td>
                 </tr>
+                <!-- Footer -->
                 <tr>
-                    <td>Flow Pulse Sensor</td>
-                    <td>GPIO 18</td>
-                    <td>Digital Interrupt</td>
-                    <td>Input</td>
+                    <td></td><td></td>
+                    <td colspan="2" class="board-footer"></td>
+                    <td></td><td></td>
                 </tr>
-                <tr>
-                    <td>Status RGB (NeoPixel)</td>
-                    <td>GPIO 48</td>
-                    <td>1-Wire</td>
-                    <td>Output</td>
-                </tr>
-            </tbody>
-        </table>
+            </table>
+        </div>
 
         <!-- 04 LED CODES -->
         <h1 class="section-title"><span class="num">04.</span> RGB LED Logic Matrix</h1>
@@ -1268,9 +1467,10 @@
                 သိမ်းဆည်းထားသော Settings များအတိုင်း စက္ကန့် ၃၀ အတွင်း ပုံမှန်အတိုင်း ပြန်လည် အလုပ်လုပ်ပါမည်။</div>
         </div>
 
-        <div
-            style="margin-top: 100px; padding: 40px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim);">
-            APC-S3 Pro — Master Engineering Manual v1.1.5<br>© 2026 — Official Factory Distribution.
+        <div style="margin-top: 100px; padding: 40px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim);">
+            APC-S3 Pro — Master Engineering Manual <strong>v1.2.0</strong><br>
+            Developed by <strong>Aung Moe Khine</strong><br>
+            © 2026 — Official Factory Distribution.
         </div>
     </div>
 </body>
