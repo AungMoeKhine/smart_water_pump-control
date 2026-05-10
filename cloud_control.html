@@ -130,13 +130,38 @@
             font-weight: bold;
             cursor: pointer;
             font-size: 1.1rem;
-            transition: transform 0.1s, opacity 0.1s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
         }
 
         .btn:active,
         .refresh-btn:active {
             transform: scale(0.96);
-            opacity: 0.85;
+            opacity: 0.9;
         }
 
         @keyframes spin {
@@ -153,23 +178,34 @@
 
         .btn-green {
             background: linear-gradient(135deg, #28a745, #20c997) !important;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
+        }
+        .btn-green:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5) !important;
         }
 
         .btn-red {
             background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
-            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3) !important;
+        }
+        .btn-red:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.5) !important;
         }
 
         .btn-purple {
             background: linear-gradient(135deg, #6f42c1, #a958a5) !important;
-            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
+            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3) !important;
+        }
+        .btn-purple:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.5) !important;
         }
 
         .btn-grey {
             background: #555 !important;
             color: #aaa !important;
             cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
         }
 
         .badge {
