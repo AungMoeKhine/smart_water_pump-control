@@ -842,8 +842,9 @@
                 <li><span>14. ☁️ MQTT Cloud API</span><span>14</span></li>
                 <li><span>15. 🔑 License & Subscriptions</span><span>15</span></li>
                 <li><span>16. 🛠️ Troubleshooting Matrix</span><span>16</span></li>
-                <li><span>17. 🔩 Technical Specifications</span><span>17</span></li>
-                <li><span>18. ❓ Frequently Asked Questions</span><span>18</span></li>
+                <li><span>17. 🔗 Master & Slave Synchronization</span><span>17</span></li>
+                <li><span>18. 🔩 Technical Specifications</span><span>18</span></li>
+                <li><span>19. ❓ Frequently Asked Questions</span><span>19</span></li>
             </ul>
         </div>
 
@@ -931,7 +932,7 @@
                     <td class="board-body-left">GPIO 08</td>
                     <td class="board-body-right">GPIO 09</td>
                     <td><div class="wire-line"><div class="wire-dot dot-right"></div></div></td>
-                    <td><div class="comp-base comp-input">🔘 Manual Btn</div></td>
+                    <td><div class="comp-base comp-input">🔘 Override/Reset</div></td>
                 </tr>
                 <!-- Solenoid / Flow -->
                 <tr>
@@ -964,9 +965,9 @@
         <h1 class="section-title"><span class="num">04.</span> RGB LED Logic Matrix</h1>
         <div class="grid">
             <div class="card"><span class="dot dot-blue"></span>
-                <h4>Pulsing Blue</h4>
-                <p>System is in <strong>AP Mode</strong> or searching for Router WiFi.</p>
-                <div class="my-small">ဝိုင်ဖိုင်ကို စတင်ရှာဖွေနေခြင်း သို့မဟုတ် ဖုန်းဖြင့်ချိတ်ဆက်ရန် အချက်ပြနေခြင်း။
+                <h4>Dimming / Breathing Blue</h4>
+                <p><strong>No WiFi:</strong> System is offline, slowly pulsing blue while attempting to reconnect to router.</p>
+                <div class="my-small">ဝိုင်ဖိုင်ချိတ်ဆက်မှု မရှိသေးဘဲ ပြန်လည်ချိတ်ဆက်ရန် ကြိုးပမ်းနေသောအချိန်တွင် အပြာရောင် ဖြည်းဖြည်းမှိန်ပြီး လင်းနေမည်။
                 </div>
             </div>
             <div class="card"><span class="dot dot-cyan"></span>
@@ -988,6 +989,11 @@
                 <h4>Flashing Red</h4>
                 <p><strong>CRITICAL ERROR:</strong> Check LCD for Voltage or Dry-Run Alarm.</p>
                 <div class="my-small">ရေမရှိခြင်း သို့မဟုတ် မီးအားမမှန်ခြင်းကြောင့် စက်ရပ်တန့်ခြင်း။</div>
+            </div>
+            <div class="card"><span class="dot" style="background: #e040fb; box-shadow: 0 0 15px #e040fb;"></span>
+                <h4>Solid Purple</h4>
+                <p><strong>Settling Water:</strong> Waiting for silt to settle before pumping (Master Sync).</p>
+                <div class="my-small">ရေထဲရှိ အနည်များထိုင်ရန် ခေတ္တစောင့်ဆိုင်းနေခြင်း (မာစတာစနစ်)။</div>
             </div>
         </div>
 
@@ -1084,6 +1090,16 @@
                     <td>Power</td>
                     <td>Voltage just stabilized. 15-second safety countdown active.</td>
                 </tr>
+                <tr>
+                    <td><span class="label-code">SETTL XXM</span></td>
+                    <td>Sync</td>
+                    <td>Master (Sump) unit is in the <strong>Settling Water</strong> phase after pump stops. XX = minutes remaining. Slave must wait until settling completes.</td>
+                </tr>
+                <tr>
+                    <td><span class="label-code">WAIT SUMP</span></td>
+                    <td>Sync</td>
+                    <td>Slave (Upper Tank) unit is waiting for Master to reach a safe state (<span class="tech-val">STANDBY</span> or <span class="tech-val">FLOW OK/CHK</span>).</td>
+                </tr>
             </tbody>
         </table>
 
@@ -1095,7 +1111,8 @@
             စောင့်ဆိုင်းနေခြင်း။<br>
             ၃။ <span class="highlight-my">ONLINE/WAIT/NO WIFI:</span> အင်တာနက်နှင့် ဝိုင်ဖိုင် ချိတ်ဆက်မှု အခြေအနေ။<br>
             ၄။ <span class="highlight-my">DRY ALRM / LOCKED:</span> ရေပြတ်လပ်မှုကြောင့် စက်ရပ်သွားခြင်းနှင့်
-            ပြန်လည်စမ်းသပ်ရန် စောင့်ဆိုင်းနေခြင်း။
+            ပြန်လည်စမ်းသပ်ရန် စောင့်ဆိုင်းနေခြင်း။<br>
+            ၅။ <span class="highlight-my">SETTLING / WAIT SUMP:</span> မာစတာနှင့် ဆလိဖ် ချိတ်ဆက်မှု အခြေအနေများ။
         </div>
 
         <!-- 06 WATER LEVEL LOGIC -->
@@ -1162,23 +1179,17 @@
         <h2 class="sub-title">2. Manual Button Control (Industrial Logic)</h2>
         <p>The physical button on <strong>GPIO 9</strong> provides a robust multi-state interface for local control.
             <br><br>
-            1. <strong>Single Press:</strong> Toggles the motor ON or OFF manually. (Note: 850ms delay to confirm no
-            double-click).
-            <br>
-            2. <strong>Double Press:</strong> Instantly displays the <strong>Device IP Address</strong>, <strong>Cloud
-                ID</strong>, and <strong>Remaining License Days</strong> on the LCD.
-            <br>
-            3. <strong>Long Press (3s):</strong> Forces the device to enter <strong>AP Configuration Mode</strong>. If
-            no setup activity occurs (no one connects to the hotspot) for **5 minutes**, the device will automatically
-            exit AP mode and return to normal operation for safety.
+            1. <strong>Single Press:</strong> Toggles the motor ON or OFF manually. The system waits <span class="tech-val">850ms</span> after release to confirm it is a single-click (not the start of a double-click). If a block condition exists, the LED flashes red and the buzzer beeps once.
+            <br><br>
+            2. <strong>Double Click:</strong> On the second press <em>downstroke</em> (within 850ms of the first release), the system <strong>instantly</strong> displays the System Info screen on the LCD for 10 seconds — showing the <strong>Device IP Address</strong>, <strong>Cloud ID</strong>, and <strong>Remaining License Days</strong>. Two short beeps confirm the action.
+            <br><br>
+            3. <strong>Long Press (3 seconds):</strong> Forces the device to enter <strong>AP Configuration Mode</strong> (SSID: <span class="tech-val">Auto-Pump-Config</span> / Password: <span class="tech-val">12345678</span>). A 1-second buzzer confirms activation. If no client connects within <span class="tech-val">5 minutes</span>, the device automatically exits AP mode.
         </p>
         <div class="my-block">
             <b>🎮 Manual ခလုတ် အသုံးပြုပုံ -</b> GPIO 9 ရှိ ခလုတ်ကို အောက်ပါအတိုင်း အသုံးပြုနိုင်ပါသည်။<br><br>
-            ၁။ <b>တစ်ချက်နှိပ်လျှင်:</b> မော်တာကို ဖွင့်ခြင်း/ပိတ်ခြင်း ပြုလုပ်ပါမည်။<br>
-            ၂။ <b>နှစ်ချက်ဆင့်နှိပ်လျှင်:</b> စက်၏ အိုင်ပီ (IP)၊ အိုင်ဒီ (ID) နှင့် လိုင်စင်သက်တမ်း လက်ကျန်ရက်များကို
-            LCD မျက်နှာပြင်တွင် ပြသပေးပါမည်။<br>
-            ၃။ <b>၃ စက္ကန့် ဖိထားလျှင်:</b> ဝိုင်ဖိုင်အသစ် ပြန်လည်ချိန်ညှိရန် AP Mode သို့ ဝင်ရောက်ပါမည်။ (မှတ်ချက် - ၅
-            မိနစ်အတွင်း အသုံးပြုခြင်း မရှိပါက AP Mode မှ အလိုအလျောက် ပြန်ထွက်သွားပါမည်။)
+            ၁။ <b>တစ်ချက်နှိပ်လျှင်:</b> မော်တာကို ဖွင့်ခြင်း/ပိတ်ခြင်း ပြုလုပ်ပါမည်။ (850ms ခေတ္တစောင့်သည်) ပိတ်ဆို့မှုရှိပါက LED အနီရောင် လက်ဒ် လင်းပြမည်ဖြစ်သည်။<br>
+            ၂။ <b>နှစ်ချက်ဆင့်နှိပ်လျှင်:</b> ပထမနှိပ်ပြီး 850ms အတွင်း ဒုတိယ ဆင်းသက်မြောက်သောအခါ LCD မျက်နှာပြင်တွင် 10 စက္ကန့် ကြာ System Info (IP၊ ID နှင့် License ရက်) ပြသပေးပါမည်။ တိုင်ထောင်ရှင် ၂ ချက် မြည်ပါမည်။<br>
+            ၃။ <b>၃ စက္ကန့် ဖိထားလျှင်:</b> ဝိုင်ဖိုင်အသစ် ပြန်လည်ချိန်ညှိရန် AP Mode (Auto-Pump-Config) သို့ ဝင်ရောက်ပါမည်။ ဘတ်ဇာ ၁ စက္ကန့် မြည်ပါမည်။ ၅ မိနစ်အတွင်း မည်သူမျှ မချိတ်ဆက်ပါက AP Mode မှ အလိုအလျောက် ပြန်ထွက်သွားပါမည်။)
         </div>
 
         <!-- 10 THERMAL -->
@@ -1260,12 +1271,17 @@
             system <strong>seamlessly reconnects</strong> to the Cloud and synchronizes all data automatically without any
             manual intervention or even being noticed. For local dashboard access during an outage, simply <strong>press
                 and hold the manual button for 3 seconds</strong> to broadcast the <strong
-                class="tech-val">Auto-Pump-Config</strong> network.</p>
+                class="tech-val">Auto-Pump-Config</strong> network.
+            <br><br>
+            3. <strong>Sync Heartbeat Fallback (5m):</strong> In a Master/Slave configuration, if the wireless "Heartbeat" is lost for more than 5 minutes, the Slave unit will automatically revert to <strong>Standalone Mode</strong> to ensure water availability isn't blocked by a network failure.</p>
         <div class="my-block">
             <b>📶 အင်တာနက်ပြတ်တောက်သွားသည့် အခြေအနေ (Autonomous Mode) -</b> အကယ်၍ အိမ်ရှိ အင်တာနက်လိုင်း ပြတ်သွားပါက
             စက်သည် ယခင်က သိမ်းဆည်းထားသော Settings များအတိုင်း မိမိဘာသာ လွတ်လပ်စွာ ဆက်လက် အလုပ်လုပ်နေမည် ဖြစ်သည်။
             အင်တာနက်ပြန်ရပါက မည်သည့်အရာမျှ ပြုလုပ်ရန်မလိုဘဲ Cloud စနစ်သို့ အလိုအလျောက် ချောမွေ့စွာ ပြန်လည်ချိတ်ဆက်ပြီး
-            ဒေတာများကို Sync ပြုလုပ်ပေးမည် ဖြစ်ပါသည်။
+            ဒေတာများကို Sync ပြုလုပ်ပေးမည် ဖြစ်ပါသည်။<br>
+            <b>မာစတာ/ဆလိဖ် အရေးပေါ်စနစ် -</b> အကယ်၍ မာစတာနှင့် ဆလိဖ်ကြား ချိတ်ဆက်မှု ၅ မိနစ်ကျော် ပြတ်တောက်သွားပါက
+            အပေါ်ကန် (Slave) သည် မိမိဘာသာ လွတ်လပ်စွာ ဆက်လက်မောင်းနှင်မည့် Standalone Mode သို့ အလိုအလျောက်
+            ပြောင်းလဲသွားပါမည်။
         </div>
 
         <!-- 14 CLOUD API -->
@@ -1356,8 +1372,44 @@
             ရပါမည်။
         </div>
 
-        <!-- 17 TECH SPECS -->
-        <h1 class="section-title"><span class="num">17.</span> 🔩 Technical Specifications</h1>
+        <!-- 17 MASTER & SLAVE SYNC -->
+        <h1 class="section-title"><span class="num">17.</span> 🔗 Master & Slave Synchronization</h1>
+        <p>The APC-S3 Pro v2.1.0 introduces the <strong>Sequential Priority Matrix</strong>, allowing a Master unit (at the Sump Tank) to coordinate with a Slave unit (at the Upper Tank) wirelessly via HiveMQ MQTT or ESP-NOW. This prevents the pump from starting if the supply source is insufficient or if another priority tank is being served.</p>
+
+        <div class="grid">
+            <div class="card">
+                <h4>🎛️ Operational Roles</h4>
+                <p><strong>Mode 0:</strong> Standalone Device.<br>
+                <strong>Mode 1:</strong> Master (Authority / Sump Control).<br>
+                <strong>Mode 2:</strong> Slave (Consumer / Requestor).</p>
+            </div>
+            <div class="card">
+                <h4>🛡️ Safety Protocols</h4>
+                <p><strong>Settling Water:</strong> Prevents silt intake by waiting for sediment to settle (Purple LED).<br>
+                <strong>Heartbeat:</strong> 5-min fallback to local logic if network drops.</p>
+            </div>
+        </div>
+
+        <h2 class="sub-title">Sequential Priority Interlock</h2>
+        <div class="alert alert-safe">
+            <div class="alert-icon">🔗</div>
+            <div class="alert-body">
+                <b>How the Slave decides to start:</b>
+                <p>The Slave continuously monitors the Master's published <span class="tech-val">info</span> field via MQTT. The Slave is only permitted to run its pump when the Master's reported state is either <span class="tech-val">SYSTEM_STANDBY!</span> or contains <span class="tech-val">FLOW</span> (i.e., <span class="tech-val">FLOW_DETECTED!</span> or <span class="tech-val">FLOW_CHECKING!</span>).<br><br>
+                If the Master is Pumping (<span class="tech-val">pStat = ON</span>), Settling, in Voltage Error, Cooling Down, or in any alarm state — the Slave's pump is <strong>immediately stopped</strong> and blocked until the Master returns to a safe state.</p>
+                <p><strong>Link Timeout (5 minutes):</strong> If no update is received from the Master for 5 minutes (network drop), the Slave automatically falls back to <strong>Standalone Mode</strong> and operates independently using its own sensor data.</p>
+            </div>
+        </div>
+
+        <div class="my-block">
+            <b>🔗 မာစတာနှင့် ဆလိဖ် ချိတ်ဆက်မှု -</b> ဤစနစ်သစ်တွင် Master (အောက်ကန်) နှင့် Slave (အပေါ်ကန်) တို့ကို ကြိုးသွယ်ရန်မလိုဘဲ MQTT ဖြင့် ချိတ်ဆက်ထားပါသည်။<br><br>
+            Slave သည် Master ၏ <span class="highlight-my">SYSTEM_STANDBY!</span> သို့မဟုတ် <span class="highlight-my">FLOW_DETECTED!/FLOW_CHECKING!</span> အခြေအနေတွင်သာ မော်တာ စတင်ခွင့်ရပါသည်။ Master ၏ Pump ဖွင့်နေစဉ်၊ SETTLING နေစဉ် သို့မဟုတ် Error အခြေအနေတွင် Slave မော်တာ ချက်ချင်းရပ်ပေးမည်ဖြစ်သည်။<br>
+            <span class="highlight-my">Purple LED (ခရမ်းရောင်):</span> Master ၏ Settling Water အဆင့်တွင် ရေအနည်ထိုင်ရန် ကြာမျှ ကျန်ရှိသည်ကို SETTL XXM ဖြင့် LCD တွင် ပြသပါသည်။<br>
+            <span class="highlight-my">Link Timeout (5 မိနစ်):</span> Master မှ ၅ မိနစ် ဆက်သွယ်မှု မရပါက Slave သည် Standalone Mode သို့ အလိုအလျောက် ပြောင်းသွားပါမည်။
+        </div>
+
+        <!-- 18 TECH SPECS -->
+        <h1 class="section-title"><span class="num">18.</span> 🔩 Technical Specifications</h1>
         <div class="grid">
             <div class="card">
                 <h4>⚡ Power System</h4>
@@ -1373,8 +1425,8 @@
             </div>
         </div>
 
-        <!-- 18 FAQ SECTION -->
-        <h1 class="section-title"><span class="num">18.</span> ❓ Frequently Asked Questions</h1>
+        <!-- 19 FAQ SECTION -->
+        <h1 class="section-title"><span class="num">19.</span> ❓ Frequently Asked Questions</h1>
 
         <div class="faq-item">
             <div class="faq-q">The pump won't turn on and I can't hear the buzzer. Is it broken?</div>
@@ -1468,7 +1520,7 @@
         </div>
 
         <div style="margin-top: 100px; padding: 40px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim);">
-            APC-S3 Pro — Master Engineering Manual <strong>v1.2.0</strong><br>
+            APC-S3 Pro — Master Engineering Manual <strong>v2.1.0</strong><br>
             Developed by <strong>Aung Moe Khine</strong><br>
             © 2026 — Official Factory Distribution.
         </div>
