@@ -1323,6 +1323,7 @@
                 licStat.innerHTML = sysLang == 1 ? `<span style="color:#28a745">အသက်ဝင်သည် (${d.daysLeft} ရက် ကျန်သည်)</span>` : `<span style="color:#28a745">Active (${d.daysLeft} days left)</span>`;
             }
 
+            const rawInfo = d.info || "";
             let vS = d.vStat || "--", iF = d.info || "--", pS = d.pStat || "--", tS = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
 
             if (sysLang == 1) {
@@ -1350,14 +1351,26 @@
             else if (d.pStat === "DRY ALRM" || d.pStat === "LOCKED") pType = 'danger';
             setBadge('pstate', pS, pType);
 
-            // 3. System Info Colors (Synchronized with .ino)
-            let iType = 'info';
-            if (iF.includes("ALARM") || iF.includes("ERROR")) {
+            // 3. System Info Colors (use rawInfo, not translated iF)
+            let iType = 'success';
+            if (
+                rawInfo.includes("OVER_VOLTAGE") ||
+                rawInfo.includes("UNDER_VOLTAGE") ||
+                rawInfo.includes("ALARM") ||
+                rawInfo.includes("ERROR")
+            ) {
                 iType = 'danger';
-            } else if (iF.includes("WAITING") || iF.includes("LOCKED") || iF.includes("COOLING") || iF.includes("VENTING") || iF.includes("SETTLING") || iF.includes("DELAY")) {
+            } else if (
+                rawInfo.includes("VOLT_DELAY") ||
+                rawInfo.includes("WAITING") ||
+                rawInfo.includes("LOCKED") ||
+                rawInfo.includes("COOLING") ||
+                rawInfo.includes("VENTING") ||
+                rawInfo.includes("SETTLING")
+            ) {
                 iType = 'warning';
-            } else if (iF.includes("FLOW_DETECTED")) {
-                iType = 'success'; // Fixed: Changes badge to Green
+            } else if (rawInfo.includes("FLOW_CHECKING")) {
+                iType = 'info';
             }
             setBadge('info', iF, iType);
 
