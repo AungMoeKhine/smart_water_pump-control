@@ -1,48 +1,57 @@
 /*
  * ============================================================================================
- * SYSTEM: Automatic Pump & Compressor Control System (Dual-Core Edition)
+ * SYSTEM: Automatic Pump & Compressor Control System (Dual-Core + Master/Slave)
  * HARDWARE: ESP32-S3 | LCD 20x4 I2C | ZMPT101B | Ultrasonic | Flow Sensor
  * AUTHOR: [AMK Smart Pump Control System]
- * VERSION: 2.0 (Premium)
+ * VERSION: 2.1 (Premium Updated)
+ * UPDATED: 2026-05-16
  * ============================================================================================
- * 
- * --- HOW THE PROGRAM WORKS ---
+ *
+ * --- SYSTEM OVERVIEW ---
  *
  * 1. DUAL-CORE ARCHITECTURE (FreeRTOS):
- *    - Core 1 (Main Loop): Handles real-time safety-critical tasks: Sensor monitoring 
- *      (Ultrasonic, Voltage, Flow), Motor/Solenoid execution, and the LCD display.
- *    - Core 0 (Network Task): Dedicated to connectivity. Manages WiFi Station/AP modes, 
- *      Captive Portal DNS, Local Web Server (80), and HiveMQ Cloud MQTT (8883).
- *      This prevents network lag from interrupting hardware safety logic.
+ *    - Core 1 (Control Loop): Real-time safety and control logic.
+ *      Handles Ultrasonic/Voltage/Flow sensing, Pump/Solenoid output, alarms, and LCD UI.
+ *    - Core 0 (Network Loop): Connectivity services.
+ *      Handles WiFi STA/AP, Captive DNS, Web Server (:80), MQTT TLS Cloud (:8883), and OTA.
+ *    - Benefit: Network delays do not block safety-critical motor control.
  *
- * 2. OPERATIONAL MODES:
- *    - Water Pump Mode: Standard level-based control (Start at Low %, Stop at Full %).
- *    - Air Compressor Mode: Activates a Solenoid Valve (Vent) for a configurable delay 
- *      BEFORE the motor starts and AFTER it stops to release head pressure (Unloader logic).
+ * 2. MASTER-SLAVE CONNECTION (PAIR MODE):
+ *    - Standalone: Device runs independently.
+ *    - Master (Sump Tank): Publishes pump/status state to MQTT topic:
+ *      smartpump/<master_device_id>/status
+ *    - Slave (Upper Tank): Subscribes to linked Master status topic and enforces sequential logic.
+ *      Slave waits when Master is pumping, unsafe, settling, or link state is invalid.
+ *    - Link timeout: If Master status is not updated for 5 minutes, Slave enters fallback behavior.
  *
- * 3. SAFETY & PROTECTION LOGIC:
- *    - Voltage Guard: Continuously monitors RMS voltage. Shuts down motor if voltage 
- *      exceeds HIGH or falls below LOW thresholds. Includes a stabilization "Resume Gap" 
- *      and a countdown timer before restarting.
- *    - Dry-Run Protection: Uses a Flow Sensor. If the motor is ON but no flow is 
- *      detected within the "Dry-Run Delay," the system triggers an Alarm and Locks the pump.
- *    - Auto-Retry: After a Dry-Run lock, the system can automatically attempt a restart 
- *      after a set period (e.g., 30/60 mins).
- *    - Pump Cool-Down: If the pump runs continuously for 1 hour, it enforces a 
- *      mandatory rest period (Cool-down) to prevent motor burnout.
+ * 3. OPERATION MODES:
+ *    - Water Pump Mode: Start at low level %, stop at full level %.
+ *    - Air Compressor Mode: Pre-vent and post-vent solenoid timing (unloader sequence) around motor run.
  *
- * 4. CONNECTIVITY & CONTROL:
- *    - Local Web Interface: Provides a real-time dashboard and full settings configuration.
- *    - Cloud Control: Fully controllable via MQTT with PIN-code security for remote 
- *      toggling and settings updates.
- *    - DND (Do Not Disturb): Uses NTP time sync to prevent the pump from starting 
- *      automatically during late-night hours (Smart Scheduling).
+ * 4. PROTECTION & RECOVERY:
+ *    - Voltage Guard: High/Low cutoff + resume gap + delayed restart.
+ *    - Dry-Run Guard: Motor ON with no flow within delay => alarm + lock.
+ *    - Auto-Retry: Re-attempt start after configured wait time (e.g., 30/60 minutes).
+ *    - 1-Hour Runtime Cool-Down: Mandatory rest window to reduce motor heat stress.
  *
- * 5. MAINTENANCE & SECURITY:
- *    - Licensing: Token-based system (Base64/MD5) to manage subscription/validity days.
- *    - OTA Updates: Support for both Local File Upload and Remote GitHub firmware updates.
- *    - NVS Storage: Saves all settings and motor states to Flash memory to resume 
- *      correctly after a power failure.
+ * 5. CONNECTIVITY & CONTROL FUNCTIONS:
+ *    - Local Web Dashboard: Live data, settings, role pairing, maintenance controls.
+ *    - MQTT Cloud Control: Remote command/status with device PIN checks.
+ *    - Smart Scheduling (DND): NTP-based time window prevents undesired night auto-start.
+ *    - OTA: Local firmware upload + remote GitHub update check/start.
+ *
+ * 6. DATA PERSISTENCE & SECURITY:
+ *    - NVS (Preferences): Saves thresholds, role mode, runtime state, WiFi/cloud settings.
+ *    - Licensing: Token-based validity system (Base64/MD5 flow).
+ *    - TLS: Root CA-based secure MQTT transport.
+ *
+ * 7. PERFORMANCE NOTES (CURRENT IMPLEMENTATION):
+ *    - General scheduler tick: ~1 second control cadence.
+ *    - Ultrasonic measurement cycle: ~4 seconds.
+ *    - MQTT publish throttle: ~500 ms minimum spacing.
+ *    - MQTT reconnect backoff: ~10 seconds between attempts.
+ *    - KeepAlive/Socket tuning: 60s keepalive, 10s socket timeout for stable cloud sessions.
+ *
  * ============================================================================================
  */
 
@@ -143,7 +152,7 @@ const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_
 #define MAX_DISTANCE 84
 #define ULTRASONIC_INTERVAL 4000
 #define GENERAL_INTERVAL 1000
-const unsigned long MASTER_LINK_TIMEOUT = 300000UL; // 5 Minutes
+const unsigned long MASTER_LINK_TIMEOUT = 300000UL;  // 5 Minutes
 
 // ============================================================================
 // DATA STRUCTURES
@@ -161,8 +170,8 @@ struct VoltageConfig {
 };
 
 struct TankConfig {
-  int LOW_THRESHOLD = 30;   // Pump starts when water drops to this %
-  int FULL_THRESHOLD = 80;  // Pump stops when water reaches this %
+  int LOW_THRESHOLD = 50;   // Pump starts when water drops to this %
+  int FULL_THRESHOLD = 100;  // Pump stops when water reaches this %
 
   static constexpr float MIN_HEIGHT = 12.0f;  // 1 Foot
   static constexpr float MAX_HEIGHT = 84.0f;  // 7 Feet
@@ -476,12 +485,12 @@ const char index_html[] PROGMEM = R"rawliteral(
   .tank-ruler { position: absolute; left: -15px; top: 0; bottom: 0; width: 12px; z-index: 4; pointer-events: none; }
   .tank-ruler-tick { position: absolute; left: 0; width: 5px; height: 1px; background: rgba(210, 220, 235, 0.20); }
   .tank-ruler-tick.major { width: 8px; background: rgba(210, 220, 235, 0.30); }
-  .tank-guide-line { position: absolute; left: 8px; right: 8px; height: 1px; background: rgba(255, 255, 255, 0.10); }
-  .tank-guide-line.low-marker { left: 4px; right: 4px; height: 2px; background: rgba(255, 193, 7, 0.45); box-shadow: 0 0 4px rgba(255, 193, 7, 0.25); }
-  .tank-guide-line.full-marker { left: 4px; right: 4px; height: 2px; background: rgba(40, 167, 69, 0.45); box-shadow: 0 0 4px rgba(40, 167, 69, 0.25); }
-  .tank-guide-label { position: absolute; left: -82px; transform: translateY(-50%); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.4px; text-align: right; width: 60px; opacity: 0.55; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); white-space: nowrap; }
-  .low-marker .tank-guide-label { color: rgba(255, 193, 7, 0.62); }
-  .full-marker .tank-guide-label { color: rgba(40, 167, 69, 0.62); }
+  .tank-guide-line { position: absolute; left: 8px; right: 8px; height: 1px; background: rgba(255, 255, 255, 0.16); }
+  .tank-guide-line.low-marker { left: 4px; right: 4px; height: 2px; background: rgba(255, 193, 7, 0.65); box-shadow: 0 0 4px rgba(255, 193, 7, 0.40); }
+  .tank-guide-line.full-marker { left: 4px; right: 4px; height: 2px; background: rgba(40, 167, 69, 0.65); box-shadow: 0 0 4px rgba(40, 167, 69, 0.40); }
+  .tank-guide-label { position: absolute; left: -82px; transform: translateY(-50%); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.4px; text-align: right; width: 60px; opacity: 0.72; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); white-space: nowrap; }
+  .low-marker .tank-guide-label { color: rgba(255, 193, 7, 0.78); }
+  .full-marker .tank-guide-label { color: rgba(40, 167, 69, 0.78); }
   
   .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
   .modal-content { background: rgba(30, 30, 30, 0.9); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; border-left: 5px solid #ffc107; border-radius: 12px; width: 85%; max-width: 320px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); text-align: left; box-sizing: border-box; }
@@ -573,7 +582,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       if (d.tank <= d.lowTank) tf.classList.add('low-water'); else tf.classList.remove('low-water');
       if (d.pStat == "ON") tf.classList.add('pumping'); else tf.classList.remove('pumping');
       
-      let vS = d.vStat; let iF = d.info; let tS = d.tStr; let pS = d.pStat;
+      const rawInfo = d.info || "";
+let vS = d.vStat; let iF = d.info; let tS = d.tStr; let pS = d.pStat;
       if (d.lang==1) {
         if(vS=="NORMAL") vS="ပုံမှန်"; else if(vS=="OVER") vS="ကျော်လွန်"; else if(vS=="UNDER") vS="လျော့နည်း"; else if(vS=="DELAY") vS="စောင့်ဆိုင်း";
         if(iF=="DRY_RUN_ALARM!") iF="ရေမရှိ အချက်ပေး!"; else if(iF=="PUMP_LOCKED!") iF="ပိတ်သိမ်းထားသည်!"; else if(iF=="WAITING_RETRY!") iF="ပြန်စရန်စောင့်နေသည်!"; else if(iF=="SENSOR_ERROR!") iF="ဆင်ဆာ ချို့ယွင်းချက်!"; else if(iF=="SYSTEM_STANDBY!") iF="အသင့်အနေအထား!"; else if(iF=="FLOW_DETECTED!") iF="ရေစီးဆင်းမှုရှိသည်!"; else if(iF=="FLOW_CHECKING!") iF="ရေစီးဆင်းမှုစစ်နေ!"; else if(iF=="COOLING_DOWN!") iF="အအေးခံနေသည်!"; else if(iF=="VENTING_VALVE!") iF="လေလျှော့နေသည်!"; else if(iF=="OVER_VOLTAGE!") iF="ဗို့အားကျော်လွန်နေသည်!"; else if(iF=="UNDER_VOLTAGE!") iF="ဗို့အားလျော့နည်းနေသည်!"; else if(iF.startsWith("VOLT_DELAY")) { let secs = iF.replace(/[^\d]/g, ""); iF = "ဗို့အားပြန်တည်ငြိမ်ရန်စောင့်ချိန်! (" + secs + "s)"; } else if(iF.startsWith("SETTLING_WATER!")) { let mins = iF.replace(/[^\d]/g, ""); iF = "ရေအနည်ထိုင်ရန်စောင့်ချိန်! (" + mins + "m)"; }
@@ -598,16 +608,28 @@ else if(iF.startsWith("SETTLING_WATER!")) { let mins = iF.replace(/[^\d]/g, "");
       else if (d.pStat === "DRY ALRM" || d.pStat === "LOCKED") pType = 'danger';
       setBadge('state', pS, pType);
       
-      // 3. System Info Colors (Fixed Green Flow)
-      let iType = 'info';
-      if (iF.includes("ALARM") || iF.includes("ERROR")) {
-          iType = 'danger';
-      } else if (iF.includes("WAITING") || iF.includes("LOCKED") || iF.includes("COOLING") || iF.includes("VENTING") || iF.includes("SETTLING") || iF.includes("DELAY")) {
-          iType = 'warning';
-      } else if (iF.includes("FLOW_DETECTED")) {
-          iType = 'success'; // Changes badge to Green
-      }
-      setBadge('info', iF, iType);
+      // 3. System Info Colors (use rawInfo, not translated iF)
+let iType = 'success';
+if (
+    rawInfo.includes("OVER_VOLTAGE") ||
+    rawInfo.includes("UNDER_VOLTAGE") ||
+    rawInfo.includes("ALARM") ||
+    rawInfo.includes("ERROR")
+) {
+    iType = 'danger';
+} else if (
+    rawInfo.includes("VOLT_DELAY") ||
+    rawInfo.includes("WAITING") ||
+    rawInfo.includes("LOCKED") ||
+    rawInfo.includes("COOLING") ||
+    rawInfo.includes("VENTING") ||
+    rawInfo.includes("SETTLING")
+) {
+    iType = 'warning';
+} else if (rawInfo.includes("FLOW_CHECKING")) {
+    iType = 'info';
+}
+setBadge('info', iF, iType);
 
       if (d.dndAct == 1) { document.getElementById('dndBadge').style.display = 'block'; } else { document.getElementById('dndBadge').style.display = 'none'; }
       
@@ -1305,31 +1327,33 @@ String getStartBlockReason() {
   if (msConfig.sysRole == 2 && msConfig.linkedID != "") {
     unsigned long now = millis();
 
-    // Fix: Only wait for the VERY first sync for 5 minutes. 
+    // Fix: Only wait for the VERY first sync for 5 minutes.
     // If millis() is over 5 mins and we still have 0 updates, allow Standalone mode.
     if (msConfig.lastMasterUpdate == 0 && now < MASTER_LINK_TIMEOUT) {
-        return "Waiting for first sync...";
+      return "Waiting for first sync...";
     }
 
     // Check if the Master is Online (Update received within 5 minutes)
     bool masterIsOnline = (WiFi.status() == WL_CONNECTED && (now - msConfig.lastMasterUpdate < MASTER_LINK_TIMEOUT));
-    
+
     // If we have had at least one sync, or if we have timed out waiting for the first one:
     if (masterIsOnline && msConfig.lastMasterUpdate != 0) {
-        // ENFORCE SEQUENTIAL PRIORITY: Master is online, follow its rules.
-        if (msConfig.masterPStat == "ON") return "Master is Pumping. Waiting for Sump.";
-        
-        bool masterIsSafe = (msConfig.masterInfo.indexOf("STANDBY") != -1 || 
-                             msConfig.masterInfo.indexOf("FLOW") != -1);
-        
-        if (!masterIsSafe) {
-            return "Master Not Ready: " + msConfig.masterInfo;
-        }
+      // ENFORCE SEQUENTIAL PRIORITY: Master is online, follow its rules.
+      if (msConfig.masterPStat == "ON") return "Master is Pumping. Waiting for Sump.";
+
+      bool masterIsSafe = (msConfig.masterInfo.indexOf("STANDBY") != -1 || msConfig.masterInfo.indexOf("FLOW") != -1);
+
+      if (!masterIsSafe) {
+        return "Master Not Ready: " + msConfig.masterInfo;
+      }
     } else {
-        // FALLBACK: Link is dead or timed out. Allow standalone operation.
-        // This will now trigger if internet is out for 5 mins OR if master is silent for 5 mins after boot.
-        static unsigned long lastLog = 0;
-        if (now - lastLog > 60000) { Serial.println("[SLAVE] Master Link Offline. Standalone Active."); lastLog = now; }
+      // FALLBACK: Link is dead or timed out. Allow standalone operation.
+      // This will now trigger if internet is out for 5 mins OR if master is silent for 5 mins after boot.
+      static unsigned long lastLog = 0;
+      if (now - lastLog > 60000) {
+        Serial.println("[SLAVE] Master Link Offline. Standalone Active.");
+        lastLog = now;
+      }
     }
   }
   return "";
@@ -1760,7 +1784,7 @@ void handleBuzzerPatterns() {
 
 void updatePumpLogic() {
   unsigned long currentMillis = millis();
-  bool triggerPublish = false; 
+  bool triggerPublish = false;
 
   static unsigned long lastExpiryCheck = 0;
   if (currentMillis - lastExpiryCheck > 3600000UL) {
@@ -1771,27 +1795,26 @@ void updatePumpLogic() {
   if (!xSemaphoreTakeRecursive(systemMutex, pdMS_TO_TICKS(50))) return;
 
   // --- NEW: CONTINUOUS MASTER/SLAVE MONITORING (Strict Version) ---
-  if (msConfig.sysRole == 2 && pumpConfig.motorStatus == 1) { 
-      unsigned long now = millis();
-      
-      // Check if Master is Online
-      bool masterIsOnline = (WiFi.status() == WL_CONNECTED && msConfig.lastMasterUpdate != 0 && (now - msConfig.lastMasterUpdate < MASTER_LINK_TIMEOUT));
+  if (msConfig.sysRole == 2 && pumpConfig.motorStatus == 1) {
+    unsigned long now = millis();
 
-      if (masterIsOnline) {
-          // Check if Master is specifically in a SAFE state
-          // Safe states are ONLY "SYSTEM_STANDBY!", "FLOW_DETECTED!", or "FLOW_CHECKING!"
-          bool masterIsSafe = (msConfig.masterInfo.indexOf("STANDBY") != -1 || 
-                               msConfig.masterInfo.indexOf("FLOW") != -1);
-          
-          // If Master is NOT safe (is Empty, Busy, Settling, Voltage Error, or Sensor Error), Slave MUST stop.
-          if (!masterIsSafe) {
-              pumpConfig.motorStatus = 0;
-              pumpConfig.manualOverride = false; // Reset override so it stays stopped
-              Serial.println("[SLAVE] Master Not Ready (" + msConfig.masterInfo + "). Sequential Stop triggered.");
-              saveMotorStatus();
-              triggerPublish = true; 
-          }
+    // Check if Master is Online
+    bool masterIsOnline = (WiFi.status() == WL_CONNECTED && msConfig.lastMasterUpdate != 0 && (now - msConfig.lastMasterUpdate < MASTER_LINK_TIMEOUT));
+
+    if (masterIsOnline) {
+      // Check if Master is specifically in a SAFE state
+      // Safe states are ONLY "SYSTEM_STANDBY!", "FLOW_DETECTED!", or "FLOW_CHECKING!"
+      bool masterIsSafe = (msConfig.masterInfo.indexOf("STANDBY") != -1 || msConfig.masterInfo.indexOf("FLOW") != -1);
+
+      // If Master is NOT safe (is Empty, Busy, Settling, Voltage Error, or Sensor Error), Slave MUST stop.
+      if (!masterIsSafe) {
+        pumpConfig.motorStatus = 0;
+        pumpConfig.manualOverride = false;  // Reset override so it stays stopped
+        Serial.println("[SLAVE] Master Not Ready (" + msConfig.masterInfo + "). Sequential Stop triggered.");
+        saveMotorStatus();
+        triggerPublish = true;
       }
+    }
   }
 
   handleBuzzerPatterns();
@@ -1836,8 +1859,8 @@ void updatePumpLogic() {
       }
     }
     if (!timeIsReady && currentDndActive == true) {
-        currentDndActive = false;
-        triggerPublish = true;
+      currentDndActive = false;
+      triggerPublish = true;
     }
   } else {
     currentDndActive = false;
@@ -2245,13 +2268,12 @@ void updateLCD() {
     isVenting = (currentState == PumpState::PRE_START_VALVE || currentState == PumpState::POST_STOP_VALVE);
     physFlow = (digitalRead(FLOW_SENSOR_PIN) == LOW);
     if (cDown) restMinsLeft = (((coolDownConfig.restMinutes * 60000UL) - (now - coolDownConfig.restStartTime)) / 60000UL) + 1;
-    
+
     isSettling = msConfig.isSettling;
     if (isSettling) setMinsLeft = (((msConfig.settlingMinutes * 60000UL) - (now - msConfig.settleStartTime)) / 60000UL) + 1;
 
     if (msConfig.sysRole == 2 && msConfig.linkedID != "") {
-      if ((now - msConfig.lastMasterUpdate > 300000UL) || msConfig.masterPStat == "ON" || 
-          (msConfig.masterInfo != "SYSTEM_STANDBY!" && msConfig.masterInfo != "FLOW_DETECTED!" && msConfig.masterInfo != "FLOW_CHECKING!")) {
+      if ((now - msConfig.lastMasterUpdate > 300000UL) || msConfig.masterPStat == "ON" || (msConfig.masterInfo != "SYSTEM_STANDBY!" && msConfig.masterInfo != "FLOW_DETECTED!" && msConfig.masterInfo != "FLOW_CHECKING!")) {
         slaveWait = true;
       }
     }
@@ -2510,7 +2532,7 @@ void handleSave() {
     if (server.hasArg("linkID")) {
       msConfig.linkedID = server.arg("linkID");
       msConfig.linkedID.trim();
-      msConfig.linkedID.toUpperCase(); // Force uppercase for Cloud ID
+      msConfig.linkedID.toUpperCase();  // Force uppercase for Cloud ID
       preferences.putString("linkID", msConfig.linkedID);
     }
     if (server.hasArg("setM")) {
@@ -2729,8 +2751,7 @@ String generateStatusJson() {
     int setMinsLeft = (((msConfig.settlingMinutes * 60000UL) - (millis() - msConfig.settleStartTime)) / 60000UL) + 1;
     if (setMinsLeft < 0) setMinsLeft = 0;
     info = "SETTLING_WATER!(" + String(setMinsLeft) + "m)";
-  }
-  else if (pumpConfig.isRunning) info = (digitalRead(FLOW_SENSOR_PIN) == LOW) ? "FLOW_DETECTED!" : "FLOW_CHECKING!";
+  } else if (pumpConfig.isRunning) info = (digitalRead(FLOW_SENSOR_PIN) == LOW) ? "FLOW_DETECTED!" : "FLOW_CHECKING!";
   else info = "SYSTEM_STANDBY!";
   doc["info"] = info;
 
