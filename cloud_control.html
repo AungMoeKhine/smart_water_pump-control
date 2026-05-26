@@ -886,18 +886,18 @@
                     id="vG" onchange="markDirty('vG')"></select>
                 <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select
                     id="dD" onchange="markDirty('dD')"></select>
+                <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div>
+                <select id="rM" onchange="markDirty('rM')">
+                    <option value="0">Disabled</option>
+                    <option value="30">30 Minutes</option>
+                    <option value="60">60 Minutes</option>
+                </select>
                 <div class="lbl-wrap"><label>Pump Cool-down (After 1Hr)</label><span class="range">Disable / 5 -
                         15m</span></div><select id="rstM" onchange="markDirty('rstM')">
                     <option value="0">Disabled</option>
                     <option value="5">5 Minutes</option>
                     <option value="10">10 Minutes</option>
                     <option value="15">15 Minutes</option>
-                </select>
-                <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div>
-                <select id="rM" onchange="markDirty('rM')">
-                    <option value="0">Disabled</option>
-                    <option value="30">30 Minutes</option>
-                    <option value="60">60 Minutes</option>
                 </select>
                 <hr>
                 <div class="lbl-wrap"><label>🌙 Smart Scheduling (DND)</label></div><select id="dndEn"
