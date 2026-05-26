@@ -718,6 +718,19 @@
 
         // Fallback for browsers where plugin success events are delayed/missed
         let modalDoneHandled = false;
+
+        // Fallback 2: If user clicks NEXT in installer completion dialog, close session now.
+        window.addEventListener("click", (ev) => {
+            if (successHandled) return;
+            const path = ev.composedPath ? ev.composedPath() : [];
+            for (const n of path) {
+                const t = (n && n.textContent) ? String(n.textContent).trim().toUpperCase() : "";
+                if (t === "NEXT") {
+                    handleInstallSuccessOnce();
+                    break;
+                }
+            }
+        }, true);
         setInterval(() => {
             if (modalDoneHandled || successHandled) return;
             const txt = (document.body && document.body.innerText) ? document.body.innerText : "";
