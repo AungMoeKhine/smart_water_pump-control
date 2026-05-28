@@ -690,16 +690,29 @@
             if (successHandled) return;
             successHandled = true;
 
-            // 1. Forcefully hide the ESP Web Tools popup to prevent clicking "Next"
-            document.querySelectorAll('ewt-install-dialog, ewt-dialog, ewt-console').forEach(el => el.remove());
-
-            // 2. Remove Device ID so the next board requires a brand new token
+            // 1. Wipe the device ID immediately so the token cannot be reused
             localStorage.removeItem("sw_device_id");
 
-            closeSession("Installation complete. Securing session...", "#00e87a");
+            // 2. Create a massive full-screen overlay to block ALL clicks and hide the Web Tools popup
+            let blocker = document.createElement('div');
+            blocker.style.position = 'fixed';
+            blocker.style.top = '0';
+            blocker.style.left = '0';
+            blocker.style.width = '100vw';
+            blocker.style.height = '100vh';
+            blocker.style.backgroundColor = 'rgba(8, 12, 23, 0.98)'; // Deep background color
+            blocker.style.zIndex = '999999'; // Puts this ON TOP of the web tools popup
+            blocker.style.display = 'flex';
+            blocker.style.alignItems = 'center';
+            blocker.style.justifyContent = 'center';
+            blocker.style.flexDirection = 'column';
+            blocker.innerHTML = '<h2 style="color:#00e87a; font-size: 2rem; margin-bottom: 10px;">Installation Complete!</h2><p style="color:#a0a8c0; font-size: 1.1rem;">Securing session & disconnecting USB...</p>';
+            document.body.appendChild(blocker);
+
+            closeSession("Installation complete.", "#00e87a");
             
-            // 3. Reload page to drop the USB Serial connection
-            setTimeout(() => window.location.reload(), 1500);
+            // 3. Reload the page after 2 seconds to drop the USB connection completely
+            setTimeout(() => window.location.reload(), 2000);
         }
 
         installBtn.addEventListener("state-changed", (ev) => {
@@ -713,7 +726,6 @@
             handleInstallSuccessOnce();
         });
 
-        // 4. SECURITY: If they close the USB connection window mid-process, reload page
         installBtn.addEventListener("closed", () => {
             if (sessionClosed && !successHandled) {
                 window.location.reload(); 
