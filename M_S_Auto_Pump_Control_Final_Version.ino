@@ -145,7 +145,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 
-const int FIRMWARE_VERSION = 2;
+const int FIRMWARE_VERSION = 1;
 const char* FW_URL_BASE = "https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/";
 
 #define SAMPLE_BUFFER_SIZE 20
@@ -170,7 +170,7 @@ struct VoltageConfig {
 };
 
 struct TankConfig {
-  int LOW_THRESHOLD = 50;   // Pump starts when water drops to this %
+  int LOW_THRESHOLD = 50;    // Pump starts when water drops to this %
   int FULL_THRESHOLD = 100;  // Pump stops when water reaches this %
 
   static constexpr float MIN_HEIGHT = 12.0f;  // 1 Foot
@@ -739,7 +739,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
       <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><select name="vH" id="vH_s"></select>
       <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><select name="vL" id="vL_s"></select>
       <div class="lbl-wrap"><label>Voltage Resume Gap</label><span class="range">1 - 10 V</span></div><select name="vG" id="vG_s"></select>
-      <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select name="dD" id="dD_s"></select>
+      <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">60 - 180 s</span></div><select name="dD" id="dD_s"></select>      
       <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span></div><select name="rM" id="rM_s"></select>
       <div class="lbl-wrap"><label>Pump Cool-down (After 1Hr)</label><span class="range">Disable / 5 - 15m</span></div><select name="rstM" id="rstM_s"></select>
       <hr>
@@ -1351,39 +1351,21 @@ String getStartBlockReason() {
 
   if (compConfig.opMode == 1) {
     if (compConfig.isPreVenting) return "Compressor is already starting (Pre-Venting)...";
-    if (compConfig.isPostVenting) return "System is still venting pressure. Please wait.";
+    // REMOVED: if (compConfig.isPostVenting) return "System is still venting...";
+    // This allows the Auto-Resume logic to "queue" the motor status to ON while venting.
   }
 
-  // --- ADAPTIVE MASTER/SLAVE INTERLOCK ---
   if (msConfig.sysRole == 2 && msConfig.linkedID != "") {
     unsigned long now = millis();
-
-    // Fix: Only wait for the VERY first sync for 5 minutes.
-    // If millis() is over 5 mins and we still have 0 updates, allow Standalone mode.
     if (msConfig.lastMasterUpdate == 0 && now < MASTER_LINK_TIMEOUT) {
       return "Waiting for first sync...";
     }
-
-    // Check if the Master is Online (Update received within 5 minutes)
     bool masterIsOnline = (WiFi.status() == WL_CONNECTED && (now - msConfig.lastMasterUpdate < MASTER_LINK_TIMEOUT));
-
-    // If we have had at least one sync, or if we have timed out waiting for the first one:
     if (masterIsOnline && msConfig.lastMasterUpdate != 0) {
-      // ENFORCE SEQUENTIAL PRIORITY: Master is online, follow its rules.
       if (msConfig.masterPStat == "ON") return "Master is Pumping. Waiting for Sump.";
-
       bool masterIsSafe = (msConfig.masterInfo.indexOf("STANDBY") != -1 || msConfig.masterInfo.indexOf("FLOW") != -1);
-
       if (!masterIsSafe) {
         return "Master Not Ready: " + msConfig.masterInfo;
-      }
-    } else {
-      // FALLBACK: Link is dead or timed out. Allow standalone operation.
-      // This will now trigger if internet is out for 5 mins OR if master is silent for 5 mins after boot.
-      static unsigned long lastLog = 0;
-      if (now - lastLog > 60000) {
-        Serial.println("[SLAVE] Master Link Offline. Standalone Active.");
-        lastLog = now;
       }
     }
   }
@@ -1424,15 +1406,12 @@ String processManualToggle() {
     }
 
     // 3. VENTING LOCK (For Compressor Mode)
-    // Block normal Start/Stop commands ONLY if we are currently venting
+    // Only block HUMAN manual clicks if venting.
+    // The background Auto-Resume logic bypasses this function.
     if (compConfig.opMode == 1) {
-      if (compConfig.isPreVenting) {
+      if (compConfig.isPreVenting || compConfig.isPostVenting) {
         xSemaphoreGiveRecursive(systemMutex);
-        return "Blocked:Starting up... Please wait.";
-      }
-      if (compConfig.isPostVenting) {
-        xSemaphoreGiveRecursive(systemMutex);
-        return "Blocked:Stopping/Venting... Please wait.";
+        return "Blocked:Venting pressure... Please wait.";
       }
     }
 
@@ -1450,6 +1429,15 @@ String processManualToggle() {
       dryRunConfig.waitSeconds = dryRunConfig.WAIT_SECONDS_SET;
       Serial.println("[USER] Manual Start Command Accepted.");
     } else {
+
+      // --- NEW BLOCKING NOTIFICATION FOR LOW WATER ---
+      // We only show this warning if it's NOT DND period.
+      // If it IS DND period, the pump will stop normally as you requested.
+      if (tankConfig.displayUpperPercentage <= tankConfig.LOW_THRESHOLD && !currentDndActive) {
+        xSemaphoreGiveRecursive(systemMutex);
+        return "Blocked:Water level is LOW. Pump will continue until Tank is Full.";
+      }
+      
       pumpConfig.motorStatus = 0;
       pumpConfig.manualOverride = true;
       Serial.println("[USER] Manual Stop Command Accepted.");
