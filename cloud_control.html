@@ -730,6 +730,22 @@
             </div>
             <input type="text" id="devID" placeholder="DEVICE ID" style="text-transform:uppercase;">
             <input type="password" id="devPin" placeholder="••••••">
+            <p style="text-align:center; font-size:0.75rem; color:#555; cursor:pointer; margin-top:10px;"
+                onclick="unlockFactory()">⚙️ Advanced Server Settings</p>
+            <div id="brokerSec"
+                style="display:none; margin-top:10px; border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:12px; background: rgba(0,0,0,0.2);">
+                <label style="font-size:0.7rem; color:#888;">Broker URL</label>
+                <input type="text" id="cfgBroker" placeholder="Cluster URL"
+                    style="font-size:0.9rem; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:#888;">Port (Usually 8883)</label>
+                <input type="number" id="cfgPort" value="8884" style="font-size:0.9rem; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:#888;">MQTT User</label>
+                <input type="text" id="cfgUser" placeholder="Smart_Pump" style="font-size:0.9rem; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:#888;">MQTT Password</label>
+                <input type="password" id="cfgPass" placeholder="••••••" style="font-size:0.9rem; margin-bottom:10px;">
+                <button class="btn btn-purple" style="padding:10px; font-size:0.9rem;" onclick="saveLocalServer()">Apply
+                    Server Settings</button>
+            </div>
             <button id="btnLogin" class="btn" onclick="connect()"
                 style="margin-top: 15px; border-radius: 10px; padding: 16px; font-size: 1.1rem; background: #007bff;">Connect</button>
         </div>
@@ -914,6 +930,21 @@
                 </div>
                 <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div><select id="tzOf"
                     onchange="markDirty('tzOf')"></select>
+                <hr>
+                <button type="button" class="btn btn-purple" style="margin-bottom:10px; padding:10px;"
+                    onclick="unlockFactory()">🛠️ Factory Mode</button>
+                <div id="factorySec"
+                    style="display:none; background:rgba(111,66,193,0.1); padding:15px; border-radius:12px; border:1px solid rgba(111,66,193,0.3);">
+                    <h3 style="color:#d8b4fe; text-align:center;">Cloud Server Config</h3>
+                    <div class="lbl-wrap"><label>MQTT Server URL</label></div><input type="text" id="mqSrv_s"
+                        oninput="markDirty('mqSrv_s')">
+                    <div class="lbl-wrap"><label>MQTT Port</label></div><input type="number" id="mqPort_s"
+                        oninput="markDirty('mqPort_s')">
+                    <div class="lbl-wrap"><label>MQTT Username</label></div><input type="text" id="mqUser_s"
+                        oninput="markDirty('mqUser_s')">
+                    <div class="lbl-wrap"><label>MQTT Password</label></div><input type="password" id="mqPass_s"
+                        oninput="markDirty('mqPass_s')">
+                </div>
                 <button class="btn btn-green" onclick="sendSave()">Save & Reboot</button>
                 <hr>
                 <!-- LICENSE -->
@@ -974,10 +1005,10 @@
 
     <script>
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js'); }); }
-        const BROKER = "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
-        const PORT = 8884;
-        const USER = "Smart_Pump";
-        const PASS = "Sm@rt_Pump_2026";
+        let BROKER = localStorage.getItem("lastBroker") || "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
+        let PORT = parseInt(localStorage.getItem("lastPort")) || 8884;
+        let USER = localStorage.getItem("lastUser") || "Smart_Pump";
+        let PASS = localStorage.getItem("lastPass") || "Sm@rt_Pump_2026";
 
         let sysLang = localStorage.getItem('cloudLang') ? parseInt(localStorage.getItem('cloudLang')) : 0;
         const dict = {
@@ -999,8 +1030,10 @@
             "High Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Low Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်",
             "Voltage Resume Gap": "ဗို့အားပြန်ဖွင့် ကွာဟချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်",
             "Pump Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်",
-            "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်",
-            "End Hour": "ပြီးဆုံးရန် အချိန်", "Home Time Zone (GMT)": "အချိန်ဇုန် (GMT)",
+            "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)",
+            "Start Hour": "စတင်ရန် အချိန်",
+            "End Hour": "ပြီးဆုံးရန် အချိန်",
+            "📍 Home Time Zone (GMT)": "📍 အချိန်ဇုန် (GMT)",
             "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "System Role (Pairing)": "စနစ် အဆင့်အတန်း (Role)",
             "Master Settling Time": "ရေအနည်ထိုင်ချိန်", "Linked Master ID": "ချိတ်ဆက်ထားသော Master ID",
             "High Tank Stop Level": "ရေမော်တာရပ်မည့် ရေမှတ်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု",
@@ -1009,6 +1042,16 @@
             "Upload Token File (.key)": "လိုင်စင်တိုကင်ဖိုင်တင်ရန် (.key)", "Paste Token String": "တိုကင် စာသား ထည့်ပါ",
             "Choose File": "ဖိုင်ရွေးမည်", "Upload File": "ဖိုင် တင်မည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်",
             "Status:": "အခြေအနေ-",
+            "🛠️ Factory Mode": "🛠️ စက်ရုံထုတ် ဆက်တင်များ",
+            "Cloud Server Config": "ကလောက် ဆာဗာ ဆက်တင်များ",
+            "MQTT Server URL": "ဆာဗာ လိပ်စာ (URL)",
+            "MQTT Port": "ပေါ့တ် (Port)",
+            "MQTT Username": "အသုံးပြုသူ အမည်",
+            "MQTT Password": "စကားဝှက်",
+            "⚙️ Advanced Server Settings": "⚙️ ဆာဗာ အဆင့်မြင့် ဆက်တင်များ",
+            "Apply Server Settings": "ဆာဗာ ပြောင်းလဲမှု အတည်ပြုမည်",
+            "Broker URL": "ဆာဗာ လိပ်စာ (URL)",
+            "MQTT User": "အသုံးပြုသူ အမည်",
         };
         const tr = (t) => {
             if (sysLang != 1 || !t) return t;
@@ -1033,6 +1076,34 @@
 
         function toggleRole() { let r = document.getElementById('sysRole').value; document.getElementById('masterOpts').style.display = (r == "1") ? "block" : "none"; document.getElementById('slaveOpts').style.display = (r == "2") ? "block" : "none"; }
         function toggleVDly() { let op = document.getElementById('opM').value; let vW = document.getElementById('vWrap'), vD = document.getElementById('vDly'); if (op == "1") { vW.style.display = 'flex'; vD.style.display = 'block'; } else { vW.style.display = 'none'; vD.style.display = 'none'; } }
+        function unlockFactory() {
+            let p = prompt("Enter Factory Admin Key:");
+            if (p === "AMK_ADMIN_2026") {
+                // This opens the one on the login screen
+                if (document.getElementById('brokerSec')) document.getElementById('brokerSec').style.display = 'block';
+                // This opens the one on the settings dashboard
+                if (document.getElementById('factorySec')) document.getElementById('factorySec').style.display = 'block';
+                vibe();
+            } else { alert("Access Denied"); }
+        }
+
+        function saveLocalServer() {
+            const b = document.getElementById('cfgBroker').value.trim();
+            const p = document.getElementById('cfgPort').value.trim();
+            const u = document.getElementById('cfgUser').value.trim();
+            const pw = document.getElementById('cfgPass').value.trim();
+
+            if (!b) { alert("URL is required"); return; }
+
+            localStorage.setItem("lastBroker", b);
+            localStorage.setItem("lastPort", p || "8884");
+            localStorage.setItem("lastUser", u || "Smart_Pump");
+            localStorage.setItem("lastPass", pw || "Sm@rt_Pump_2026");
+
+            vibe();
+            alert("Server Updated for this device. App will reload.");
+            location.reload();
+        }
 
         // --- KEYCHAIN LOGIC ---
         function getKeychain() { return JSON.parse(localStorage.getItem("pumpKeychain") || "[]"); }
@@ -1102,7 +1173,7 @@
                 document.getElementById('tabHome').innerText = "🏠 ပင်မစာမျက်နှာ";
                 document.getElementById('tabSettings').innerText = "⚙️ ဆက်တင်များ";
 
-                document.querySelectorAll('.row span:first-child, .lbl-wrap label, h3, .show-pass').forEach(el => {
+                document.querySelectorAll('.row span:first-child, label, h3, .show-pass, button').forEach(el => {
                     let txt = el.innerText.trim();
                     if (!dict[txt]) return;
 
@@ -1143,6 +1214,13 @@
 
                 document.querySelector('button[onclick="sendSave()"]').innerText = "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်";
                 document.querySelector('button[onclick="logout()"]').innerText = "ထွက်မည်";
+                // Manual fix for DND labels and Factory button
+                document.querySelectorAll('label').forEach(l => {
+                    if (l.innerText === "Start Hour") l.innerText = tr("Start Hour");
+                    if (l.innerText === "End Hour") l.innerText = tr("End Hour");
+                });
+                const factBtn = document.querySelector('button[onclick="unlockFactory()"]');
+                if (factBtn) factBtn.innerText = tr("🛠️ Factory Mode");
                 document.querySelector('button[onclick="uploadLicenseFile()"]').innerText = "ဖိုင် တင်မည်";
                 document.querySelector('button[onclick="uploadLicenseText()"]').innerText = "စာသားဖြင့် သက်တမ်းတိုးမည်";
                 document.querySelector('button[onclick="checkOTA(this)"]').innerText = "ဗားရှင်း အသစ်စစ်ရန်";
@@ -1272,7 +1350,11 @@
                 uH: parseFloat(document.getElementById('uH').value), lowTank: parseInt(document.getElementById('lowTank').value), fullTank: parseInt(document.getElementById('fullTank').value), vH: parseInt(document.getElementById('vH').value), vL: parseInt(document.getElementById('vL').value), vG: parseInt(document.getElementById('vG').value),
                 dD: parseInt(document.getElementById('dD').value), rstM: parseInt(document.getElementById('rstM').value), rM: parseInt(document.getElementById('rM').value),
                 dndEn: parseInt(document.getElementById('dndEn').value), dndS: parseInt(document.getElementById('dndS').value), dndE: parseInt(document.getElementById('dndE').value),
-                tzOf: parseFloat(document.getElementById('tzOf').value)
+                tzOf: parseFloat(document.getElementById('tzOf').value),
+                mqSrv: document.getElementById('mqSrv_s') ? document.getElementById('mqSrv_s').value : undefined,
+                mqPort: document.getElementById('mqPort_s') ? parseInt(document.getElementById('mqPort_s').value) : undefined,
+                mqUser: document.getElementById('mqUser_s') ? document.getElementById('mqUser_s').value : undefined,
+                mqPass: document.getElementById('mqPass_s') ? document.getElementById('mqPass_s').value : undefined
             });
             document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device...</span></h2>';
             setTimeout(() => location.reload(), 20000);
@@ -1426,6 +1508,10 @@
                 if (d.dndS !== undefined) safeUpdate('dndS', d.dndS);
                 if (d.dndE !== undefined) safeUpdate('dndE', d.dndE);
                 if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
+                if (d.mqSrv !== undefined) safeUpdate('mqSrv_s', d.mqSrv);
+                if (d.mqPort !== undefined) safeUpdate('mqPort_s', d.mqPort);
+                if (d.mqUser !== undefined) safeUpdate('mqUser_s', d.mqUser);
+                if (d.mqPass !== undefined) safeUpdate('mqPass_s', d.mqPass);
                 if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
             }
 
