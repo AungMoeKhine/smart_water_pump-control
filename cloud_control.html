@@ -758,6 +758,14 @@
         <div id="warnBanner" class="banner banner-yellow">⚠️ SUBSCRIPTION ENDING SOON ⚠️<br><span
                 style="font-size:0.8rem; font-weight:normal; color:#ddd;" id="warnMsg"></span></div>
 
+        <div id="promoBanner"
+            style="display:none; background: linear-gradient(135deg, #6e8efb, #a777e3); color:white; padding:15px; border-radius:15px; margin: 0 auto 15px auto; font-weight:bold; max-width:400px; border:2px solid #fff; box-shadow:0 4px 15px rgba(0,0,0,0.3); text-align:center;">
+            <span style="font-size:1.2rem; display:block; margin-bottom:5px;">📢 Message from AMK</span>
+            <span id="promoText" style="font-weight:normal; font-size:1rem;"></span>
+            <button onclick="dismissPromo()"
+                style="background:rgba(255,255,255,0.2); border:none; color:white; margin-top:10px; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.8rem;">Dismiss</button>
+        </div>
+
         <div class="tabs">
             <div id="tabHome" class="tab tab-active" onclick="showTab('home')">🏠 Home</div>
             <div id="tabSettings" class="tab tab-inactive" onclick="showTab('settings')">⚙️ Settings</div>
@@ -1004,6 +1012,17 @@
     </div>
 
     <script>
+        let localDismissedMsg = localStorage.getItem("amk_dismissed_promo") || ""; // This variable is missing in your current file
+
+        function dismissPromo() {
+            vibe();
+            const currentMsg = document.getElementById('promoText').innerText;
+            localDismissedMsg = currentMsg;
+            // This line saves it to the phone's permanent memory:
+            localStorage.setItem("amk_dismissed_promo", currentMsg);
+            document.getElementById('promoBanner').style.display = 'none';
+        }
+
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js'); }); }
         let BROKER = localStorage.getItem("lastBroker") || "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
         let PORT = parseInt(localStorage.getItem("lastPort")) || 8884;
@@ -1389,6 +1408,7 @@
         }
 
         function updateUI(d) {
+
             renderTankRulerTicks();
             if (sysLang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm');
 
@@ -1417,6 +1437,25 @@
             }
 
             isExpired = d.expired ? true : false;
+
+            // Diagnostic: Uncomment the line below to see a popup when data arrives
+            // if (d.promo) alert("Data arrived: " + d.promo); 
+
+            const pBanner = document.getElementById('promoBanner');
+            const pText = document.getElementById('promoText');
+
+            if (d.promo && d.promo.trim() !== "" && d.promo !== localDismissedMsg) {
+                pBanner.style.display = 'block';
+                pText.innerText = d.promo;
+            } else if (!d.promo || d.promo.trim() === "") {
+                pBanner.style.display = 'none';
+                // Clear permanent memory if the admin clears the message
+                localDismissedMsg = "";
+                localStorage.removeItem("amk_dismissed_promo");
+            } else {
+                pBanner.style.display = 'none';
+            }
+
             const expBanner = document.getElementById('expiryBanner'), warnBanner = document.getElementById('warnBanner'), licStat = document.getElementById('licStat');
 
             if (isExpired) {
