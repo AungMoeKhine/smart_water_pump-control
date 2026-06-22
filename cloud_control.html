@@ -367,11 +367,11 @@
                 <div class="row"><span>Volt Status:</span> <span id="vstat" class="badge bg-secondary">--</span></div>
                 <div class="row"><span>Pump:</span> <span id="pstate" class="badge bg-secondary">--</span></div>
                 <div class="row"><span>System Info:</span> <span id="info" class="badge bg-secondary">--</span></div>
+                <div class="row" id="cdRow" style="display:none; color:#ff6b6b; font-weight:bold;"><span>Retry in:</span> <span id="cd" style="background:rgba(220,53,69,0.1); padding:2px 8px; border-radius:6px;">--</span></div>
                 <div style="margin-top: 15px;">
                     <label style="font-size: 0.75rem; color: #555; text-transform: uppercase;">📋 Event History</label>
                     <div id="logBox" style="background:#000; color:#0f0; font-family:monospace; padding:10px 20px 10px 10px; border-radius:10px; height:130px; overflow-y:auto; overflow-x:hidden; font-size:0.65rem; text-align:left; border:1px solid #333; margin-top:8px; line-height:1.4; white-space:pre-wrap; word-break:break-word; letter-spacing: -0.2px; scrollbar-gutter: stable;">Waiting for logs...</div>
                 </div>
-                <div class="row" id="cdRow" style="display:none; color:#ff6b6b; font-weight:bold;"><span>Retry in:</span> <span id="cd" style="background:rgba(220,53,69,0.1); padding:2px 8px; border-radius:6px;">--</span></div>
                 <div id="otaHub" style="display:none; margin:15px 0; padding:15px; border:1px solid rgba(40,167,69,0.3); border-radius:12px; background:rgba(40,167,69,0.05);">
                     <div style="color:#28a745; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!</div>
                     <button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">Update Now</button>
