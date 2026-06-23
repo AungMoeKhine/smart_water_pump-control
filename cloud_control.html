@@ -375,8 +375,16 @@
                 <div class="row"><span>System Info:</span> <span id="info" class="badge bg-secondary">--</span></div>
                 <div class="row" id="cdRow" style="display:none; color:#ff6b6b; font-weight:bold;"><span>Retry in:</span> <span id="cd" style="background:rgba(220,53,69,0.1); padding:2px 8px; border-radius:6px;">--</span></div>
                 <div style="margin-top: 15px;">
-                    <label style="font-size: 0.75rem; color: #555; text-transform: uppercase;">📋 Event History</label>
-                    <div id="logBox" style="background:#000; color:#0f0; font-family:monospace; padding:10px 20px 10px 10px; border-radius:10px; height:130px; overflow-y:auto; overflow-x:hidden; font-size:0.65rem; text-align:left; border:1px solid #333; margin-top:8px; line-height:1.4; white-space:pre-wrap; word-break:break-word; letter-spacing: -0.2px; scrollbar-gutter: stable;">Waiting for logs...</div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                        <label style="font-size: 0.75rem; color: #555; text-transform: uppercase; margin:0;">📋 Event History</label>
+                        <label style="display:flex; align-items:center; gap:6px; font-size:0.72rem; color:#aaa; user-select:none; cursor:pointer; white-space:nowrap; flex:0 0 auto;">
+                            <input id="showHistoryChk" type="checkbox" onchange="toggleEventHistory()">
+                            <span id="eventHistoryShowLabel">Show</span>
+                        </label>
+                    </div>
+                    <div id="eventHistoryWrap">
+                        <div id="logBox" style="background:#000; color:#0f0; font-family:monospace; padding:10px 20px 10px 10px; border-radius:10px; height:130px; overflow-y:auto; overflow-x:hidden; font-size:0.65rem; text-align:left; border:1px solid #333; margin-top:8px; line-height:1.4; white-space:pre-wrap; word-break:break-word; letter-spacing: -0.2px; scrollbar-gutter: stable;">Waiting for logs...</div>
+                    </div>
                 </div>
                 <div id="otaHub" style="display:none; margin:15px 0; padding:15px; border:1px solid rgba(40,167,69,0.3); border-radius:12px; background:rgba(40,167,69,0.05);">
                     <div style="color:#28a745; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!</div>
@@ -482,9 +490,33 @@
         let BROKER = localStorage.getItem("lastBroker") || "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
         let PORT = parseInt(localStorage.getItem("lastPort")) || 8884;
         let USER = localStorage.getItem("lastUser") || "Smart_Pump";
-        let PASS = localStorage.getItem("lastPass") || "Sm@rt_Pump_2026";
-        let sysLang = localStorage.getItem('cloudLang') ? parseInt(localStorage.getItem('cloudLang')) : 0;
-        const dict = { "Device: Online": "စက် အွန်လိုင်း", "Device: Offline": "စက် အော့ဖ်လိုင်း", "Connecting...": "ချိတ်ဆက်နေသည်...", "NORMAL": "ပုံမှန်", "OVER": "ကျော်လွန်", "UNDER": "လျော့နည်း", "DELAY": "စောင့်ဆိုင်း", "ON": "ဖွင့်", "OFF": "ပိတ်", "DRY_RUN_ALARM!": "ရေမရှိ အချက်ပေး!", "PUMP_LOCKED!": "ပိတ်သိမ်းထားသည်!", "WAITING_RETRY!": "ပြန်စရန်စောင့်နေသည်!", "SENSOR_ERROR!": "ဆင်ဆာ ချို့ယွင်းချက်!", "SYSTEM_STANDBY!": "အသင့်အနေအထား!", "FLOW_DETECTED!": "ရေစီးဆင်းမှုရှိသည်!", "FLOW_CHECKING!": "ရေစီးဆင်းမှုစစ်နေ!", "COOLING_DOWN!": "အအေးခံနေသည်!", "VENTING_VALVE!": "လေလျှော့နေသည်!", "SETTLING_WATER!": "ရေအနည်ထိုင်ရန်စောင့်ချိန်!", "Voltage:": "လျှပ်စစ်အား-", "Volt Status:": "ဗို့အား အခြေအနေ-", "Pump:": "ရေမော်တာ-", "System Info:": "စက် အချက်အလက်-", "Retry in:": "ပြန်လည်စတင်ရန်-", "Start Pump": "ရေမော်တာ ဖွင့်မည်", "Stop Pump": "ရေမော်တာ ပိတ်မည်", "Cooling in:": "အအေးခံရန် ကျန်ချိန်-", "Dry-Run in:": "ရေမရှိ အချက်ပေးရန်-", "LICENSE EXPIRED": "သက်တမ်းကုန်ဆုံးပြီ", "WiFi SSID": "ဝိုင်ဖိုင် အမည်", "WiFi Password": "ဝိုင်ဖိုင် စကားဝှက်", "Show WiFi Password": "ဝိုင်ဖိုင် စကားဝှက် ပြမည်", "Show PIN": "ပင်နံပါတ် ပြမည်", "Device PIN (for Cloud)": "လုံခြုံရေး ပင်နံပါတ်", "Interface Language": "ဘာသာစကား", "Operating Mode": "စက် အမျိုးအစား", "Compressor Valve Delay": "အဆို့ရှင် ဖွင့်ချိန်", "Tank Height": "ရေတိုင်ကီ အမြင့်", "Low Tank Start Level": "ရေမော်တာစတင်မည့် ရေမှတ်", "High Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Low Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်", "Voltage Resume Gap": "ဗို့အားပြန်ဖွင့် ကွာဟချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်", "Pump Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်", "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်", "End Hour": "ပြီးဆုံးရန် အချိန်", "📍 Home Time Zone (GMT)": "📍 အချိန်ဇုန် (GMT)", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "System Role (Pairing)": "စနစ် အဆင့်အတန်း (Role)", "Master Settling Time": "ရေအနည်ထိုင်ချိန်", "Linked Master ID": "ချိတ်ဆက်ထားသော Master ID", "High Tank Stop Level": "ရေမော်တာရပ်မည့် ရေမှတ်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု", "🛠️ Maintenance": "🛠️ ပြုပြင်ထိန်းသိမ်းမှု", "Check for Updates": "ဗားရှင်း အသစ်စစ်ရန်", "User Guide": "အသုံးပြုနည်း လမ်းညွှန်", "Current Version:": "လက်ရှိ ဗားရှင်း-", "Upload Token File (.key)": "လိုင်စင်တိုကင်ဖိုင်တင်ရန် (.key)", "Paste Token String": "တိုကင် စာသား ထည့်ပါ", "Choose File": "ဖိုင်ရွေးမည်", "Upload File": "ဖိုင် တင်မည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်", "Status:": "အခြေအနေ-", "🛠️ Factory Mode": "🛠️ စက်ရုံထုတ် ဆက်တင်များ", "Cloud Server Config": "ကလောက် ဆာဗာ ဆက်တင်များ", "MQTT Server URL": "ဆာဗာ လိပ်စာ (URL)", "MQTT Port": "ပေါ့တ် (Port)", "MQTT Username": "အသုံးပြုသူ အမည်", "MQTT Password": "စကားဝှက်", "⚙️ Advanced Server Settings": "⚙️ ဆာဗာ အဆင့်မြင့် ဆက်တင်များ", "Apply Server Settings": "ဆာဗာ ပြောင်းလဲမှု အတည်ပြုမည်", "Broker URL": "ဆာဝါ လိပ်စာ (URL)", "MQTT User": "အသုံးပြုသူ အမည်", "Logout": "ထွက်မည်" };
+let PASS = localStorage.getItem("lastPass") || "Sm@rt_Pump_2026";
+let sysLang = localStorage.getItem('cloudLang') ? parseInt(localStorage.getItem('cloudLang')) : 0;
+let showEventHistory = localStorage.getItem('cloudShowEventHistory');
+if (showEventHistory === null) showEventHistory = "1";
+function applyEventHistoryVisibility() {
+    const wrap = document.getElementById('eventHistoryWrap');
+    const chk = document.getElementById('showHistoryChk');
+    const visible = showEventHistory !== "0";
+    if (wrap) wrap.style.display = visible ? 'block' : 'none';
+    if (chk) chk.checked = visible;
+}
+function applyEventHistoryLabels() {
+    const chk = document.getElementById('showHistoryChk');
+    const row = chk ? chk.parentElement?.parentElement : null;
+    const labels = row ? row.querySelectorAll('label') : [];
+    if (labels[0]) labels[0].innerText = (sysLang == 1 ? "📋 ဖြစ်ရပ်မှတ်တမ်း" : "📋 Event History");
+    const showLabel = document.getElementById('eventHistoryShowLabel');
+    if (showLabel) showLabel.innerText = (sysLang == 1 ? "ပြရန်" : "Show");
+}
+function toggleEventHistory() {
+    showEventHistory = document.getElementById('showHistoryChk').checked ? "1" : "0";
+    localStorage.setItem('cloudShowEventHistory', showEventHistory);
+    applyEventHistoryVisibility();
+}
+applyEventHistoryVisibility();
+applyEventHistoryLabels();
+const dict = { "Device: Online": "စက် အွန်လိုင်း", "Device: Offline": "စက် အော့ဖ်လိုင်း", "Connecting...": "ချိတ်ဆက်နေသည်...", "NORMAL": "ပုံမှန်", "OVER": "ကျော်လွန်", "UNDER": "လျော့နည်း", "DELAY": "စောင့်ဆိုင်း", "ON": "ဖွင့်", "OFF": "ပိတ်", "DRY_RUN_ALARM!": "ရေမရှိ အချက်ပေး!", "PUMP_LOCKED!": "ပိတ်သိမ်းထားသည်!", "WAITING_RETRY!": "ပြန်စရန်စောင့်နေသည်!", "SENSOR_ERROR!": "ဆင်ဆာ ချို့ယွင်းချက်!", "SYSTEM_STANDBY!": "အသင့်အနေအထား!", "FLOW_DETECTED!": "ရေစီးဆင်းမှုရှိသည်!", "FLOW_CHECKING!": "ရေစီးဆင်းမှုစစ်နေ!", "COOLING_DOWN!": "အအေးခံနေသည်!", "VENTING_VALVE!": "လေလျှော့နေသည်!", "SETTLING_WATER!": "ရေအနည်ထိုင်ရန်စောင့်ချိန်!", "Voltage:": "လျှပ်စစ်အား-", "Volt Status:": "ဗို့အား အခြေအနေ-", "Pump:": "ရေမော်တာ-", "System Info:": "စက် အချက်အလက်-", "Retry in:": "ပြန်လည်စတင်ရန်-", "Start Pump": "ရေမော်တာ ဖွင့်မည်", "Stop Pump": "ရေမော်တာ ပိတ်မည်", "Cooling in:": "အအေးခံရန် ကျန်ချိန်-", "Dry-Run in:": "ရေမရှိ အချက်ပေးရန်-", "LICENSE EXPIRED": "သက်တမ်းကုန်ဆုံးပြီ", "WiFi SSID": "ဝိုင်ဖိုင် အမည်", "WiFi Password": "ဝိုင်ဖိုင် စကားဝှက်", "Show WiFi Password": "ဝိုင်ဖိုင် စကားဝှက် ပြမည်", "Show PIN": "ပင်နံပါတ် ပြမည်", "Device PIN (for Cloud)": "လုံခြုံရေး ပင်နံပါတ်", "Interface Language": "ဘာသာစကား", "Operating Mode": "စက် အမျိုးအစား", "Compressor Valve Delay": "အဆို့ရှင် ဖွင့်ချိန်", "Tank Height": "ရေတိုင်ကီ အမြင့်", "Low Tank Start Level": "ရေမော်တာစတင်မည့် ရေမှတ်", "High Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Low Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်", "Voltage Resume Gap": "ဗို့အားပြန်ဖွင့် ကွာဟချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်", "Pump Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်", "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်", "End Hour": "ပြီးဆုံးရန် အချိန်", "📍 Home Time Zone (GMT)": "📍 အချိန်ဇုန် (GMT)", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "System Role (Pairing)": "စနစ် အဆင့်အတန်း (Role)", "Master Settling Time": "ရေအနည်ထိုင်ချိန်", "Linked Master ID": "ချိတ်ဆက်ထားသော Master ID", "High Tank Stop Level": "ရေမော်တာရပ်မည့် ရေမှတ်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု", "🛠️ Maintenance": "🛠️ ပြုပြင်ထိန်းသိမ်းမှု", "Check for Updates": "ဗားရှင်း အသစ်စစ်ရန်", "User Guide": "အသုံးပြုနည်း လမ်းညွှန်", "Current Version:": "လက်ရှိ ဗားရှင်း-", "Upload Token File (.key)": "လိုင်စင်တိုကင်ဖိုင်တင်ရန် (.key)", "Paste Token String": "တိုကင် စာသား ထည့်ပါ", "Choose File": "ဖိုင်ရွေးမည်", "Upload File": "ဖိုင် တင်မည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်", "Status:": "အခြေအနေ-", "🛠️ Factory Mode": "🛠️ စက်ရုံထုတ် ဆက်တင်များ", "Cloud Server Config": "ကလောက် ဆာဗာ ဆက်တင်များ", "MQTT Server URL": "ဆာဗာ လိပ်စာ (URL)", "MQTT Port": "ပေါ့တ် (Port)", "MQTT Username": "အသုံးပြုသူ အမည်", "MQTT Password": "စကားဝှက်", "⚙️ Advanced Server Settings": "⚙️ ဆာဗာ အဆင့်မြင့် ဆက်တင်များ", "Apply Server Settings": "ဆာဗာ ပြောင်းလဲမှု အတည်ပြုမည်", "Broker URL": "ဆာဝါ လိပ်စာ (URL)", "MQTT User": "အသုံးပြုသူ အမည်", "Logout": "ထွက်မည်" };
         const tr = (t) => {
             if (sysLang != 1 || !t) return t;
             let s = String(t);
