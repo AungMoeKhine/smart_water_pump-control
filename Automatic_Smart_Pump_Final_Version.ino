@@ -750,7 +750,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
       <hr>
       <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div><select name="uH" id="uH_s"></select>
       <div class="lbl-wrap"><label>High Tank Stop Level</label><span class="range">80 - 100 %</span></div><select name="fullTank" id="fullTank_s"></select>
-      <div class="lbl-wrap"><label>Low Tank Start Level</label><span class="range">20 - 50 %</span></div><select name="lowTank" id="lowTank_s"></select>
+      <div class="lbl-wrap"><label>Low Tank Start Level</label><span class="range">20 - 70 %</span></div><select name="lowTank" id="lowTank_s"></select>
       <div class="lbl-wrap"><label>High Voltage Set</label><span class="range">230 - 260 V</span></div><select name="vH" id="vH_s"></select>
       <div class="lbl-wrap"><label>Low Voltage Set</label><span class="range">150 - 190 V</span></div><select name="vL" id="vL_s"></select>
       <div class="lbl-wrap"><label>Voltage Resume Gap</label><span class="range">1 - 10 V</span></div><select name="vG" id="vG_s"></select>
@@ -851,7 +851,7 @@ const char settings_html[] PROGMEM = R"rawliteral(
        document.getElementById('opM').value = c.opM;
        let vDs=""; for(let i=5; i<=15; i++) vDs+=`<option value="${i}" ${c.vDly==i?"selected":""}>${i} Seconds</option>`; document.getElementById('vDly').innerHTML = vDs;
        let tH=""; for(let f=1.0; f<=7.01; f+=0.5){ let inc=f*12.0; tH+=`<option value="${inc.toFixed(1)}" ${Math.abs(c.uH-inc)<0.1?"selected":""}>${f} ft</option>`;} document.getElementById('uH_s').innerHTML = tH;
-       let lowTank=""; for(let i=20; i<=50; i+=5) lowTank+=`<option value="${i}" ${c.lowTank==i?"selected":""}>${i} %</option>`; document.getElementById('lowTank_s').innerHTML = lowTank;
+       let lowTank=""; for(let i=20; i<=70; i+=5) lowTank+=`<option value="${i}" ${c.lowTank==i?"selected":""}>${i} %</option>`; document.getElementById('lowTank_s').innerHTML = lowTank;
        let fullTank=""; for(let i=80; i<=100; i+=5) fullTank+=`<option value="${i}" ${c.fullTank==i?"selected":""}>${i} %</option>`; document.getElementById('fullTank_s').innerHTML = fullTank;
        let vH=""; for(let i=230; i<=260; i++) vH+=`<option value="${i}" ${c.vH==i?"selected":""}>${i} Volts</option>`; document.getElementById('vH_s').innerHTML = vH;
        let vL=""; for(let i=150; i<=190; i++) vL+=`<option value="${i}" ${c.vL==i?"selected":""}>${i} Volts</option>`; document.getElementById('vL_s').innerHTML = vL;
@@ -1123,7 +1123,7 @@ void setup() {
 
   // Notice how we use the struct's own values as the fallback instead of hardcoded numbers!
   tankConfig.upperHeight = preferences.getFloat("upperH", tankConfig.upperHeight);
-  tankConfig.LOW_THRESHOLD = constrain(preferences.getInt("lowTank", tankConfig.LOW_THRESHOLD), 20, 50);
+  tankConfig.LOW_THRESHOLD = constrain(preferences.getInt("lowTank", tankConfig.LOW_THRESHOLD), 20, 70);
   tankConfig.FULL_THRESHOLD = constrain(preferences.getInt("fullTank", tankConfig.FULL_THRESHOLD), 80, 100);
   voltageConfig.HIGH_THRESHOLD = preferences.getInt("vHigh", voltageConfig.HIGH_THRESHOLD);
   voltageConfig.LOW_THRESHOLD = preferences.getInt("vLow", voltageConfig.LOW_THRESHOLD);
@@ -2573,7 +2573,7 @@ void handleSave() {
       preferences.putFloat("upperH", tankConfig.upperHeight);
     }
     if (server.hasArg("lowTank")) {
-      tankConfig.LOW_THRESHOLD = constrain(server.arg("lowTank").toInt(), 20, 50);
+      tankConfig.LOW_THRESHOLD = constrain(server.arg("lowTank").toInt(), 20, 70);
       preferences.putInt("lowTank", tankConfig.LOW_THRESHOLD);
     }
     if (server.hasArg("fullTank")) {
@@ -3081,7 +3081,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
           preferences.putFloat("upperH", tankConfig.upperHeight);
         }
         if (doc.containsKey("lowTank")) {
-          tankConfig.LOW_THRESHOLD = constrain(doc["lowTank"].as<int>(), 20, 50);
+          tankConfig.LOW_THRESHOLD = constrain(doc["lowTank"].as<int>(), 20, 70);
           preferences.putInt("lowTank", tankConfig.LOW_THRESHOLD);
         }
         if (doc.containsKey("fullTank")) {
