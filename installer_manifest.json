@@ -7,7 +7,7 @@
             "chipFamily": "ESP32-S3",
             "parts": [
                 {
-                    "path": "ESP32_Auto_Pump_Control.ino.merged.bin",
+                    "path": "Automatic_Smart_Pump_Final_Version.ino.merged.bin",
                     "offset": 0
                 }
             ]
