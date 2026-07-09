@@ -1,0 +1,16 @@
+{
+    "name": "Smart Pump Control",
+    "version": "1.0.0",
+    "new_install_prompt_erase": true,
+    "builds": [
+        {
+            "chipFamily": "ESP32-S3",
+            "parts": [
+                {
+                    "path": "ESP32_Auto_Pump_Control.ino.merged.bin",
+                    "offset": 0
+                }
+            ]
+        }
+    ]
+}
