@@ -5,8 +5,8 @@
     <title>Smart Pump Control Installer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description"
-        content="Smart Pump Control Premium Installer �?" ESP32-S3 firmware flasher and setup guide.">
+    <meta name="description" content="Smart Pump Control Premium Installer �?" ESP32-S3 firmware flasher and setup
+        guide.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -28,6 +28,13 @@
             --text-dim: #2e3d58;
             --border: rgba(0, 180, 240, 0.12);
             --glow-blue: rgba(0, 180, 240, 0.35);
+
+            /* Center the install component */
+            esp-web-install-button {
+                display: flex;
+                justify-content: center;
+                margin: 15px 0;
+            }
         }
 
         /* �"?�"?�"? RESET & BASE �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
@@ -565,13 +572,49 @@
             margin-top: 6px;
         }
 
-        /* Buttons row */
+        /* Updated Grid Layout for exactly 2x2 desktop / 1x4 mobile */
         .btn-row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 14px;
-            margin-top: 26px;
+            margin: 26px auto 0 auto;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            .btn-row {
+                grid-template-columns: 1fr;
+                max-width: 280px;
+            }
+        }
+
+        /* Adjust the button padding to fit grid cells */
+        .button {
+            border: none;
+            color: white;
+            padding: 16px 10px;
+            text-align: center;
+            text-decoration: none !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 13px;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Style for the new Firmware Button */
+        .button-firmware {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            box-shadow: 0 4px 22px rgba(2, 132, 199, 0.4);
+            color: #ffffff;
         }
     </style>
     <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
@@ -750,12 +793,17 @@
         <!-- Dashboard & Guide Links -->
         <hr class="section-divider">
 
-        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Documentation &amp; Cloud Access
+        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Documentation &amp;
+            Cloud
+            Access
         </p>
         <div class="btn-row">
             <a href="cloud_control.html" class="button button-cloud">&#9729;&#65039; CLOUD DASHBOARD</a>
             <a href="Smart_Pump.apk" class="button button-apk" download>&#128241; DOWNLOAD ANDROID APP</a>
-            <a href="user_guide_premium.html" target="_blank" class="button button-premium">&#128214; TECHNICAL MANUAL</a>
+            <a href="user_guide_premium.html" target="_blank" class="button button-premium">&#128214; TECHNICAL
+                MANUAL</a>
+            <a href="https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/firmware.bin"
+                class="button button-firmware" download>&#128190; DOWNLOAD FIRMWARE.BIN</a>
         </div>
 
         <!-- Info Cards -->
@@ -768,9 +816,11 @@
                     <li><b>WiFi Setup:</b> Connect to hotspot <code>Auto-Pump-Config</code> (Password:
                         <code>12345678</code>).
                     </li>
-                    <li><b>Configure:</b> Open <a href="http://192.168.4.1" target="_blank">192.168.4.1</a> and enter
+                    <li><b>Configure:</b> Open <a href="http://192.168.4.1" target="_blank">192.168.4.1</a> and
+                        enter
                         your Home WiFi details.</li>
-                    <li><b>Access:</b> After reboot, visit the device IP shown on the LCD to open the dashboard.</li>
+                    <li><b>Access:</b> After reboot, visit the device IP shown on the LCD to open the dashboard.
+                    </li>
                     <li><b>Settings:</b> Set Tank Height, Voltage Limits, and Auto-Retry logic in the settings menu.
                     </li>
                 </ol>
@@ -780,10 +830,12 @@
             <div class="card card-amber">
                 <h3>&#128737;&#65039; Safety &amp; Features</h3>
                 <ul>
-                    <li><b>Dual-Mode:</b> Switch between <b>Water Pump</b> and <b>Air Compressor</b> operations.</li>
+                    <li><b>Dual-Mode:</b> Switch between <b>Water Pump</b> and <b>Air Compressor</b> operations.
+                    </li>
                     <li><b>Solenoid Venting:</b> Automatic pressure release valve for compressor reliability.</li>
                     <li><b>Voltage Guard:</b> Automatic cut-off (&gt;250 V or &lt;170 V).</li>
-                    <li><b>Dry-Run System:</b> Smart flow detection with <b>Auto-Retry</b> or <b>Lock</b> modes.</li>
+                    <li><b>Dry-Run System:</b> Smart flow detection with <b>Auto-Retry</b> or <b>Lock</b> modes.
+                    </li>
                     <li><b>Cool-Down Logic:</b> Hardware overheating protection for high-demand loads.</li>
                     <li><b>Smart Scheduling:</b> DND mode for automated overnight silence.</li>
                 </ul>
@@ -949,4 +1001,3 @@
 </body>
 
 </html>
-
