@@ -1063,7 +1063,15 @@
 
     <script>
         let localDismissedMsg = localStorage.getItem("amk_dismissed_promo") || "";
-        function dismissPromo() { vibe(); const currentMsg = document.getElementById('promoText').innerText; localDismissedMsg = currentMsg; localStorage.setItem("amk_dismissed_promo", currentMsg); document.getElementById('promoBanner').style.display = 'none'; }
+        function dismissPromo() {
+            vibe();
+            const currentMsg = document.getElementById('promoText').innerText;
+            const activeID = deviceID || localStorage.getItem("cloudPumpID");
+            if (activeID) {
+                localStorage.setItem("amk_dismiss_promo_" + activeID, currentMsg);
+            }
+            document.getElementById('promoBanner').style.display = 'none';
+        }
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js'); }); }
         let BROKER = localStorage.getItem("lastBroker") || "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
         let PORT = parseInt(localStorage.getItem("lastPort")) || 8884;
@@ -1252,7 +1260,33 @@
             client.connect({ useSSL: true, userName: USER, password: PASS, timeout: 10, onSuccess: () => { isConnecting = false; btnLogin.innerText = (sysLang == 1 ? "စင့်ခ်လုပ်နေသည်..." : "Syncing..."); client.subscribe(`smartpump/${deviceID}/status`); client.subscribe(`smartpump/${deviceID}/online`); setTimeout(requestData, 500); }, onFailure: (e) => { isConnecting = false; const err = document.getElementById('loginError'); err.innerText = "Connection failed: " + e.errorMessage; err.style.display = 'block'; btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect"); btnLogin.disabled = false; } });
         }
         function requestData() { vibe();[document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.add('spinning')); if (client && client.isConnected()) { sendCmd({ get: 1 }); } else { connect(); } }
-        function logout() { vibe(); if (confirm(sysLang == 1 ? "စက်ပြောင်းမည်လား?" : "Switch Device?")) { if (client) client.disconnect(); dataReceived = false; document.getElementById('dashboard').style.display = 'none'; document.getElementById('loginScreen').style.display = 'block'; document.getElementById('btnLogin').innerText = (sysLang == 1 ? "ချိတ်ဆက်ပါ" : "Connect"); document.getElementById('btnLogin').disabled = false; updateKeychainUI(); } }
+        function logout() {
+            vibe();
+            if (confirm(sysLang == 1 ? "စက်ပြောင်းမည်လား?" : "Switch Device?")) {
+                // 1. Prevent any active background client from communicating
+                if (client) {
+                    try {
+                        client.onMessageArrived = null;
+                        client.onConnectionLost = null;
+                        client.disconnect();
+                    } catch (e) {
+                        console.error("Disconnect error:", e);
+                    }
+                    client = null;
+                }
+
+                // 2. Remove active session credentials from localStorage
+                localStorage.removeItem("cloudPumpID");
+                localStorage.removeItem("cloudPumpPin");
+
+                // 3. Clear DOM views immediately
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'block';
+
+                // 4. Force reload the page to clear memory, states, and duplicate WebSockets
+                location.reload();
+            }
+        }
         function sendReset() { vibe(); sendCmd({ reset: 1 }); }
         function sendToggle() { vibe(); sendCmd({ toggle: 1 }); }
         function sendCmd(p) { if (!client || !client.isConnected()) return; p.pin = devicePin; let msg = new Paho.MQTT.Message(JSON.stringify(p)); msg.destinationName = `smartpump/${deviceID}/set`; client.send(msg); }
@@ -1280,16 +1314,20 @@
                 }
             }
 
-            // --- 2. PROMO BANNER LOGIC (Keep this exactly as it was) ---
+            // --- 2. PROMO BANNER LOGIC ---
             const pBanner = document.getElementById('promoBanner');
             const pText = document.getElementById('promoText');
-            if (d.promo && d.promo.trim() !== "" && d.promo !== localDismissedMsg) {
+            const activeID = d.id || deviceID || localStorage.getItem("cloudPumpID");
+            const deviceDismissedMsg = activeID ? (localStorage.getItem("amk_dismiss_promo_" + activeID) || "") : "";
+
+            if (d.promo && d.promo.trim() !== "" && d.promo !== deviceDismissedMsg) {
                 pBanner.style.display = 'block';
                 pText.innerText = d.promo;
             } else if (!d.promo || d.promo.trim() === "") {
                 pBanner.style.display = 'none';
-                localDismissedMsg = "";
-                localStorage.removeItem("amk_dismissed_promo");
+                if (activeID) {
+                    localStorage.removeItem("amk_dismiss_promo_" + activeID);
+                }
             } else {
                 pBanner.style.display = 'none';
             }
