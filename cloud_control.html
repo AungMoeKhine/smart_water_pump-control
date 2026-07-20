@@ -1109,9 +1109,8 @@
             if (s === "OVER_VOLTAGE!") return "ဗို့အားကျော်လွန်နေသည်!";
             if (s === "UNDER_VOLTAGE!") return "ဗို့အားလျော့နည်းနေသည်!";
             if (s.includes("VOLT_DELAY")) return s.replace("VOLT_DELAY", "ဗို့အားပြန်တည်ငြိမ်ရန်စောင့်ချိန်!");
-            if (s.startsWith("SETTLING_WATER")) {
-                let mins = s.replace(/[^\d]/g, "");
-                return mins ? "ရေအနည်ထိုင်ရန်စောင့်ချိန် (" + mins + "m)" : "ရေအနည်ထိုင်ရန်စောင့်ချိန်";
+            if (s === "SETTLING_WATER!") {
+                return "ရေအနည်ထိုင်ရန်စောင့်ချိန်!";
             }
             if (dict[s]) return dict[s];
             for (let key in dict) { if (s.includes(key.replace('!', ''))) return dict[key]; }
@@ -1381,11 +1380,10 @@
                     cdRow.style.display = 'flex';
                     if (cdLabel) cdLabel.innerText = tr("Dry-Run in:");
                     cdVal.innerText = d.cd + "s";
-                } else if (rawInfo.startsWith("SETTLING_WATER")) {
+                } else if (rawInfo.includes("SETTLING_WATER") || (d.setCd !== undefined && d.setCd > 0)) {
                     cdRow.style.display = 'flex';
                     if (cdLabel) cdLabel.innerText = tr("Settling in:");
-                    let match = rawInfo.match(/\d+/);
-                    let m = match ? match[0] : "--";
+                    let m = Math.max(0, Math.ceil(d.setCd / 60));
                     cdVal.innerText = m + "m";
                 } else {
                     cdRow.style.display = 'none';
