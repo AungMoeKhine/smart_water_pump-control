@@ -1360,7 +1360,37 @@
             let pType = 'secondary'; if (d.pStat === "ON") pType = 'success'; else if (d.pStat === "DRY ALRM" || d.pStat === "LOCKED") pType = 'danger'; setBadge('pstate', pS, pType);
             let iType = 'success'; if (rawInfo.includes("OVER_VOLTAGE") || rawInfo.includes("UNDER_VOLTAGE") || rawInfo.includes("ALARM") || rawInfo.includes("ERROR")) { iType = 'danger'; } else if (rawInfo.includes("VOLT_DELAY") || rawInfo.includes("WAITING") || rawInfo.includes("LOCKED") || rawInfo.includes("COOLING") || rawInfo.includes("VENTING") || rawInfo.includes("SETTLING")) { iType = 'warning'; } else if (rawInfo.includes("FLOW_CHECKING")) { iType = 'info'; } setBadge('info', iF, iType);
             const tankFill = document.getElementById('tankFill'); if (tankFill && activeTab !== 'saving') { setTankGuides(d); tankFill.style.height = (d.tank || 0) + '%'; if (d.tank <= (d.lowTank || 30)) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water'); if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping'); }
-            if (activeTab !== 'saving') { if (d.sysRole !== undefined) { safeUpdate('sysRole', d.sysRole); toggleRole(); } if (d.setM !== undefined) safeUpdate('setM', d.setM); if (d.linkID !== undefined) safeUpdate('linkID', d.linkID); if (d.opM !== undefined) { safeUpdate('opM', d.opM); toggleVDly(); } if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds"); if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.lowTank !== undefined) safeUpdate('lowTank', d.lowTank); if (d.fullTank !== undefined) safeUpdate('fullTank', d.fullTank); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts"); if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds"); if (d.rstM !== undefined) safeUpdate('rstM', d.rstM); if (d.rM !== undefined) safeUpdate('rM', d.rM); if (d.ssid !== undefined) safeUpdate('ssid', d.ssid); if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn); if (d.dndS !== undefined) safeUpdate('dndS', d.dndS); if (d.dndE !== undefined) safeUpdate('dndE', d.dndE); if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf); if (d.mqSrv !== undefined) safeUpdate('mqSrv_s', d.mqSrv); if (d.mqPort !== undefined) safeUpdate('mqPort_s', d.mqPort); if (d.mqUser !== undefined) safeUpdate('mqUser_s', d.mqUser); if (d.mqPass !== undefined) safeUpdate('mqPass_s', d.mqPass); if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver; }
+            if (activeTab !== 'saving') {
+                if (d.sysRole !== undefined) { safeUpdate('sysRole', d.sysRole); toggleRole(); } if (d.setM !== undefined) safeUpdate('setM', d.setM); if (d.linkID !== undefined) safeUpdate('linkID', d.linkID); if (d.opM !== undefined) { safeUpdate('opM', d.opM); toggleVDly(); } if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds"); if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.lowTank !== undefined) safeUpdate('lowTank', d.lowTank); if (d.fullTank !== undefined) safeUpdate('fullTank', d.fullTank); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts"); if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds"); if (d.rstM !== undefined) safeUpdate('rstM', d.rstM); if (d.rM !== undefined) safeUpdate('rM', d.rM); if (d.ssid !== undefined) safeUpdate('ssid', d.ssid); if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn); if (d.dndS !== undefined) safeUpdate('dndS', d.dndS); if (d.dndE !== undefined) safeUpdate('dndE', d.dndE); if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf); if (d.mqSrv !== undefined) safeUpdate('mqSrv_s', d.mqSrv); if (d.mqPort !== undefined) safeUpdate('mqPort_s', d.mqPort); if (d.mqUser !== undefined) safeUpdate('mqUser_s', d.mqUser); if (d.mqPass !== undefined) safeUpdate('mqPass_s', d.mqPass); if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
+
+                // --- OTA UPDATE LOGIC START ---
+                const otaHome = document.getElementById('otaHub');
+                const otaSett = document.getElementById('otaHubS');
+
+                // If firmware reports a newer version than current
+                if (d.newVer && d.newVer !== d.ver) {
+                    if (otaHome) otaHome.style.display = 'block';
+                    if (otaSett) otaSett.style.display = 'block';
+
+                    const msgTxt = sysLang == 1 ? "ဗားရှင်းအသစ် ရနိုင်ပါပြီ!" : "New Version Available!";
+                    const btnTxt = sysLang == 1 ? "အခုပဲ မြှင့်တင်မည်" : "Update Now";
+
+                    const otaMsgH = document.getElementById('otaMsg');
+                    const otaMsgS = document.getElementById('otaMsgS');
+                    if (otaMsgH) otaMsgH.innerText = msgTxt;
+                    if (otaMsgS) otaMsgS.innerText = msgTxt;
+
+                    // Update the "Update Now" button text for language
+                    document.querySelectorAll('button[onclick="startOTA()"]').forEach(btn => {
+                        btn.innerText = btnTxt;
+                    });
+                } else {
+                    // Hide if no update is available
+                    if (otaHome) otaHome.style.display = 'none';
+                    if (otaSett) otaSett.style.display = 'none';
+                }
+                // --- OTA UPDATE LOGIC END ---
+            }
             updateOnlineStatus(true); const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset'); if (d.err) { btn.style.display = 'none'; rst.style.display = 'block'; rst.innerText = "Reset Alarm"; } else { btn.style.display = 'block'; rst.style.display = 'none'; if (isExpired) { btn.innerText = tr("LICENSE EXPIRED"); btn.className = "btn btn-grey"; btn.disabled = true; } else { btn.disabled = false; let btnTxt = (d.pStat == "ON" ? 'Stop Pump' : 'Start Pump'); btn.innerText = tr(btnTxt); btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green"); } }
             const cdRow = document.getElementById('cdRow');
             const cdLabel = cdRow ? cdRow.children[0] : null;
