@@ -1367,12 +1367,12 @@
                 const otaHome = document.getElementById('otaHub');
                 const otaSett = document.getElementById('otaHubS');
 
-                // If firmware reports a newer version than current
-                if (d.newVer && d.newVer !== d.ver) {
+                // Match with .ino keys: d.ota (flag) and d.nVer (new version number)
+                if (d.ota == 1 && d.nVer > d.ver) {
                     if (otaHome) otaHome.style.display = 'block';
                     if (otaSett) otaSett.style.display = 'block';
 
-                    const msgTxt = sysLang == 1 ? "ဗားရှင်းအသစ် ရနိုင်ပါပြီ!" : "New Version Available!";
+                    const msgTxt = sysLang == 1 ? `ဗားရှင်းအသစ် v${d.nVer} ရနိုင်ပါပြီ!` : `New Version v${d.nVer} Available!`;
                     const btnTxt = sysLang == 1 ? "အခုပဲ မြှင့်တင်မည်" : "Update Now";
 
                     const otaMsgH = document.getElementById('otaMsg');
