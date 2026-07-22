@@ -1023,6 +1023,22 @@
 </body>
 
 <script>
+    // Helper function to format the date correctly (e.g., 16-Jun-2027)
+    function formatDate(dateStr) {
+        if (!dateStr || dateStr === "-") return "Not Set";
+        const date = new Date(dateStr);
+        
+        // If the date is invalid, just return the original text
+        if (isNaN(date.getTime())) return dateStr;
+
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+
+        return `${day}-${month}-${year}`;
+    }
+
     async function checkDeviceStatus() {
         const idInput = document.getElementById('lookupId');
         const resultDiv = document.getElementById('lookupResult');
@@ -1039,7 +1055,6 @@
         resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">🛰️ Searching registry for ${id}...</p>`;
 
         try {
-            // This URL will be your Google Apps Script URL after we set up the Sheet
             const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHu4jsAOarLAGH-xkhITVgi4SR1z0mKMCknZPsr5H7W_W4iLiC_zQPmJAfqOAprthBRQ/exec";
 
             const response = await fetch(`${SCRIPT_URL}?id=${id}`);
@@ -1056,8 +1071,8 @@
                         <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Owner</span><b style="color:var(--text-primary)">${data.name}</b></div>
                         <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Package Tier</span><b style="color:var(--accent-cyan)">${data.tier}</b></div>
                         <div style="grid-column: span 2; height:1px; background:rgba(255,255,255,0.08); margin: 2px 0;"></div>
-                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span><b style="color:var(--text-primary)">${data.warranty}</b></div>
-                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span><b style="color:var(--text-primary)">${data.expiry}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span><b style="color:var(--text-primary)">${formatDate(data.warranty)}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span><b style="color:var(--text-primary)">${formatDate(data.expiry)}</b></div>
                     </div>
                 `;
             }
