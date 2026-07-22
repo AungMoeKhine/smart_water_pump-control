@@ -766,7 +766,7 @@
 
         <!-- Title -->
         <h1>Smart Pump Control</h1>
-        <div class="version-chip">Premium Edition &nbsp;·&nbsp; v1.2 </div>
+        <div class="version-chip">Premium Edition &nbsp;·&nbsp; v1.2.0</div>
         <h2>Pump &amp; Compressor Dual-Mode Controller</h2>
 
         <p>
@@ -791,12 +791,31 @@
         <div><span class="compat-note">&#128268; Compatible with ESP32-S3 &middot; Connect via USB</span></div>
 
         <!-- Dashboard & Guide Links -->
+        <!-- Dashboard, Lookup & Guide Links -->
         <hr class="section-divider">
 
-        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Documentation &amp;
-            Cloud
-            Access
-        </p>
+        <!-- DEVICE STATUS LOOKUP CARD -->
+        <div class="card"
+            style="max-width: 600px; margin: 0 auto 30px; border-color: var(--accent-blue); background: rgba(0, 180, 240, 0.05);">
+            <h3 style="justify-content: center;">🔍 Device Status Lookup</h3>
+            <p style="font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px;">Check your Package Tier, Warranty, and
+                Cloud Expiry.</p>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                <input id="lookupId" type="text" placeholder="ENTER DEVICE ID"
+                    style="flex: 1; min-width: 200px; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg-deep); color:var(--accent-cyan); text-align:center; font-family: 'JetBrains Mono'; text-transform: uppercase; font-weight: bold;">
+                <button onclick="checkDeviceStatus()" class="button button-v1"
+                    style="max-width: 120px; padding: 12px; margin:0;">CHECK</button>
+            </div>
+
+            <div id="lookupResult"
+                style="display: none; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 12px; text-align: left; border-left: 4px solid var(--accent-blue); animation: fadeUp 0.4s ease-out;">
+                <!-- Result content appears here -->
+            </div>
+        </div>
+
+        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Documentation &amp; Cloud
+            Access</p>
         <div class="btn-row">
             <!-- First Row -->
             <a href="cloud_control.html" class="button button-cloud">&#9729;&#65039; CLOUD DASHBOARD</a>
@@ -1002,5 +1021,52 @@
         <p class="page-footer">Developed by <strong>Aung Moe Khine</strong></p>
     </div><!-- /container -->
 </body>
+
+<script>
+    async function checkDeviceStatus() {
+        const idInput = document.getElementById('lookupId');
+        const resultDiv = document.getElementById('lookupResult');
+        const id = idInput.value.trim().toUpperCase();
+
+        if (!id) {
+            alert("Please enter a Device ID.");
+            return;
+        }
+
+        // Show loading state
+        resultDiv.style.display = "block";
+        resultDiv.style.borderColor = "var(--accent-amber)";
+        resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">🛰️ Searching registry for ${id}...</p>`;
+
+        try {
+            // This URL will be your Google Apps Script URL after we set up the Sheet
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHu4jsAOarLAGH-xkhITVgi4SR1z0mKMCknZPsr5H7W_W4iLiC_zQPmJAfqOAprthBRQ/exec";
+
+            const response = await fetch(`${SCRIPT_URL}?id=${id}`);
+            const data = await response.json();
+
+            if (data.error) {
+                resultDiv.style.borderColor = "var(--accent-red)";
+                resultDiv.innerHTML = `<b style="color: var(--accent-red);">❌ ID Not Found</b><br>
+                                       <span style="font-size:0.82rem; color: var(--text-muted);">This ID is not in our database. Please contact AMK Support.</span>`;
+            } else {
+                resultDiv.style.borderColor = "var(--accent-green)";
+                resultDiv.innerHTML = `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Owner</span><b style="color:var(--text-primary)">${data.name}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Package Tier</span><b style="color:var(--accent-cyan)">${data.tier}</b></div>
+                        <div style="grid-column: span 2; height:1px; background:rgba(255,255,255,0.08); margin: 2px 0;"></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span><b style="color:var(--text-primary)">${data.warranty}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span><b style="color:var(--text-primary)">${data.expiry}</b></div>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            resultDiv.style.borderColor = "var(--accent-red)";
+            resultDiv.innerHTML = `<b style="color: var(--accent-amber);">⚠️ Database Offline</b><br>
+                                   <span style="font-size:0.82rem; color: var(--text-muted);">Please check back in 5 minutes.</span>`;
+        }
+    }
+</script>
 
 </html>
