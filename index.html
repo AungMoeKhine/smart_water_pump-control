@@ -1055,7 +1055,7 @@
         resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">🛰️ Searching registry for ${id}...</p>`;
 
         try {
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNMBACyZpgB6JTTC2UqqmSQ6zj84X24bAAFx0ZmHSOg4ZQFdJoldERj8YlodjYyg4h4w/exec";
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxikhyO0ys-DZz3moFOtP7T1DNz_il1fX1pQSu9LPqdCCFWH-qrRLZF8csjWaTApKGfiA/exec";
 
             const response = await fetch(`${SCRIPT_URL}?id=${id}`);
             const data = await response.json();
