@@ -1055,7 +1055,7 @@
         resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">🛰️ Searching registry for ${id}...</p>`;
 
         try {
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxikhyO0ys-DZz3moFOtP7T1DNz_il1fX1pQSu9LPqdCCFWH-qrRLZF8csjWaTApKGfiA/exec";
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHf7k4Tl5Y6zJOZi2cqwX-FqWiOeKuhcxrZ9aBwxYGsUG83lf7Sd19mIbJWqqWSLH35A/exec";
 
             const response = await fetch(`${SCRIPT_URL}?id=${id}`);
             const data = await response.json();
@@ -1071,16 +1071,8 @@
                         <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Owner</span><b style="color:var(--text-primary)">${data.name}</b></div>
                         <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Package Tier</span><b style="color:var(--accent-cyan)">${data.tier}</b></div>
                         <div style="grid-column: span 2; height:1px; background:rgba(255,255,255,0.08); margin: 2px 0;"></div>
-                        <div>
-                            <span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span>
-                            <b style="color:var(--text-primary)">${formatDate(data.warrantyDate)}</b>
-                            <span style="color:var(--accent-amber); font-size:0.75rem; display:block;">${data.warrantyDays}</span>
-                        </div>
-                        <div>
-                            <span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span>
-                            <b style="color:var(--text-primary)">${formatDate(data.cloudDate)}</b>
-                            <span style="color:var(--accent-amber); font-size:0.75rem; display:block;">${data.cloudDays}</span>
-                        </div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span><b style="color:var(--text-primary)">${formatDate(data.warranty)}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span><b style="color:var(--text-primary)">${formatDate(data.expiry)}</b></div>
                     </div>
                 `;
             }
