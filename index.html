@@ -5,8 +5,7 @@
     <title>Smart Pump Control Installer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Smart Pump Control Premium Installer - ESP32-S3 firmware flasher and setup
-        guide.">
+    <meta name="description" content="Smart Pump Control Premium Installer - ESP32-S3 firmware flasher and setup guide.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -1027,7 +1026,7 @@
     function formatDate(dateStr) {
         if (!dateStr || dateStr === "-") return "Not Set";
         const date = new Date(dateStr);
-        
+
         // If the date is invalid, just return the original text
         if (isNaN(date.getTime())) return dateStr;
 
@@ -1037,6 +1036,40 @@
         const year = date.getFullYear();
 
         return `${day}-${month}-${year}`;
+    }
+
+    function safeText(value, fallback = "Not Set") {
+        if (value === undefined || value === null || value === "") return fallback;
+        return String(value);
+    }
+
+    function escapeHtml(value) {
+        return safeText(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function maskOwnerName(name) {
+        const parts = safeText(name).trim().split(/\s+/).filter(Boolean);
+        if (!parts.length || parts[0] === "Not Set") return "Not Set";
+        if (parts.length === 1) return parts[0];
+        return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+    }
+
+    function getStatusColor(statusText, dateText) {
+        const text = safeText(statusText, "").toLowerCase();
+        const date = new Date(dateText);
+
+        if (text.includes("expired")) return "var(--accent-red)";
+        if (!isNaN(date.getTime()) && date < new Date()) return "var(--accent-red)";
+
+        const match = text.match(/(\d+)/);
+        if (match && Number(match[1]) <= 30) return "var(--accent-amber)";
+
+        return "var(--accent-green)";
     }
 
     async function checkDeviceStatus() {
@@ -1049,15 +1082,22 @@
             return;
         }
 
+        if (!/^[A-Z0-9_-]+$/.test(id)) {
+            alert("Device ID can only contain letters, numbers, hyphens, and underscores.");
+            return;
+        }
+
         // Show loading state
         resultDiv.style.display = "block";
         resultDiv.style.borderColor = "var(--accent-amber)";
-        resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">🛰️ Searching registry for ${id}...</p>`;
+        resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">Searching registry for ${escapeHtml(id)}...</p>`;
 
         try {
             const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNMBACyZpgB6JTTC2UqqmSQ6zj84X24bAAFx0ZmHSOg4ZQFdJoldERj8YlodjYyg4h4w/exec";
 
-            const response = await fetch(`${SCRIPT_URL}?id=${id}`);
+            const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`);
+            if (!response.ok) throw new Error("Lookup request failed");
+
             const data = await response.json();
 
             if (data.error) {
@@ -1065,21 +1105,24 @@
                 resultDiv.innerHTML = `<b style="color: var(--accent-red);">❌ ID Not Found</b><br>
                                        <span style="font-size:0.82rem; color: var(--text-muted);">This ID is not in our database. Please contact AMK Support.</span>`;
             } else {
+                const warrantyColor = getStatusColor(data.warrantyDays, data.warrantyDate);
+                const cloudColor = getStatusColor(data.cloudDays, data.cloudDate);
+
                 resultDiv.style.borderColor = "var(--accent-green)";
                 resultDiv.innerHTML = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
-                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Owner</span><b style="color:var(--text-primary)">${data.name}</b></div>
-                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Package Tier</span><b style="color:var(--accent-cyan)">${data.tier}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Owner</span><b style="color:var(--text-primary)">${escapeHtml(maskOwnerName(data.name))}</b></div>
+                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Package Tier</span><b style="color:var(--accent-cyan)">${escapeHtml(data.tier)}</b></div>
                         <div style="grid-column: span 2; height:1px; background:rgba(255,255,255,0.08); margin: 2px 0;"></div>
                         <div>
                             <span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span>
-                            <b style="color:var(--text-primary)">${formatDate(data.warrantyDate)}</b>
-                            <span style="color:var(--accent-amber); font-size:0.75rem; display:block;">${data.warrantyDays}</span>
+                            <b style="color:var(--text-primary)">${escapeHtml(formatDate(data.warrantyDate))}</b>
+                            <span style="color:${warrantyColor}; font-size:0.75rem; display:block;">${escapeHtml(data.warrantyDays)}</span>
                         </div>
                         <div>
                             <span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span>
-                            <b style="color:var(--text-primary)">${formatDate(data.cloudDate)}</b>
-                            <span style="color:var(--accent-amber); font-size:0.75rem; display:block;">${data.cloudDays}</span>
+                            <b style="color:var(--text-primary)">${escapeHtml(formatDate(data.cloudDate))}</b>
+                            <span style="color:${cloudColor}; font-size:0.75rem; display:block;">${escapeHtml(data.cloudDays)}</span>
                         </div>
                     </div>
                 `;
@@ -1090,6 +1133,10 @@
                                    <span style="font-size:0.82rem; color: var(--text-muted);">Please check back in 5 minutes.</span>`;
         }
     }
+
+    document.getElementById("lookupId").addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") checkDeviceStatus();
+    });
 </script>
 
 </html>
