@@ -943,6 +943,11 @@
                 <div class="row" id="cdRow" style="display:none; color:#ff6b6b; font-weight:bold;"><span>Retry
                         in:</span> <span id="cd"
                         style="background:rgba(220,53,69,0.1); padding:2px 8px; border-radius:6px;">--</span></div>
+                <div class="row"
+                    style="border-bottom:none; margin-top:5px; margin-bottom:5px; opacity:0.8; font-size:0.75rem; color:#888;">
+                    <span style="font-weight:bold; text-transform: uppercase;">⏱️ Total Motor Life:</span>
+                    <span id="dispRunHome">0h 0m</span>
+                </div>
                 <div style="margin-top: 15px;">
                     <div
                         style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -1129,6 +1134,19 @@
                     <button class="btn btn-purple" style="margin-top:5px; padding:10px;"
                         onclick="uploadLicenseText()">Activate via Text</button>
                 </div>
+                <div
+                    style="text-align:center; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:20px; margin-bottom:20px;">
+                    <h3 style="color:#adb5bd; margin: 0 0 10px 0;">⚙️ Motor Maintenance</h3>
+                    <label style="display:block; margin-bottom:5px; color:#888; font-weight:bold;">Accumulated Run
+                        Time</label>
+                    <div style="font-size:1.8rem; font-weight:bold; color:#03ef62; margin-bottom:15px;"
+                        id="dispRunSett">0h 0m</div>
+                    <button type="button" class="btn btn-red" style="width:auto; padding:10px 20px; font-size:0.9rem;"
+                        onclick="resetMotorLife()">Reset Life Counter</button>
+                    <p style="font-size:0.7rem; color:#555; margin-top:10px;">Reset this counter only after motor repair
+                        or replacement.</p>
+                </div>
+                <hr>
                 <div style="text-align:center;">
                     <h3 style="color:#a958a5; margin:0 0 15px 0;">🛠️ Maintenance</h3>
                     <div id="otaHubS"
@@ -1245,7 +1263,7 @@
         applyEventHistoryVisibility();
         applyEventHistoryLabels();
 
-        const dict = {"Device: Online": "စက် အွန်လိုင်း", "Device: Offline": "စက် အော့ဖ်လိုင်း", "Connecting...": "ချိတ်ဆက်နေသည်...", "NORMAL": "ပုံမှန်", "OVER": "ကျော်လွန်", "UNDER": "လျော့နည်း", "DELAY": "စောင့်ဆိုင်း", "ON": "ဖွင့်", "OFF": "ပိတ်", "DRY_RUN_ALARM!": "ရေမရှိ အချက်ပေး!", "PUMP_LOCKED!": "ပိတ်သိမ်းထားသည်!", "WAITING_RETRY!": "ပြန်စရန်စောင့်နေသည်!", "SENSOR_ERROR!": "ဆင်ဆာ ချို့ယွင်းချက်!", "SYSTEM_STANDBY!": "အသင့်အနေအထား!", "FLOW_DETECTED!": "ရေစီးဆင်းမှုရှိသည်!", "FLOW_CHECKING!": "ရေစီးဆင်းမှုစစ်နေ!", "COOLING_DOWN!": "အအေးခံနေသည်!", "VENTING_VALVE!": "လေလျှော့နေသည်!", "SETTLING_WATER!": "ရေအနည်ထိုင်ရန်စောင့်ချိန်!", "PLEASE WAIT...": "စောင့်ဆိုင်းပါ...", "PLEASE WAIT": "စောင့်ဆိုင်းပါ...", "Voltage:": "လျှပ်စစ်အား-", "Volt Status:": "ဗို့အား အခြေအနေ-", "Pump:": "ရေမော်တာ-", "System Info:": "စက် အချက်အလက်-", "Retry in:": "ပြန်လည်စတင်ရန်-", "Start Pump": "ရေမော်တာ ဖွင့်မည်", "Stop Pump": "ရေမော်တာ ပိတ်မည်", "Cooling in:": "အအေးခံရန် ကျန်ချိန်-", "Dry-Run in:": "ရေမရှိ အချက်ပေးရန်-", "Settling in:": "ရေအနည်ထိုင်ရန်-", "LICENSE EXPIRED": "သက်တမ်းကုန်ဆုံးပြီ", "WiFi SSID": "ဝိုင်ဖိုင် အမည်", "WiFi Password": "ဝိုင်ဖိုင် စကားဝှက်", "Show WiFi Password": "ဝိုင်ဖိုင် စကားဝှက် ပြမည်", "Show PIN": "ပင်နံပါတ် ပြမည်", "Device PIN (for Cloud)": "လုံခြုံရေး ပင်နံပါတ်", "Interface Language": "ဘာသာစကား", "Operating Mode": "စက် အမျိုးအစား", "Compressor Valve Delay": "အဆို့ရှင် ဖွင့်ချိန်", "Tank Height": "ရေတိုင်ကီ အမြင့်", "Low Tank Start Level": "ရေမော်တာစတင်မည့် ရေမှတ်", "High Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Low Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်", "Voltage Resume Gap": "ဗို့အားပြန်ဖွင့် ကွာဟချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်", "Pump Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်", "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်", "End Hour": "ပြီးဆုံးရန် အချိန်", "📍 Home Time Zone (GMT)": "📍 အချိန်ဇုန် (GMT)", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "System Role (Pairing)": "စနစ် အဆင့်အတန်း (Role)", "Master Settling Time": "ရေအနည်ထိုင်ချိန်", "Linked Master ID": "ချိတ်ဆက်ထားသော Master ID", "High Tank Stop Level": "ရေမော်တာရပ်မည့် ရေမှတ်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု", "🛠️ Maintenance": "🛠️ ပြုပြင်ထိန်းသိမ်းမှု", "Check for Updates": "ဗားရှင်း အသစ်စစ်ရန်", "User Guide": "အသုံးပြုနည်း လမ်းညွှန်", "Current Version:": "လက်ရှိ ဗားရှင်း-", "Upload Token File (.key)": "လိုင်စင်တိုကင်ဖိုင်တင်ရန် (.key)", "Paste Token String": "တိုကင် စာသား ထည့်ပါ", "Choose File": "ဖိုင်ရွေးမည်", "Upload File": "ဖိုင် တင်မည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်", "Status:": "အခြေအနေ-", "🛠️ Factory Mode": "🛠️ စက်ရုံထုတ် ဆက်တင်များ", "Cloud Server Config": "ကလောက် ဆာဗာ ဆက်တင်များ", "MQTT Server URL": "ဆာဗာ လိပ်စာ (URL)", "MQTT Port": "ပေါ့တ် (Port)", "MQTT Username": "အသုံးပြုသူ အမည်", "MQTT Password": "စကားဝှက်", "⚙️ Advanced Server Settings": "⚙️ ဆာဗာ အဆင့်မြင့် ဆက်တင်များ", "Apply Server Settings": "ဆာဗာ ပြောင်းလဲမှု အတည်ပြုမည်", "Broker URL": "ဆာဝါ လိပ်စာ (URL)", "MQTT User": "အသုံးပြုသူ အမည်", "Logout": "ထွက်မည်", "💬 Support": "💬 AI အကူအညီ", "Open in Full Screen ↗": "မျက်နှာပြင်အပြည့်ဖြင့်ကြည့်မည် ↗", "Reconnecting...": "ပြန်လည်ချိတ်ဆက်နေသည်..."};
+        const dict = {"Device: Online": "စက် အွန်လိုင်း", "Device: Offline": "စက် အော့ဖ်လိုင်း", "Connecting...": "ချိတ်ဆက်နေသည်...", "NORMAL": "ပုံမှန်", "OVER": "ကျော်လွန်", "UNDER": "လျော့နည်း", "DELAY": "စောင့်ဆိုင်း", "ON": "ဖွင့်", "OFF": "ပိတ်", "DRY_RUN_ALARM!": "ရေမရှိ အချက်ပေး!", "PUMP_LOCKED!": "ပိတ်သိမ်းထားသည်!", "WAITING_RETRY!": "ပြန်စရန်စောင့်နေသည်!", "SENSOR_ERROR!": "ဆင်ဆာ ချို့ယွင်းချက်!", "SYSTEM_STANDBY!": "အသင့်အနေအထား!", "FLOW_DETECTED!": "ရေစီးဆင်းမှုရှိသည်!", "FLOW_CHECKING!": "ရေစီးဆင်းမှုစစ်နေ!", "COOLING_DOWN!": "အအေးခံနေသည်!", "VENTING_VALVE!": "လေလျှော့နေသည်!", "SETTLING_WATER!": "ရေအနည်ထိုင်ရန်စောင့်ချိန်!", "PLEASE WAIT...": "စောင့်ဆိုင်းပါ...", "PLEASE WAIT": "စောင့်ဆိုင်းပါ...", "Voltage:": "လျှပ်စစ်အား-", "Volt Status:": "ဗို့အား အခြေအနေ-", "Pump:": "ရေမော်တာ-", "System Info:": "စက် အချက်အလက်-", "Retry in:": "ပြန်လည်စတင်ရန်-", "Start Pump": "ရေမော်တာ ဖွင့်မည်", "Stop Pump": "ရေမော်တာ ပိတ်မည်", "Cooling in:": "အအေးခံရန် ကျန်ချိန်-", "Dry-Run in:": "ရေမရှိ အချက်ပေးရန်-", "Settling in:": "ရေအနည်ထိုင်ရန်-", "LICENSE EXPIRED": "သက်တမ်းကုန်ဆုံးပြီ", "WiFi SSID": "ဝိုင်ဖိုင် အမည်", "WiFi Password": "ဝိုင်ဖိုင် စကားဝှက်", "Show WiFi Password": "ဝိုင်ဖိုင် စကားဝှက် ပြမည်", "Show PIN": "ပင်နံပါတ် ပြမည်", "Device PIN (for Cloud)": "လုံခြုံရေး ပင်နံပါတ်", "Interface Language": "ဘာသာစကား", "Operating Mode": "စက် အမျိုးအစား", "Compressor Valve Delay": "အဆို့ရှင် ဖွင့်ချိန်", "Tank Height": "ရေတိုင်ကီ အမြင့်", "Low Tank Start Level": "ရေမော်တာစတင်မည့် ရေမှတ်", "High Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Low Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်", "Voltage Resume Gap": "ဗို့အားပြန်ဖွင့် ကွာဟချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်", "Pump Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်", "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်", "End Hour": "ပြီးဆုံးရန် အချိန်", "📍 Home Time Zone (GMT)": "📍 အချိန်ဇုန် (GMT)", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "System Role (Pairing)": "စနစ် အဆင့်အတန်း (Role)", "Master Settling Time": "ရေအနည်ထိုင်ချိန်", "Linked Master ID": "ချိတ်ဆက်ထားသော Master ID", "High Tank Stop Level": "ရေမော်တာရပ်မည့် ရေမှတ်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု", "🛠️ Maintenance": "🛠️ ပြုပြင်ထိန်းသိမ်းမှု", "Check for Updates": "ဗားရှင်း အသစ်စစ်ရန်", "User Guide": "အသုံးပြုနည်း လမ်းညွှန်", "Current Version:": "လက်ရှိ ဗားရှင်း-", "Upload Token File (.key)": "လိုင်စင်တိုကင်ဖိုင်တင်ရန် (.key)", "Paste Token String": "တိုကင် စာသား ထည့်ပါ", "Choose File": "ဖိုင်ရွေးမည်", "Upload File": "ဖိုင် တင်မည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်", "Status:": "အခြေအနေ-", "🛠️ Factory Mode": "🛠️ စက်ရုံထုတ် ဆက်တင်များ", "Cloud Server Config": "ကလောက် ဆာဗာ ဆက်တင်များ", "MQTT Server URL": "ဆာဗာ လိပ်စာ (URL)", "MQTT Port": "ပေါ့တ် (Port)", "MQTT Username": "အသုံးပြုသူ အမည်", "MQTT Password": "စကားဝှက်", "⚙️ Advanced Server Settings": "⚙️ ဆာဗာ အဆင့်မြင့် ဆက်တင်များ", "Apply Server Settings": "ဆာဗာ ပြောင်းလဲမှု အတည်ပြုမည်", "Broker URL": "ဆာဝါ လိပ်စာ (URL)", "MQTT User": "အသုံးပြုသူ အမည်", "Logout": "ထွက်မည်", "💬 Support": "💬 AI အကူအညီ", "Open in Full Screen ↗": "မျက်နှာပြင်အပြည့်ဖြင့်ကြည့်မည် ↗", "Reconnecting...": "ပြန်လည်ချိတ်ဆက်နေသည်...", "⏱️ Total Motor Life:": "⏱️ စုစုပေါင်း မောင်းနှင်ချိန်-", "⚙️ Motor Maintenance": "⚙️ မော်တာ ထိန်းသိမ်းမှု", "Accumulated Run Time": "စုစုပေါင်း မောင်းနှင်ချိန်", "Reset Life Counter": "မောင်းနှင်ချိန် ပြန်စမည်", "Reset this counter only after motor repair or replacement.": "မော်တာ ပြုပြင်ပြီးချိန်တွင်သာ ဤနေရာကို နှိပ်၍ ပြန်စပါ။"};
 
         const tr = (t) => {
             if (sysLang != 1 || !t) return t;
@@ -1276,14 +1294,31 @@
                 document.getElementById('tabHome').innerText = "🏠 ပင်မစာမျက်နှာ";
                 document.getElementById('tabSettings').innerText = "⚙️ ဆက်တင်များ";
                 document.getElementById('tabSupport').innerText = "💬 AI အကူအညီ";
-                document.querySelectorAll('.row span:first-child, label, h3, .show-pass, button').forEach(el => {
+
+                document.querySelectorAll('.row span:first-child, label, h3, .show-pass, button, p').forEach(el => {
                     let txt = el.innerText.trim();
-                    if (!dict[txt]) return;
-                    if (el.classList.contains('show-pass')) {
-                        const cb = el.querySelector('input[type="checkbox"]');
-                        if (cb) {el.innerHTML = ''; el.appendChild(cb); el.appendChild(document.createTextNode(' ' + dict[txt]));} else {el.innerText = dict[txt];}
-                    } else {el.innerText = dict[txt];}
+
+                    // 1. Normalize spaces (removes hidden newlines and double spaces)
+                    txt = txt.replace(/\s+/g, ' ');
+
+                    // 2. Handle specific strings first
+                    if (txt.includes("Total Motor Life")) {el.innerText = tr("⏱️ Total Motor Life:"); return;}
+
+                    // 3. Match against dictionary
+                    if (dict[txt]) {
+                        if (el.classList.contains('show-pass')) {
+                            const cb = el.querySelector('input[type="checkbox"]');
+                            if (cb) {
+                                el.innerHTML = '';
+                                el.appendChild(cb);
+                                el.appendChild(document.createTextNode(' ' + dict[txt]));
+                            } else {el.innerText = dict[txt];}
+                        } else {
+                            el.innerText = dict[txt];
+                        }
+                    }
                 });
+
                 document.querySelectorAll('select option').forEach(opt => {
                     if (opt.text.includes("Standalone")) opt.text = "သီးသန့်စက်";
                     if (opt.text.includes("Master (Sump Tank)")) opt.text = "အဓိကစက် (အောက်တိုင်ကီ)";
@@ -1291,13 +1326,20 @@
                     if (opt.text.includes("Water Pump")) opt.text = "ရေမော်တာ";
                     if (opt.text.includes("Air Compressor")) opt.text = "လေကွန်ပရက်ဆာ";
                 });
+
                 document.getElementById('wifiPass').placeholder = "လက်ရှိအတိုင်းထားရန် အလွတ်ထားပါ";
                 document.getElementById('licText').placeholder = "ဖုန်းဖြင့်ရသော တိုကင်စာသားကို ဤနေရာတွင် ထည့်ပါ";
                 const h2Title = document.querySelector('h2');
-                if (h2Title) {h2Title.style.fontSize = "1.3rem"; h2Title.innerHTML = h2Title.innerHTML.replace("Tank Water Level", "ရေတိုင်ကီ ရေအမှတ်");}
+                if (h2Title) {
+                    h2Title.style.fontSize = "1.3rem";
+                    h2Title.innerHTML = h2Title.innerHTML.replace("Tank Water Level", "ရေတိုင်ကီ ရေအမှတ်");
+                }
                 document.querySelector('button[onclick="sendSave()"]').innerText = "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်";
                 document.querySelector('button[onclick="logout()"]').innerText = "ထွက်မည်";
-                document.querySelectorAll('label').forEach(l => {if (l.innerText === "Start Hour") l.innerText = tr("Start Hour"); if (l.innerText === "End Hour") l.innerText = tr("End Hour");});
+                document.querySelectorAll('label').forEach(l => {
+                    if (l.innerText === "Start Hour") l.innerText = tr("Start Hour");
+                    if (l.innerText === "End Hour") l.innerText = tr("End Hour");
+                });
                 const factBtn = document.querySelector('button[onclick="unlockFactory()"]');
                 if (factBtn) factBtn.innerText = tr("🛠️ Factory Mode");
                 document.querySelector('button[onclick="uploadLicenseFile()"]').innerText = "ဖိုင် တင်မည်";
@@ -1311,9 +1353,13 @@
                 if (chooseFileSpan) chooseFileSpan.innerText = "ဖိုင်ရွေးမည်";
                 const lastMsg = document.getElementById('lastMsg');
                 if (lastMsg) lastMsg.innerText = "ပထမဆုံး ချိတ်ဆက်မှုကို စောင့်နေပါသည်...";
-                document.querySelectorAll('.footer span').forEach(el => {if (el.innerHTML.includes("Cloud ID:")) el.innerHTML = el.innerHTML.replace("Cloud ID:", "ကလောက် အိုင်ဒီ-"); if (el.innerHTML.includes("Device IP:")) el.innerHTML = el.innerHTML.replace("Device IP:", "စက် အိုင်ပီ-");});
+                document.querySelectorAll('.footer span').forEach(el => {
+                    if (el.innerHTML.includes("Cloud ID:")) el.innerHTML = el.innerHTML.replace("Cloud ID:", "ကလောက် အိုင်ဒီ-");
+                    if (el.innerHTML.includes("Device IP:")) el.innerHTML = el.innerHTML.replace("Device IP:", "စက် အိုင်ပီ-");
+                });
             }
-            if (document.getElementById('appLang')) document.getElementById('appLang').value = sysLang; updateKeychainUI();
+            if (document.getElementById('appLang')) document.getElementById('appLang').value = sysLang;
+            updateKeychainUI();
         });
 
         document.addEventListener("visibilitychange", () => {
@@ -1437,6 +1483,21 @@
         function uploadLicenseFile() {vibe(); const fileInput = document.getElementById('licFile'); if (fileInput.files.length === 0) {alert("Please select a .key file first."); return;} const file = fileInput.files[0]; const reader = new FileReader(); reader.onload = function (e) {sendLicense(e.target.result.trim());}; reader.readAsText(file);}
         function uploadLicenseText() {vibe(); const val = document.getElementById('licText').value.trim(); if (val.length < 10) {alert("Invalid token string."); return;} sendLicense(val);}
         function sendLicense(token) {if (token.length > 10) {sendCmd({lic: token}); alert("License Token Sent!");} }
+        function formatRuntime(totalSeconds) {
+            if (!totalSeconds) return "0h 0m";
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            return h + "h " + m + "m";
+        }
+        function resetMotorLife() {
+            vibe();
+            const confirmMsg = sysLang == 1 ? "မောင်းနှင်ချိန်ကို သုညသို့ ပြန်စရန် သေချာပါသလား?" : "Are you sure you want to RESET the Motor Life counter to zero?";
+            if (confirm(confirmMsg)) {
+                sendCmd({resetRun: 1});
+                const successMsg = sysLang == 1 ? "ပြန်လည်စတင်ရန် အမိန့်ပေးပို့ပြီးပါပြီ" : "Reset command sent to device!";
+                alert(successMsg);
+            }
+        }
         const dirtyFields = new Set();
         function markDirty(id) {dirtyFields.add(id);}
         function safeUpdate(id, val, suffix) {const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return; if (el.tagName === 'SELECT') {let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) {let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt);} el.value = val;} else {el.value = val;} }
@@ -1494,6 +1555,11 @@
             const tankFill = document.getElementById('tankFill'); if (tankFill && activeTab !== 'saving') {setTankGuides(d); tankFill.style.height = (d.tank || 0) + '%'; if (d.tank <= (d.lowTank || 30)) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water'); if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');}
             if (activeTab !== 'saving') {
                 if (d.sysRole !== undefined) {safeUpdate('sysRole', d.sysRole); toggleRole();} if (d.setM !== undefined) safeUpdate('setM', d.setM); if (d.linkID !== undefined) safeUpdate('linkID', d.linkID); if (d.opM !== undefined) {safeUpdate('opM', d.opM); toggleVDly();} if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds"); if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.lowTank !== undefined) safeUpdate('lowTank', d.lowTank); if (d.fullTank !== undefined) safeUpdate('fullTank', d.fullTank); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts"); if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds"); if (d.rstM !== undefined) safeUpdate('rstM', d.rstM); if (d.rM !== undefined) safeUpdate('rM', d.rM); if (d.ssid !== undefined) safeUpdate('ssid', d.ssid); if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn); if (d.dndS !== undefined) safeUpdate('dndS', d.dndS); if (d.dndE !== undefined) safeUpdate('dndE', d.dndE); if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf); if (d.mqSrv !== undefined) safeUpdate('mqSrv_s', d.mqSrv); if (d.mqPort !== undefined) safeUpdate('mqPort_s', d.mqPort); if (d.mqUser !== undefined) safeUpdate('mqUser_s', d.mqUser); if (d.mqPass !== undefined) safeUpdate('mqPass_s', d.mqPass); if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
+                if (d.runtime !== undefined) {
+                    const formattedTime = formatRuntime(d.runtime);
+                    document.getElementById('dispRunHome').innerText = formattedTime;
+                    document.getElementById('dispRunSett').innerText = formattedTime;
+                }
                 const otaHome = document.getElementById('otaHub'), otaSett = document.getElementById('otaHubS');
                 if (d.ota == 1 && d.nVer > d.ver) {
                     if (otaHome) otaHome.style.display = 'block'; if (otaSett) otaSett.style.display = 'block';
