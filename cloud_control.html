@@ -1499,7 +1499,13 @@
         function startOTA() {vibe(); if (confirm("Start OTA?")) sendCmd({otaStart: 1});}
         function checkOTA(btn) {vibe(); sendCmd({otaCheck: 1});}
         function sendSave() {
-            vibe(); if (isExpired) {showModal("License Expired."); return;} const ssid = document.getElementById('ssid').value.trim(); if (!ssid) {alert("SSID empty!"); return;} if (!confirm("Save and reboot?")) return; activeTab = 'saving'; sendCmd({
+            vibe(); if (isExpired) {showModal("License Expired."); return;} const ssid = document.getElementById('ssid').value.trim();
+            if (!ssid) {
+                alert(sysLang == 1 ? "ဝိုင်ဖိုင်အမည် (SSID) ထည့်သွင်းပေးပါ" : "SSID empty!");
+                return;
+            }
+            const confirmMsg = sysLang == 1 ? "သိမ်းဆည်းပြီး စက်ကိုပြန်ဖွင့်မည်လား?" : "Save and reboot?";
+            if (!confirm(confirmMsg)) return; activeTab = 'saving'; sendCmd({
                 save: 1, ssid: ssid, pass: document.getElementById('wifiPass').value, newPin: document.getElementById('newPin').value || devicePin, sysRole: parseInt(document.getElementById('sysRole').value), linkID: document.getElementById('linkID').value.trim().toUpperCase(), setM: parseInt(document.getElementById('setM').value), opM: parseInt(document.getElementById('opM').value), vDly: parseInt(document.getElementById('vDly').value), uH: parseFloat(document.getElementById('uH').value), lowTank: parseInt(document.getElementById('lowTank').value), fullTank: parseInt(document.getElementById('fullTank').value), vH: parseInt(document.getElementById('vH').value), vL: parseInt(document.getElementById('vL').value), vG: parseInt(document.getElementById('vG').value), dD: parseInt(document.getElementById('dD').value), rstM: parseInt(document.getElementById('rstM').value), rM: parseInt(document.getElementById('rM').value), dndEn: parseInt(document.getElementById('dndEn').value), dndS: parseInt(document.getElementById('dndS').value), dndE: parseInt(document.getElementById('dndE').value), tzOf: parseFloat(document.getElementById('tzOf').value),
                 motLim: parseInt(document.getElementById('mSl').value), tzOf: parseFloat(document.getElementById('tzOf').value), mSl: parseInt(document.getElementById('mSl').value), mqSrv: document.getElementById('mqSrv_s') ? document.getElementById('mqSrv_s').value : undefined, mqPort: document.getElementById('mqPort_s') ? parseInt(document.getElementById('mqPort_s').value) : undefined, mqUser: document.getElementById('mqUser_s') ? document.getElementById('mqUser_s').value : undefined, mqPass: document.getElementById('mqPass_s') ? document.getElementById('mqPass_s').value : undefined
             }); document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device...</span></h2>'; setTimeout(() => location.reload(), 20000);
