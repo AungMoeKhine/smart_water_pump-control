@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
     <style>
-        /* �"?�"?�"? DESIGN TOKENS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ DESIGN TOKENS ═════════════════════════════════════════ */
         :root {
             --bg-deep: #080c17;
             --bg-card: #0e1525;
@@ -22,6 +22,7 @@
             --accent-green: #00e87a;
             --accent-red: #ff3b5c;
             --accent-amber: #ffb020;
+            --accent-purple: #8b5cf6;
             --text-primary: #e8eef7;
             --text-muted: #5a6a85;
             --text-dim: #2e3d58;
@@ -36,7 +37,7 @@
             }
         }
 
-        /* �"?�"?�"? RESET & BASE �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ RESET & BASE ══════════════════════════════════════════ */
         *,
         *::before,
         *::after {
@@ -72,7 +73,7 @@
             z-index: 0;
         }
 
-        /* �"?�"?�"? TYPOGRAPHY �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ TYPOGRAPHY ════════════════════════════════════════════ */
         h1 {
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
             -webkit-background-clip: text;
@@ -119,7 +120,7 @@
             text-decoration: underline;
         }
 
-        /* �"?�"?�"? MAIN CONTAINER �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ MAIN CONTAINER ════════════════════════════════════════ */
         .container {
             position: relative;
             z-index: 1;
@@ -164,7 +165,7 @@
             border-radius: 1px;
         }
 
-        /* �"?�"?�"? LOGO �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ LOGO ═════════════════════════════════════════════════ */
         .logo {
             width: 96px;
             height: auto;
@@ -176,7 +177,6 @@
         }
 
         @keyframes logoPulse {
-
             0%,
             100% {
                 box-shadow: 0 0 20px rgba(0, 180, 240, 0.5), 0 0 55px rgba(0, 180, 240, 0.18);
@@ -187,7 +187,7 @@
             }
         }
 
-        /* �"?�"?�"? BADGE / VERSION CHIP �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ BADGE / VERSION CHIP ══════════════════════════════════ */
         .version-chip {
             display: inline-block;
             background: rgba(0, 180, 240, 0.1);
@@ -202,24 +202,26 @@
             margin-bottom: 14px;
         }
 
-        /* �"?�"?�"? BUTTONS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ BUTTONS ══════════════════════════════════════════════ */
         .button {
             border: none;
             color: white;
-            padding: 16px 30px;
+            padding: 16px 12px;
             text-align: center;
             text-decoration: none !important;
-            display: inline-block;
-            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
             font-weight: 700;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.5px;
             cursor: pointer;
             border-radius: 13px;
             width: 100%;
-            max-width: 280px;
             transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
             position: relative;
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         .button::after {
@@ -271,6 +273,16 @@
             box-shadow: 0 8px 35px rgba(0, 232, 122, 0.55);
         }
 
+        .button-admin {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            box-shadow: 0 4px 22px rgba(124, 58, 237, 0.4);
+            color: #ffffff;
+        }
+
+        .button-admin:hover {
+            box-shadow: 0 8px 35px rgba(124, 58, 237, 0.6);
+        }
+
         .button-apk {
             background: linear-gradient(135deg, #3f51b5, #7c4dff);
             box-shadow: 0 4px 22px rgba(124, 77, 255, 0.35);
@@ -279,6 +291,12 @@
 
         .button-apk:hover {
             box-shadow: 0 8px 35px rgba(124, 77, 255, 0.55);
+        }
+
+        .button-firmware {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            box-shadow: 0 4px 22px rgba(2, 132, 199, 0.4);
+            color: #ffffff;
         }
 
         .button-premium {
@@ -291,14 +309,30 @@
             box-shadow: 0 8px 35px rgba(255, 176, 32, 0.55);
         }
 
-        /* �"?�"?�"? DIVIDER �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ DIVIDER ══════════════════════════════════════════════ */
         .section-divider {
             border: none;
             border-top: 1px solid rgba(255, 255, 255, 0.06);
             margin: 28px 0;
         }
 
-        /* �"?�"?�"? GRID LAYOUT �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ GRID LAYOUT ═════════════════════════════════════════ */
+        .btn-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin: 26px auto 0 auto;
+            max-width: 650px;
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            .btn-row {
+                grid-template-columns: 1fr;
+                max-width: 300px;
+            }
+        }
+
         .grid-container {
             display: grid;
             grid-template-columns: 1fr;
@@ -318,7 +352,7 @@
             }
         }
 
-        /* �"?�"?�"? CARDS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ CARDS ════════════════════════════════════════════════ */
         .card {
             background: rgba(10, 16, 30, 0.7);
             border: 1px solid rgba(0, 180, 240, 0.1);
@@ -371,7 +405,6 @@
             font-weight: 600;
         }
 
-        /* Tinted card variants */
         .card-blue {
             background: rgba(0, 60, 130, 0.12) !important;
             border-color: rgba(0, 180, 240, 0.18) !important;
@@ -382,20 +415,7 @@
             border-color: rgba(255, 176, 32, 0.18) !important;
         }
 
-        .card-blue h3 {
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-            -webkit-background-clip: text;
-            background-clip: text;
-        }
-
-        .card-amber h3 {
-            background: linear-gradient(90deg, var(--accent-amber), #ff8c42);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* �"?�"?�"? WIRING WRAPPER �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ WIRING WRAPPER ═══════════════════════════════════════ */
         .wiring-wrapper {
             overflow-x: auto;
             background: rgba(4, 10, 20, 0.8);
@@ -427,9 +447,9 @@
             font-weight: 700;
             padding: 7px 5px;
             display: inline-block;
-            width: 95px;
+            width: 105px;
             text-align: center;
-            font-size: 11px;
+            font-size: 10.5px;
             transition: box-shadow 0.3s;
         }
 
@@ -517,7 +537,6 @@
         }
 
         @keyframes wirePulse {
-
             0%,
             100% {
                 opacity: 0.55;
@@ -548,7 +567,7 @@
             left: 0;
         }
 
-        /* �"?�"?�"? FOOTER �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
+        /* ═══════════════ FOOTER & NOTES ════════════════════════════════════════ */
         .page-footer {
             margin-top: 28px;
             font-size: 0.82rem;
@@ -559,7 +578,6 @@
             color: var(--text-muted);
         }
 
-        /* �"?�"?�"? COMPAT NOTE �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"? */
         .compat-note {
             display: inline-block;
             background: rgba(255, 176, 32, 0.08);
@@ -569,51 +587,6 @@
             border-radius: 8px;
             font-size: 0.82rem;
             margin-top: 6px;
-        }
-
-        /* Updated Grid Layout for exactly 2x2 desktop / 1x4 mobile */
-        .btn-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            margin: 26px auto 0 auto;
-            max-width: 600px;
-            width: 100%;
-        }
-
-        @media (max-width: 600px) {
-            .btn-row {
-                grid-template-columns: 1fr;
-                max-width: 280px;
-            }
-        }
-
-        /* Adjust the button padding to fit grid cells */
-        .button {
-            border: none;
-            color: white;
-            padding: 16px 10px;
-            text-align: center;
-            text-decoration: none !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.82rem;
-            font-weight: 700;
-            cursor: pointer;
-            border-radius: 13px;
-            width: 100%;
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-            box-sizing: border-box;
-        }
-
-        /* Style for the new Firmware Button */
-        .button-firmware {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
-            box-shadow: 0 4px 22px rgba(2, 132, 199, 0.4);
-            color: #ffffff;
         }
     </style>
     <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
@@ -765,12 +738,12 @@
 
         <!-- Title -->
         <h1>Smart Pump Control</h1>
-        <div class="version-chip">Premium Edition &nbsp;·&nbsp; v1.2.0</div>
+        <div class="version-chip">Dual-Sensor Edition &nbsp;·&nbsp; v1.2.0</div>
         <h2>Pump &amp; Compressor Dual-Mode Controller</h2>
 
         <p>
-            Advanced <b>Voltage Protection</b>, <b>Dry-Run Auto-Retry</b>,
-            <b>Solenoid Venting</b>, and <b>Cloud MQTT Tracking</b> - all in one firmware.
+            Dual Water Sensing (<b>Ultrasonic &amp; Hydrostatic</b>), <b>Voltage Guard</b>, <b>Dry-Run Auto-Retry</b>,
+            <b>Solenoid Venting</b>, and <b>Cloud Fleet MQTT Tracking</b>.
         </p>
 
         <!-- Token Gate -->
@@ -789,7 +762,6 @@
         </esp-web-install-button>
         <div><span class="compat-note">&#128268; Compatible with ESP32-S3 &middot; Connect via USB</span></div>
 
-        <!-- Dashboard & Guide Links -->
         <!-- Dashboard, Lookup & Guide Links -->
         <hr class="section-divider">
 
@@ -813,18 +785,19 @@
             </div>
         </div>
 
-        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Documentation &amp; Cloud
-            Access</p>
+        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Cloud Access &amp; Documentation</p>
         <div class="btn-row">
-            <!-- First Row -->
+            <!-- Row 1 -->
             <a href="cloud_control.html" class="button button-cloud">&#9729;&#65039; CLOUD DASHBOARD</a>
-            <a href="Smart_Pump.apk" class="button button-apk" download>&#128241; DOWNLOAD ANDROID APP</a>
+            <a href="AMK_MAIN_ADMIN_CONTROL.html" class="button button-admin">&#128737;&#65039; ADMIN FLEET CONSOLE</a>
 
-            <!-- Second Row (Swapped Order) -->
+            <!-- Row 2 -->
+            <a href="Smart_Pump.apk" class="button button-apk" download>&#128241; DOWNLOAD ANDROID APP</a>
+            <a href="user_guide_premium.html" target="_blank" class="button button-premium">&#128214; TECHNICAL MANUAL</a>
+
+            <!-- Row 3 (Full Width Firmware Download) -->
             <a href="https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/firmware.bin"
-                class="button button-firmware" download>&#128190; DOWNLOAD FIRMWARE.BIN</a>
-            <a href="user_guide_premium.html" target="_blank" class="button button-premium">&#128214; TECHNICAL
-                MANUAL</a>
+                class="button button-firmware" style="grid-column: 1 / -1; max-width: 100%;" download>&#128190; DOWNLOAD FIRMWARE.BIN</a>
         </div>
 
         <!-- Info Cards -->
@@ -838,11 +811,9 @@
                         <code>12345678</code>).
                     </li>
                     <li><b>Configure:</b> Open <a href="http://192.168.4.1" target="_blank">192.168.4.1</a> and
-                        enter
-                        your Home WiFi details.</li>
+                        enter your Home WiFi details.</li>
+                    <li><b>Sensor Select:</b> Choose <b>Ultrasonic</b> or <b>Hydrostatic</b> probe in settings.</li>
                     <li><b>Access:</b> After reboot, visit the device IP shown on the LCD to open the dashboard.
-                    </li>
-                    <li><b>Settings:</b> Set Tank Height, Voltage Limits, and Auto-Retry logic in the settings menu.
                     </li>
                 </ol>
             </div>
@@ -851,18 +822,16 @@
             <div class="card card-amber">
                 <h3>&#128737;&#65039; Safety &amp; Features</h3>
                 <ul>
-                    <li><b>Dual-Mode:</b> Switch between <b>Water Pump</b> and <b>Air Compressor</b> operations.
-                    </li>
-                    <li><b>Solenoid Venting:</b> Automatic pressure release valve for compressor reliability.</li>
-                    <li><b>Voltage Guard:</b> Automatic cut-off (&gt;250 V or &lt;170 V).</li>
-                    <li><b>Dry-Run System:</b> Smart flow detection with <b>Auto-Retry</b> or <b>Lock</b> modes.
-                    </li>
-                    <li><b>Cool-Down Logic:</b> Hardware overheating protection for high-demand loads.</li>
-                    <li><b>Smart Scheduling:</b> DND mode for automated overnight silence.</li>
+                    <li><b>Dual-Sensor Hardware:</b> Supports Ultrasonic (AJ-SR04M) &amp; Hydrostatic Level Probes (0-5V).</li>
+                    <li><b>Dual-Mode:</b> Switch between <b>Water Pump</b> and <b>Air Compressor</b> operations.</li>
+                    <li><b>Solenoid Venting:</b> Automatic unloader pressure release valve for compressor start/stop.</li>
+                    <li><b>Voltage Guard:</b> Automatic high/low cut-off (&gt;250 V or &lt;170 V) with hysteresis recovery.</li>
+                    <li><b>Dry-Run System:</b> Smart flow sensor detection with <b>Auto-Retry</b> or <b>Lockout</b>.</li>
+                    <li><b>Fleet Cloud Sync:</b> Real-time monitoring &amp; remote license control via MQTT TLS.</li>
                 </ul>
             </div>
 
-            <!-- Wiring Guide �?" spans full width -->
+            <!-- Wiring Guide — spans full width -->
             <div class="card"
                 style="grid-column: 1 / -1; background: rgba(5,10,22,0.6); border-color: rgba(0,255,136,0.12);">
                 <h3
@@ -875,7 +844,7 @@
                         <tr>
                             <td></td>
                             <td></td>
-                            <td colspan="2" class="board-header">�sT ESP32-S3</td>
+                            <td colspan="2" class="board-header">⚡ ESP32-S3</td>
                             <td></td>
                             <td></td>
                         </tr>
@@ -900,107 +869,109 @@
                                 <div class="comp-base comp-display">&#128421;&#65039; LCD (SCL)</div>
                             </td>
                         </tr>
-                        <!-- Volt / Trig -->
+                        <!-- Hydrostatic / Volt Sensor -->
                         <tr>
+                            <td>
+                                <div class="comp-base comp-sensor">&#127754; Hydrostatic</div>
+                            </td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 03</td>
+                            <td class="board-body-right">GPIO 04</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
                             <td>
                                 <div class="comp-base comp-sensor">&#9889; Volt Sensor</div>
                             </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 04</td>
-                            <td class="board-body-right">GPIO 05</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
+                        </tr>
+                        <!-- Ultra Trig / Ultra Echo -->
+                        <tr>
                             <td>
                                 <div class="comp-base comp-sensor">&#128207; Ultra Trig</div>
                             </td>
-                        </tr>
-                        <!-- Echo / Buzzer -->
-                        <tr>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 05</td>
+                            <td class="board-body-right">GPIO 06</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
                             <td>
                                 <div class="comp-base comp-sensor">&#128207; Ultra Echo</div>
                             </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 06</td>
-                            <td class="board-body-right">GPIO 07</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
+                        </tr>
+                        <!-- Buzzer / Motor -->
+                        <tr>
                             <td>
                                 <div class="comp-base comp-actuator">&#128276; Buzzer</div>
                             </td>
-                        </tr>
-                        <!-- Motor / Manual Btn -->
-                        <tr>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-left"></div>
+                                </div>
+                            </td>
+                            <td class="board-body-left">GPIO 07</td>
+                            <td class="board-body-right">GPIO 08</td>
+                            <td>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
+                            </td>
                             <td>
                                 <div class="comp-base comp-actuator">&#9881;&#65039; Motor</div>
                             </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 08</td>
-                            <td class="board-body-right">GPIO 09</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
+                        </tr>
+                        <!-- Manual Btn / Solenoid -->
+                        <tr>
                             <td>
                                 <div class="comp-base comp-input">&#128278; Manual Btn</div>
                             </td>
-                        </tr>
-                        <!-- Solenoid / Flow -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-actuator">&#128168; Solenoid</div>
-                            </td>
                             <td>
                                 <div class="wire-line">
                                     <div class="wire-dot dot-left"></div>
                                 </div>
                             </td>
-                            <td class="board-body-left">GPIO 10</td>
-                            <td class="board-body-right">GPIO 18</td>
+                            <td class="board-body-left">GPIO 09</td>
+                            <td class="board-body-right">GPIO 10</td>
                             <td>
                                 <div class="wire-line">
                                     <div class="wire-dot dot-right"></div>
                                 </div>
                             </td>
                             <td>
-                                <div class="comp-base comp-sensor">&#127754; Flow Sens</div>
+                                <div class="comp-base comp-actuator">&#128168; Solenoid</div>
                             </td>
                         </tr>
-                        <!-- RGB LED -->
+                        <!-- Flow Sens / RGB LED -->
                         <tr>
                             <td>
-                                <div class="comp-base comp-actuator">&#127752; RGB LED</div>
+                                <div class="comp-base comp-sensor">&#127754; Flow Sens</div>
                             </td>
                             <td>
                                 <div class="wire-line">
                                     <div class="wire-dot dot-left"></div>
                                 </div>
                             </td>
-                            <td class="board-body-left">GPIO 48</td>
-                            <td class="board-body-right">---</td>
+                            <td class="board-body-left">GPIO 18</td>
+                            <td class="board-body-right">GPIO 48</td>
                             <td>
-                                <div class="wire-line"></div>
+                                <div class="wire-line">
+                                    <div class="wire-dot dot-right"></div>
+                                </div>
                             </td>
                             <td>
-                                <div style="width:95px;height:10px;"></div>
+                                <div class="comp-base comp-actuator">&#127752; RGB LED</div>
                             </td>
                         </tr>
                         <!-- Footer -->
@@ -1022,19 +993,14 @@
 </body>
 
 <script>
-    // Helper function to format the date correctly (e.g., 16-Jun-2027)
     function formatDate(dateStr) {
         if (!dateStr || dateStr === "-") return "Not Set";
         const date = new Date(dateStr);
-
-        // If the date is invalid, just return the original text
         if (isNaN(date.getTime())) return dateStr;
-
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const day = String(date.getDate()).padStart(2, '0');
         const month = months[date.getMonth()];
         const year = date.getFullYear();
-
         return `${day}-${month}-${year}`;
     }
 
@@ -1062,13 +1028,10 @@
     function getStatusColor(statusText, dateText) {
         const text = safeText(statusText, "").toLowerCase();
         const date = new Date(dateText);
-
         if (text.includes("expired")) return "var(--accent-red)";
         if (!isNaN(date.getTime()) && date < new Date()) return "var(--accent-red)";
-
         const match = text.match(/(\d+)/);
         if (match && Number(match[1]) <= 30) return "var(--accent-amber)";
-
         return "var(--accent-green)";
     }
 
@@ -1087,17 +1050,14 @@
             return;
         }
 
-        // Show loading state
         resultDiv.style.display = "block";
         resultDiv.style.borderColor = "var(--accent-amber)";
         resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">Searching registry for ${escapeHtml(id)}...</p>`;
 
         try {
             const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNMBACyZpgB6JTTC2UqqmSQ6zj84X24bAAFx0ZmHSOg4ZQFdJoldERj8YlodjYyg4h4w/exec";
-
             const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`);
             if (!response.ok) throw new Error("Lookup request failed");
-
             const data = await response.json();
 
             if (data.error) {

@@ -2,1101 +2,1792 @@
 <html lang="en">
 
 <head>
-    <title>Smart Pump Control Installer</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Smart Pump Control Premium Installer - ESP32-S3 firmware flasher and setup guide.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap"
-        rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMK Fleet Manager & Technical Support Console</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        /* ═══════════════ DESIGN TOKENS ═════════════════════════════════════════ */
         :root {
-            --bg-deep: #080c17;
-            --bg-card: #0e1525;
-            --bg-surface: #161e30;
-            --accent-blue: #00b4f0;
-            --accent-cyan: #00e5d1;
-            --accent-green: #00e87a;
-            --accent-red: #ff3b5c;
-            --accent-amber: #ffb020;
-            --accent-purple: #8b5cf6;
-            --text-primary: #e8eef7;
-            --text-muted: #5a6a85;
-            --text-dim: #2e3d58;
-            --border: rgba(0, 180, 240, 0.12);
-            --glow-blue: rgba(0, 180, 240, 0.35);
-
-            /* Center the install component */
-            esp-web-install-button {
-                display: flex;
-                justify-content: center;
-                margin: 15px 0;
-            }
-        }
-
-        /* ═══════════════ RESET & BASE ══════════════════════════════════════════ */
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+            --bg-color: #0d0f12;
+            --card-bg: rgba(22, 27, 34, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-blue: #007bff;
+            --accent-green: #28a745;
+            --accent-yellow: #ffc107;
+            --accent-red: #dc3545;
+            --accent-purple: #6f42c1;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-deep);
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 100, 200, 0.18) 0%, transparent 65%),
-                radial-gradient(ellipse 40% 30% at 90% 90%, rgba(0, 80, 120, 0.10) 0%, transparent 50%);
-            background-attachment: fixed;
-            color: var(--text-primary);
-            text-align: center;
-            padding: 30px 12px 50px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, #1f242d 0%, #0d0f12 75%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
             min-height: 100vh;
-        }
-
-        /* Subtle star-field overlay */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 15% 25%, rgba(0, 180, 240, 0.5) 0%, transparent 100%),
-                radial-gradient(1px 1px at 80% 55%, rgba(0, 229, 209, 0.4) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 45% 75%, rgba(0, 232, 122, 0.3) 0%, transparent 100%),
-                radial-gradient(1px 1px at 70% 20%, rgba(168, 85, 247, 0.3) 0%, transparent 100%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* ═══════════════ TYPOGRAPHY ════════════════════════════════════════════ */
-        h1 {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            margin-bottom: 6px;
-        }
-
-        h2 {
-            font-size: 1rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            margin-top: 0;
-        }
-
-        p {
-            color: var(--text-muted);
-            max-width: 580px;
-            margin: 12px auto;
-            line-height: 1.7;
-            font-size: 0.95rem;
-        }
-
-        code {
-            background: rgba(0, 180, 240, 0.1);
-            border: 1px solid rgba(0, 180, 240, 0.2);
-            padding: 2px 7px;
-            border-radius: 5px;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--accent-cyan);
-            font-size: 0.88em;
-        }
-
-        a {
-            color: var(--accent-blue);
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: var(--accent-cyan);
-            text-decoration: underline;
-        }
-
-        /* ═══════════════ MAIN CONTAINER ════════════════════════════════════════ */
-        .container {
-            position: relative;
-            z-index: 1;
-            padding: 30px 20px;
-            background: rgba(14, 21, 37, 0.85);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            box-shadow:
-                0 0 0 1px rgba(0, 180, 240, 0.04),
-                0 24px 70px rgba(0, 0, 0, 0.65),
-                inset 0 1px 0 rgba(255, 255, 255, 0.04);
-            display: block;
-            margin: 0 auto;
-            max-width: 820px;
-            width: 100%;
-            animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(24px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Top accent line */
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 10%;
-            right: 10%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-cyan), transparent);
-            border-radius: 1px;
-        }
-
-        /* ═══════════════ LOGO ═════════════════════════════════════════════════ */
-        .logo {
-            width: 96px;
-            height: auto;
-            margin-bottom: 18px;
-            border-radius: 50%;
-            border: 2px solid rgba(0, 180, 240, 0.4);
-            box-shadow: 0 0 20px rgba(0, 180, 240, 0.5), 0 0 60px rgba(0, 180, 240, 0.2);
-            animation: logoPulse 3s ease-in-out infinite;
-        }
-
-        @keyframes logoPulse {
-            0%,
-            100% {
-                box-shadow: 0 0 20px rgba(0, 180, 240, 0.5), 0 0 55px rgba(0, 180, 240, 0.18);
-            }
-
-            50% {
-                box-shadow: 0 0 35px rgba(0, 180, 240, 0.8), 0 0 90px rgba(0, 180, 240, 0.38);
-            }
-        }
-
-        /* ═══════════════ BADGE / VERSION CHIP ══════════════════════════════════ */
-        .version-chip {
-            display: inline-block;
-            background: rgba(0, 180, 240, 0.1);
-            border: 1px solid rgba(0, 180, 240, 0.3);
-            color: var(--accent-blue);
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            padding: 4px 12px;
-            border-radius: 100px;
-            margin-bottom: 14px;
-        }
-
-        /* ═══════════════ BUTTONS ══════════════════════════════════════════════ */
-        .button {
-            border: none;
-            color: white;
-            padding: 16px 12px;
-            text-align: center;
-            text-decoration: none !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            border-radius: 13px;
-            width: 100%;
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-            position: relative;
-            overflow: hidden;
             box-sizing: border-box;
         }
 
-        .button::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 60%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
-            animation: shimmer 2.8s infinite;
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
         }
 
-        @keyframes shimmer {
-            0% {
-                left: -100%;
-            }
-
-            100% {
-                left: 220%;
-            }
-        }
-
-        .button:hover {
-            transform: translateY(-3px);
-        }
-
-        .button:active {
-            transform: scale(0.97);
-            opacity: 0.9;
-        }
-
-        .button-v1 {
-            background: linear-gradient(135deg, #005fa3, var(--accent-blue));
-            box-shadow: 0 4px 22px rgba(0, 180, 240, 0.4);
-        }
-
-        .button-v1:hover {
-            box-shadow: 0 8px 35px rgba(0, 180, 240, 0.6);
-        }
-
-        .button-cloud {
-            background: linear-gradient(135deg, #006b45, var(--accent-green));
-            box-shadow: 0 4px 22px rgba(0, 232, 122, 0.35);
-            color: #001a0e;
-        }
-
-        .button-cloud:hover {
-            box-shadow: 0 8px 35px rgba(0, 232, 122, 0.55);
-        }
-
-        .button-admin {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            box-shadow: 0 4px 22px rgba(124, 58, 237, 0.4);
-            color: #ffffff;
-        }
-
-        .button-admin:hover {
-            box-shadow: 0 8px 35px rgba(124, 58, 237, 0.6);
-        }
-
-        .button-apk {
-            background: linear-gradient(135deg, #3f51b5, #7c4dff);
-            box-shadow: 0 4px 22px rgba(124, 77, 255, 0.35);
-            color: #ffffff;
-        }
-
-        .button-apk:hover {
-            box-shadow: 0 8px 35px rgba(124, 77, 255, 0.55);
-        }
-
-        .button-firmware {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
-            box-shadow: 0 4px 22px rgba(2, 132, 199, 0.4);
-            color: #ffffff;
-        }
-
-        .button-premium {
-            background: linear-gradient(135deg, #b87000, var(--accent-amber));
-            box-shadow: 0 4px 22px rgba(255, 176, 32, 0.35);
-            color: #1a0e00;
-        }
-
-        .button-premium:hover {
-            box-shadow: 0 8px 35px rgba(255, 176, 32, 0.55);
-        }
-
-        /* ═══════════════ DIVIDER ══════════════════════════════════════════════ */
-        .section-divider {
-            border: none;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            margin: 28px 0;
-        }
-
-        /* ═══════════════ GRID LAYOUT ═════════════════════════════════════════ */
-        .btn-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            margin: 26px auto 0 auto;
-            max-width: 650px;
-            width: 100%;
-        }
-
-        @media (max-width: 600px) {
-            .btn-row {
-                grid-template-columns: 1fr;
-                max-width: 300px;
-            }
-        }
-
-        .grid-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 18px;
-            text-align: left;
-            margin-top: 28px;
-            width: 100%;
-        }
-
-        @media(min-width: 768px) {
-            .grid-container {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .container {
-                padding: 45px 40px;
-            }
-        }
-
-        /* ═══════════════ CARDS ════════════════════════════════════════════════ */
-        .card {
-            background: rgba(10, 16, 30, 0.7);
-            border: 1px solid rgba(0, 180, 240, 0.1);
-            border-radius: 18px;
-            padding: 22px;
+        .header-bar {
             display: flex;
-            flex-direction: column;
-            width: 100%;
-            min-width: 0;
-            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.28s,
-                box-shadow 0.28s;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 15px 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(0, 180, 240, 0.28);
-            box-shadow: 0 14px 45px rgba(0, 0, 0, 0.5), 0 0 22px rgba(0, 180, 240, 0.1);
-        }
-
-        .card h3 {
-            margin-top: 0;
-            margin-bottom: 14px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: 1rem;
+        .brand {
+            font-size: 1.25rem;
             font-weight: 700;
+            color: #03ef62;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .conn-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
             display: flex;
             align-items: center;
             gap: 8px;
+            background: rgba(220, 53, 69, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(220, 53, 69, 0.4);
         }
 
-        .card ol,
-        .card ul {
-            padding-left: 20px;
-            margin-bottom: 0;
+        .conn-pill.connected {
+            background: rgba(40, 167, 69, 0.15);
+            color: var(--accent-green);
+            border-color: rgba(40, 167, 69, 0.4);
         }
 
-        .card li {
-            margin-bottom: 10px;
+        #toastBench {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+        }
+
+        .toast {
+            background: rgba(22, 27, 34, 0.97);
+            border-left: 4px solid var(--accent-blue);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
             font-size: 0.9rem;
-            color: #8ca0be;
-            line-height: 1.6;
+            animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
 
-        .card li b {
-            color: var(--text-primary);
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1
+            }
+        }
+
+        .settings-panel {
+            display: none;
+            background: rgba(30, 35, 45, 0.95);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* ─── FULL-WIDTH STRETCH & LEFT-ALIGNED TITLE SYSTEM ─── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .grid-5 {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: stretch;
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .grid-5 .stat-card {
+            flex: 1 1 170px;
+            min-width: 150px;
+            max-width: 260px;
+            box-sizing: border-box;
+        }
+
+        /* ─── ACTION BUTTONS (CLEAN 3x2 GRID, NO GIANT STRETCH) ─── */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .action-grid button {
+            width: 100%;
+            padding: 12px 14px;
+            box-sizing: border-box;
+            font-size: 0.88rem;
+            height: 48px;
+        }
+
+        .section-title {
+            text-align: left;
+            color: var(--accent-blue);
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 20px 0 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 6px;
+            width: 100%;
+        }
+
+        /* ─── TABLET & LAPTOP RESPONSIVE (EDGE-TO-EDGE STRETCH) ─── */
+        @media (max-width: 950px) {
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .action-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 750px) {
+            .header-bar {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .target-bar {
+                grid-template-columns: 1fr !important;
+            }
+
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-5 .stat-card {
+                flex: 1 1 calc(50% - 15px);
+            }
+        }
+
+        /* ─── MOBILE SCREENS (100% FULL-WIDTH STACK) ─── */
+        @media (max-width: 550px) {
+            body {
+                padding: 10px;
+            }
+
+            .grid-2,
+            .grid-3,
+            .grid-4,
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-5 .stat-card {
+                flex: 1 1 100%;
+            }
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
             font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .card-blue {
-            background: rgba(0, 60, 130, 0.12) !important;
-            border-color: rgba(0, 180, 240, 0.18) !important;
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
         }
 
-        .card-amber {
-            background: rgba(120, 70, 0, 0.15) !important;
-            border-color: rgba(255, 176, 32, 0.18) !important;
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
         }
 
-        /* ═══════════════ WIRING WRAPPER ═══════════════════════════════════════ */
-        .wiring-wrapper {
-            overflow-x: auto;
-            background: rgba(4, 10, 20, 0.8);
-            border: 1px solid rgba(0, 180, 240, 0.12);
-            padding: 20px 10px;
+        button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            filter: brightness(1.18);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0) scale(0.96);
+            filter: brightness(0.95);
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+        }
+
+        .btn-yellow {
+            background: linear-gradient(135deg, #ffc107, #d39e00);
+            color: #000;
+        }
+
+        .btn-red {
+            background: linear-gradient(135deg, #dc3545, #bd2130);
+            color: white;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #6f42c1, #52279b);
+            color: white;
+        }
+
+        .btn-dark {
+            background: #21262d;
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-dark:hover {
+            background: #30363d;
+        }
+
+        .target-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 15px 20px;
             border-radius: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        /* ─── TABS BAR (RESPONSIVE WRAPPING) ─── */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .tab-btn {
+            flex: 1 1 auto;
+            min-width: 150px;
+            justify-content: center;
+            white-space: nowrap;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border-color: var(--card-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 15px;
             text-align: center;
-            margin-bottom: 0;
         }
 
-        .wiring-table {
-            margin: 0 auto;
-            border-spacing: 0;
-            border-collapse: separate;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+        .stat-val {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            margin-top: 5px;
         }
 
-        .wiring-table td {
-            padding: 4px 2px;
-            vertical-align: middle;
-            height: 34px;
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .terminal {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 15px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.85rem;
+            color: #0f0;
+            height: 320px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .log-line-err {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .log-line-info {
+            color: #87cefa;
+        }
+
+        .log-line-sys {
+            color: #d8b4fe;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 620px;
+        }
+
+        th,
+        td {
+            padding: 9px 11px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
             white-space: nowrap;
         }
 
-        /* Component Boxes */
-        .comp-base {
-            border-radius: 8px;
-            font-weight: 700;
-            padding: 7px 5px;
-            display: inline-block;
-            width: 105px;
-            text-align: center;
-            font-size: 10.5px;
-            transition: box-shadow 0.3s;
+        td.wrap-cell {
+            white-space: normal;
+            max-width: 160px;
         }
 
-        .comp-base:hover {
-            box-shadow: 0 0 14px rgba(0, 180, 240, 0.5);
-        }
-
-        .comp-sensor {
-            background: rgba(0, 80, 160, 0.25);
-            border: 1.5px solid rgba(0, 180, 240, 0.6);
-            color: var(--accent-blue);
-        }
-
-        .comp-actuator {
-            background: rgba(160, 0, 40, 0.2);
-            border: 1.5px solid rgba(255, 59, 92, 0.5);
-            color: #ff7090;
-        }
-
-        .comp-display {
-            background: rgba(0, 100, 90, 0.2);
-            border: 1.5px solid rgba(0, 229, 209, 0.5);
-            color: var(--accent-cyan);
-        }
-
-        .comp-input {
-            background: rgba(60, 60, 80, 0.25);
-            border: 1.5px solid rgba(160, 160, 200, 0.4);
-            color: #a0a8c0;
-        }
-
-        /* ESP32 Board */
-        .board-body-left {
-            background: #071408;
-            color: #00ff88;
-            text-align: left;
-            border-left: 2px solid #1a4a1a;
-            padding-left: 6px;
-            width: 66px;
-            font-family: 'JetBrains Mono', monospace;
-            text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
-            font-size: 10px;
-        }
-
-        .board-body-right {
-            background: #071408;
-            color: #00ff88;
-            text-align: right;
-            border-right: 2px solid #1a4a1a;
-            padding-right: 6px;
-            width: 66px;
-            font-family: 'JetBrains Mono', monospace;
-            text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
-            font-size: 10px;
-        }
-
-        .board-header {
-            background: linear-gradient(90deg, #0a2215, #154030);
-            color: #00ff88;
-            text-align: center;
-            font-weight: 700;
-            padding: 9px;
-            font-size: 0.85em;
-            letter-spacing: 2px;
-            border-radius: 8px 8px 0 0;
-            text-shadow: 0 0 12px rgba(0, 255, 136, 0.8);
-        }
-
-        .board-footer {
-            background: linear-gradient(90deg, #0a2215, #154030);
-            height: 8px;
-            border-radius: 0 0 8px 8px;
-        }
-
-        /* Wires */
-        .wire-line {
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-            box-shadow: 0 0 4px rgba(0, 180, 240, 0.7);
-            width: 12px;
-            display: inline-block;
-            vertical-align: middle;
-            position: relative;
-            animation: wirePulse 2.2s ease-in-out infinite;
-        }
-
-        @keyframes wirePulse {
-            0%,
-            100% {
-                opacity: 0.55;
-                box-shadow: 0 0 4px rgba(0, 180, 240, 0.6);
-            }
-
-            50% {
-                opacity: 1;
-                box-shadow: 0 0 10px rgba(0, 229, 209, 1);
-            }
-        }
-
-        .wire-dot {
-            width: 5px;
-            height: 5px;
-            background: var(--accent-cyan);
-            border-radius: 50%;
-            position: absolute;
-            top: -1.5px;
-            box-shadow: 0 0 5px var(--accent-cyan);
-        }
-
-        .dot-left {
-            right: 0;
-        }
-
-        .dot-right {
-            left: 0;
-        }
-
-        /* ═══════════════ FOOTER & NOTES ════════════════════════════════════════ */
-        .page-footer {
-            margin-top: 28px;
-            font-size: 0.82rem;
-            color: var(--text-dim);
-        }
-
-        .page-footer strong {
+        th {
             color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
-        .compat-note {
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        tr.row-offline {
+            opacity: 0.55;
+        }
+
+        .dev-dot {
             display: inline-block;
-            background: rgba(255, 176, 32, 0.08);
-            border: 1px solid rgba(255, 176, 32, 0.2);
-            color: #b08000;
-            padding: 5px 14px;
-            border-radius: 8px;
-            font-size: 0.82rem;
-            margin-top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .dev-dot.on {
+            background: #28a745;
+            box-shadow: 0 0 5px #28a745;
+        }
+
+        .dev-dot.off {
+            background: #555;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: rgba(3, 239, 98, 0.15);
+            color: #03ef62;
+            border: 1px solid rgba(3, 239, 98, 0.4);
+        }
+
+        .badge-danger {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.4);
+        }
+
+        .badge-warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.4);
+        }
+
+        .badge-info {
+            background: rgba(23, 162, 184, 0.2);
+            color: #17a2b8;
+            border: 1px solid rgba(23, 162, 184, 0.4);
+        }
+
+        .badge-offline {
+            background: rgba(100, 100, 100, 0.2);
+            color: #aaa;
+            border: 1px solid rgba(100, 100, 100, 0.4);
+        }
+
+        .section-title {
+            color: var(--accent-blue);
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 15px 0 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 5px;
+        }
+
+        #appLockOverlay {
+            position: fixed;
+            inset: 0;
+            background: #0d0f12;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .lock-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            box-sizing: border-box;
         }
     </style>
-    <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
 </head>
 
-<script>
-    const TOKEN_API_URL = "https://script.google.com/macros/s/AKfycbxVGT0A8Scoi50A3l5F_CeDnicRkVc2W5q_spRw8KNFWx70c95zpcCqBb9D3UxQkEgv/exec";
-
-    function getDeviceId() {
-        let id = localStorage.getItem("sw_device_id");
-        if (!id) {
-            id = "dev_" + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
-            localStorage.setItem("sw_device_id", id);
-        }
-        return id;
-    }
-
-    async function verifyToken(token) {
-        const body = new URLSearchParams();
-        body.append("token", token);
-        body.append("deviceId", getDeviceId());
-
-        const res = await fetch(TOKEN_API_URL, {
-            method: "POST",
-            body
-        });
-
-        return res.json();
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-        const tokenInput = document.getElementById("tokenInput");
-        const tokenMsg = document.getElementById("tokenMsg");
-        const installBtn = document.getElementById("installBtn");
-        const realBtn = installBtn.querySelector('button[slot="activate"]');
-
-        let sessionClosed = false;
-        let successHandled = false;
-
-        function lockInstall() {
-            installBtn.style.pointerEvents = "none";
-            installBtn.style.opacity = "0.45";
-        }
-
-        function unlockInstall() {
-            if (sessionClosed) return;
-            installBtn.style.pointerEvents = "auto";
-            installBtn.style.opacity = "1";
-        }
-
-        function closeSession(msg, color = "#00e87a") {
-            sessionClosed = true;
-            lockInstall();
-            tokenMsg.textContent = msg;
-            tokenMsg.style.color = color;
-        }
-
-        lockInstall();
-
-        async function runTokenCheck() {
-            if (sessionClosed) return false;
-
-            const token = tokenInput.value.trim();
-            if (!token) {
-                tokenMsg.textContent = "Please enter token.";
-                tokenMsg.style.color = "#ffb020";
-                lockInstall();
-                return false;
-            }
-
-            tokenMsg.textContent = "Checking token...";
-            tokenMsg.style.color = "#ffb020";
-
-            const result = await verifyToken(token);
-
-            if (result.allow) {
-                tokenMsg.textContent = "Token accepted. You can install now.";
-                tokenMsg.style.color = "#00e87a";
-                unlockInstall();
-                return true;
-            } else {
-                tokenMsg.textContent = "Denied: " + (result.message || "Invalid token");
-                tokenMsg.style.color = "#ff3b5c";
-                lockInstall();
-                return false;
-            }
-        }
-
-        tokenInput.addEventListener("blur", async () => {
-            try { await runTokenCheck(); } catch { }
-        });
-
-        tokenInput.addEventListener("keydown", (ev) => {
-            if (ev.key !== "Enter") return;
-            ev.preventDefault();
-            tokenInput.blur();
-        });
-
-        realBtn.addEventListener("click", async (ev) => {
-            if (sessionClosed) {
-                ev.preventDefault();
-                ev.stopPropagation();
-                return;
-            }
-
-            try {
-                const ok = await runTokenCheck();
-                if (!ok) {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    return;
-                }
-
-                // keep flow open so user can complete install popup
-                closeSession("Install session started. Complete installation in popup.", "#00e87a");
-            } catch (e) {
-                ev.preventDefault();
-                ev.stopPropagation();
-                tokenMsg.textContent = "Cannot reach token server.";
-                tokenMsg.style.color = "#ffb020";
-                lockInstall();
-            }
-        }, true);
-
-        function handleInstallSuccessOnce() {
-            if (successHandled) return;
-            successHandled = true;
-            closeSession("Installation complete. Session closed.", "#00e87a");
-            setTimeout(() => window.location.reload(), 1800);
-        }
-
-        installBtn.addEventListener("state-changed", (ev) => {
-            const st = ev && ev.detail ? ev.detail.state : "";
-            if (st === "FINISHED" || st === "installed") {
-                handleInstallSuccessOnce();
-            }
-        });
-
-        installBtn.addEventListener("installation-success", () => {
-            handleInstallSuccessOnce();
-        });
-    });
-</script>
-
 <body>
+    <!-- APP LOCK SCREEN OVERLAY -->
+    <div id="appLockOverlay">
+        <div class="lock-card">
+            <img src="logo.png" style="width:64px;height:64px;border-radius:50%;margin-bottom:15px;object-fit:cover;">
+            <h2 style="margin:0 0 5px 0;color:#03ef62;">AMK Console Locked</h2>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">Enter Authorization PIN to Access
+            </p>
+
+            <input type="password" id="appLockPin" placeholder="Enter PIN Code"
+                style="text-align:center;margin-bottom:15px;font-size:1.1rem;letter-spacing:2px;"
+                onkeyup="if(event.key==='Enter') unlockWithPin()">
+            <button class="btn-green" style="width:100%;padding:12px;font-size:1rem;" onclick="unlockWithPin()">
+                🔓 Unlock Console
+            </button>
+        </div>
+    </div>
+
+    <div id="toastBench"></div>
     <div class="container">
-        <!-- Logo -->
-        <img src="logo.png" alt="Smart Pump Logo" class="logo">
 
-        <!-- Title -->
-        <h1>Smart Pump Control</h1>
-        <div class="version-chip">Dual-Sensor Edition &nbsp;·&nbsp; v1.2.0</div>
-        <h2>Pump &amp; Compressor Dual-Mode Controller</h2>
-
-        <p>
-            Dual Water Sensing (<b>Ultrasonic &amp; Hydrostatic</b>), <b>Voltage Guard</b>, <b>Dry-Run Auto-Retry</b>,
-            <b>Solenoid Venting</b>, and <b>Cloud Fleet MQTT Tracking</b>.
-        </p>
-
-        <!-- Token Gate -->
-        <div style="max-width:360px; margin:16px auto 12px; text-align:center;">
-            <label for="tokenInput"
-                style="display:block; margin-bottom:8px; color:var(--text-primary); font-weight:600;">Install
-                Token</label>
-            <input id="tokenInput" type="text" placeholder="Enter your token"
-                style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-primary); text-align:center;">
-            <p id="tokenMsg" style="margin:10px 0 0; font-size:0.9rem; color:var(--text-muted);"></p>
-        </div>
-
-        <!-- Flash Button -->
-        <esp-web-install-button id="installBtn" manifest="installer_manifest.json">
-            <button slot="activate" class="button button-v1">&#9889; CONNECT &amp; INSTALL</button>
-        </esp-web-install-button>
-        <div><span class="compat-note">&#128268; Compatible with ESP32-S3 &middot; Connect via USB</span></div>
-
-        <!-- Dashboard, Lookup & Guide Links -->
-        <hr class="section-divider">
-
-        <!-- DEVICE STATUS LOOKUP CARD -->
-        <div class="card"
-            style="max-width: 600px; margin: 0 auto 30px; border-color: var(--accent-blue); background: rgba(0, 180, 240, 0.05);">
-            <h3 style="justify-content: center;">🔍 Device Status Lookup</h3>
-            <p style="font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px;">Check your Package Tier, Warranty, and
-                Cloud Expiry.</p>
-
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                <input id="lookupId" type="text" placeholder="ENTER DEVICE ID"
-                    style="flex: 1; min-width: 200px; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg-deep); color:var(--accent-cyan); text-align:center; font-family: 'JetBrains Mono'; text-transform: uppercase; font-weight: bold;">
-                <button onclick="checkDeviceStatus()" class="button button-v1"
-                    style="max-width: 120px; padding: 12px; margin:0;">CHECK</button>
+        <!-- HEADER -->
+        <div class="header-bar">
+            <div class="brand">
+                <img src="logo.png" class="brand-logo" alt="AMK Logo">
+                <span>AMK Fleet Technical Console</span>
             </div>
-
-            <div id="lookupResult"
-                style="display: none; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 12px; text-align: left; border-left: 4px solid var(--accent-blue); animation: fadeUp 0.4s ease-out;">
-                <!-- Result content appears here -->
+            <div style="display:flex;gap:12px;align-items:center;">
+                <button class="btn-dark" onclick="toggleSettingsPanel()">⚙️ Server Setup</button>
+                <button class="btn-red" style="padding:6px 14px;font-size:0.85rem;" onclick="lockConsole()">🔒
+                    Logout</button>
+                <div class="conn-pill" id="connPill">● <span id="connTxt">Disconnected</span></div>
             </div>
         </div>
 
-        <p style="font-weight:600; color:var(--text-primary); margin-bottom:18px;">&#128214; Cloud Access &amp; Documentation</p>
-        <div class="btn-row">
-            <!-- Row 1 -->
-            <a href="cloud_control.html" class="button button-cloud">&#9729;&#65039; CLOUD DASHBOARD</a>
-            <a href="AMK_MAIN_ADMIN_CONTROL.html" class="button button-admin">&#128737;&#65039; ADMIN FLEET CONSOLE</a>
-
-            <!-- Row 2 -->
-            <a href="Smart_Pump.apk" class="button button-apk" download>&#128241; DOWNLOAD ANDROID APP</a>
-            <a href="user_guide_premium.html" target="_blank" class="button button-premium">&#128214; TECHNICAL MANUAL</a>
-
-            <!-- Row 3 (Full Width Firmware Download) -->
-            <a href="https://raw.githubusercontent.com/AungMoeKhine/smart_water_pump-control/main/firmware.bin"
-                class="button button-firmware" style="grid-column: 1 / -1; max-width: 100%;" download>&#128190; DOWNLOAD FIRMWARE.BIN</a>
+        <!-- SERVER CONFIG PANEL -->
+        <div class="settings-panel" id="settingsPanel">
+            <h3 style="margin-top:0;color:var(--accent-blue);">MQTT Broker Connection Settings</h3>
+            <div class="grid-4">
+                <div><label>Broker WebSocket URL</label><input id="cfgHost" placeholder="hivemq.cloud"></div>
+                <div><label>WebSocket Port</label><input type="number" id="cfgPort" value="8884"></div>
+                <div><label>Username</label><input id="cfgUser" placeholder="Smart_Pump"></div>
+                <div><label>Password</label><input type="password" id="cfgPass"></div>
+            </div>
+            <div style="margin-top:15px;display:flex;justify-content:flex-end;gap:10px;">
+                <button class="btn-dark" onclick="toggleSettingsPanel()">Cancel</button>
+                <button class="btn-green" onclick="saveAndReconnect()">Save & Connect</button>
+            </div>
         </div>
 
-        <!-- Info Cards -->
-        <div class="grid-container">
-
-            <!-- Setup Guide -->
-            <div class="card card-blue">
-                <h3>&#128640; Quick Setup</h3>
-                <ol>
-                    <li><b>WiFi Setup:</b> Connect to hotspot <code>Auto-Pump-Config</code> (Password:
-                        <code>12345678</code>).
-                    </li>
-                    <li><b>Configure:</b> Open <a href="http://192.168.4.1" target="_blank">192.168.4.1</a> and
-                        enter your Home WiFi details.</li>
-                    <li><b>Sensor Select:</b> Choose <b>Ultrasonic</b> or <b>Hydrostatic</b> probe in settings.</li>
-                    <li><b>Access:</b> After reboot, visit the device IP shown on the LCD to open the dashboard.
-                    </li>
-                </ol>
+        <!-- TARGET BAR -->
+        <div class="target-bar">
+            <div style="flex:2;">
+                <label>Discovered Fleet Devices</label>
+                <select id="fleetSelect" onchange="selectFleetDevice(this.value)">
+                    <option value="">-- Select Discovered Device --</option>
+                </select>
             </div>
-
-            <!-- Features -->
-            <div class="card card-amber">
-                <h3>&#128737;&#65039; Safety &amp; Features</h3>
-                <ul>
-                    <li><b>Dual-Sensor Hardware:</b> Supports Ultrasonic (AJ-SR04M) &amp; Hydrostatic Level Probes (0-5V).</li>
-                    <li><b>Dual-Mode:</b> Switch between <b>Water Pump</b> and <b>Air Compressor</b> operations.</li>
-                    <li><b>Solenoid Venting:</b> Automatic unloader pressure release valve for compressor start/stop.</li>
-                    <li><b>Voltage Guard:</b> Automatic high/low cut-off (&gt;250 V or &lt;170 V) with hysteresis recovery.</li>
-                    <li><b>Dry-Run System:</b> Smart flow sensor detection with <b>Auto-Retry</b> or <b>Lockout</b>.</li>
-                    <li><b>Fleet Cloud Sync:</b> Real-time monitoring &amp; remote license control via MQTT TLS.</li>
-                </ul>
+            <div style="flex:2;">
+                <label>Target Device ID (or '+' for Broadcast)</label>
+                <input id="targetID" placeholder="e.g. 4C752520 or +" style="text-transform:uppercase;">
             </div>
+            <div style="flex:2;">
+                <label>Support Admin Key</label>
+                <input type="password" id="adminKey" value="AMK_ADMIN_2026">
+            </div>
+            <div style="flex:1;">
+                <button class="btn-blue" style="width:100%;height:40px;" onclick="fetchDeviceTelemetry(true)">📡 Fetch
+                    Telemetry</button>
+            </div>
+        </div>
 
-            <!-- Wiring Guide — spans full width -->
-            <div class="card"
-                style="grid-column: 1 / -1; background: rgba(5,10,22,0.6); border-color: rgba(0,255,136,0.12);">
-                <h3
-                    style="background: linear-gradient(90deg,#00ff88,#00e5d1); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">
-                    &#128268; Wiring Guide (ESP32-S3)</h3>
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('controlTab',this)">🎮 Diagnostics & Control</button>
+            <button class="tab-btn" onclick="switchTab('configTab',this)">⚙️ Device Parameters</button>
+            <button class="tab-btn" onclick="switchTab('logsTab',this)">📜 Remote Log Inspector</button>
+            <button class="tab-btn" onclick="switchTab('licenseTab',this)">🔑 License Generator & OTA</button>
+            <button class="tab-btn" onclick="switchTab('fleetTab',this)">🌐 Active Fleet List</button>
+        </div>
 
-                <div class="wiring-wrapper">
-                    <table class="wiring-table">
-                        <!-- Header -->
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td colspan="2" class="board-header">⚡ ESP32-S3</td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        <!-- LCD SDA / SCL -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-display">&#128421;&#65039; LCD (SDA)</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 01</td>
-                            <td class="board-body-right">GPIO 02</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-display">&#128421;&#65039; LCD (SCL)</div>
-                            </td>
-                        </tr>
-                        <!-- Hydrostatic / Volt Sensor -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">&#127754; Hydrostatic</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 03</td>
-                            <td class="board-body-right">GPIO 04</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-sensor">&#9889; Volt Sensor</div>
-                            </td>
-                        </tr>
-                        <!-- Ultra Trig / Ultra Echo -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">&#128207; Ultra Trig</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 05</td>
-                            <td class="board-body-right">GPIO 06</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-sensor">&#128207; Ultra Echo</div>
-                            </td>
-                        </tr>
-                        <!-- Buzzer / Motor -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-actuator">&#128276; Buzzer</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 07</td>
-                            <td class="board-body-right">GPIO 08</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">&#9881;&#65039; Motor</div>
-                            </td>
-                        </tr>
-                        <!-- Manual Btn / Solenoid -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-input">&#128278; Manual Btn</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 09</td>
-                            <td class="board-body-right">GPIO 10</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">&#128168; Solenoid</div>
-                            </td>
-                        </tr>
-                        <!-- Flow Sens / RGB LED -->
-                        <tr>
-                            <td>
-                                <div class="comp-base comp-sensor">&#127754; Flow Sens</div>
-                            </td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-left"></div>
-                                </div>
-                            </td>
-                            <td class="board-body-left">GPIO 18</td>
-                            <td class="board-body-right">GPIO 48</td>
-                            <td>
-                                <div class="wire-line">
-                                    <div class="wire-dot dot-right"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="comp-base comp-actuator">&#127752; RGB LED</div>
-                            </td>
-                        </tr>
-                        <!-- Footer -->
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td colspan="2" class="board-footer"></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    </table>
+        <!-- TAB 1: DIAGNOSTICS & CONTROL -->
+        <div id="controlTab" class="tab-content active">
+            <div class="grid-5" style="margin-bottom:20px;">
+                <div class="stat-card">
+                    <div class="stat-lbl">Water Tank Level</div>
+                    <div class="stat-val" id="dispTank">-- %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">AC RMS Voltage</div>
+                    <div class="stat-val" id="dispVolt">-- V</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">Pump Relay</div>
+                    <div class="stat-val" id="dispPump">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">Diagnostic Info</div>
+                    <div class="stat-val" id="dispInfo" style="font-size:1rem;">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">License Days Left</div>
+                    <div class="stat-val" id="dispLic" style="font-size:1.1rem;">--</div>
+                    <div id="dispExpired" style="margin-top:4px;"></div>
                 </div>
             </div>
 
-        </div><!-- /grid -->
-
-        <p class="page-footer">Developed by <strong>Aung Moe Khine</strong></p>
-    </div><!-- /container -->
-</body>
-
-<script>
-    function formatDate(dateStr) {
-        if (!dateStr || dateStr === "-") return "Not Set";
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr;
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = months[date.getMonth()];
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-    }
-
-    function safeText(value, fallback = "Not Set") {
-        if (value === undefined || value === null || value === "") return fallback;
-        return String(value);
-    }
-
-    function escapeHtml(value) {
-        return safeText(value)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    function maskOwnerName(name) {
-        const parts = safeText(name).trim().split(/\s+/).filter(Boolean);
-        if (!parts.length || parts[0] === "Not Set") return "Not Set";
-        if (parts.length === 1) return parts[0];
-        return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
-    }
-
-    function getStatusColor(statusText, dateText) {
-        const text = safeText(statusText, "").toLowerCase();
-        const date = new Date(dateText);
-        if (text.includes("expired")) return "var(--accent-red)";
-        if (!isNaN(date.getTime()) && date < new Date()) return "var(--accent-red)";
-        const match = text.match(/(\d+)/);
-        if (match && Number(match[1]) <= 30) return "var(--accent-amber)";
-        return "var(--accent-green)";
-    }
-
-    async function checkDeviceStatus() {
-        const idInput = document.getElementById('lookupId');
-        const resultDiv = document.getElementById('lookupResult');
-        const id = idInput.value.trim().toUpperCase();
-
-        if (!id) {
-            alert("Please enter a Device ID.");
-            return;
-        }
-
-        if (!/^[A-Z0-9_-]+$/.test(id)) {
-            alert("Device ID can only contain letters, numbers, hyphens, and underscores.");
-            return;
-        }
-
-        resultDiv.style.display = "block";
-        resultDiv.style.borderColor = "var(--accent-amber)";
-        resultDiv.innerHTML = `<p style="color: var(--accent-amber); margin:0; font-size:0.9rem;">Searching registry for ${escapeHtml(id)}...</p>`;
-
-        try {
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNMBACyZpgB6JTTC2UqqmSQ6zj84X24bAAFx0ZmHSOg4ZQFdJoldERj8YlodjYyg4h4w/exec";
-            const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`);
-            if (!response.ok) throw new Error("Lookup request failed");
-            const data = await response.json();
-
-            if (data.error) {
-                resultDiv.style.borderColor = "var(--accent-red)";
-                resultDiv.innerHTML = `<b style="color: var(--accent-red);">❌ ID Not Found</b><br>
-                                       <span style="font-size:0.82rem; color: var(--text-muted);">This ID is not in our database. Please contact AMK Support.</span>`;
-            } else {
-                const warrantyColor = getStatusColor(data.warrantyDays, data.warrantyDate);
-                const cloudColor = getStatusColor(data.cloudDays, data.cloudDate);
-
-                resultDiv.style.borderColor = "var(--accent-green)";
-                resultDiv.innerHTML = `
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
-                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Owner</span><b style="color:var(--text-primary)">${escapeHtml(maskOwnerName(data.name))}</b></div>
-                        <div><span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Package Tier</span><b style="color:var(--accent-cyan)">${escapeHtml(data.tier)}</b></div>
-                        <div style="grid-column: span 2; height:1px; background:rgba(255,255,255,0.08); margin: 2px 0;"></div>
-                        <div>
-                            <span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Warranty Until</span>
-                            <b style="color:var(--text-primary)">${escapeHtml(formatDate(data.warrantyDate))}</b>
-                            <span style="color:${warrantyColor}; font-size:0.75rem; display:block;">${escapeHtml(data.warrantyDays)}</span>
-                        </div>
-                        <div>
-                            <span style="color:var(--text-muted); font-size:0.7rem; display:block; text-transform:uppercase;">Cloud Expiry</span>
-                            <b style="color:var(--text-primary)">${escapeHtml(formatDate(data.cloudDate))}</b>
-                            <span style="color:${cloudColor}; font-size:0.75rem; display:block;">${escapeHtml(data.cloudDays)}</span>
-                        </div>
+            <!-- EXTENDED SENSOR & HARDWARE DIAGNOSTICS CARD -->
+            <div class="card" style="background:rgba(0,0,0,0.2);margin-bottom:20px;">
+                <h4
+                    style="margin:0 0 12px 0;color:var(--accent-blue);font-size:0.9rem;text-transform:uppercase;letter-spacing:0.5px;">
+                    🔬 Sensor Health & Deep Diagnostics Metrics
+                </h4>
+                <div class="grid-5">
+                    <div class="stat-card">
+                        <div class="stat-lbl" id="dispSensorLabel">Ultrasonic Sensor</div>
+                        <div class="stat-val" id="dispUSensor" style="font-size:1.1rem;">--</div>
                     </div>
-                `;
-            }
-        } catch (e) {
-            resultDiv.style.borderColor = "var(--accent-red)";
-            resultDiv.innerHTML = `<b style="color: var(--accent-amber);">⚠️ Database Offline</b><br>
-                                   <span style="font-size:0.82rem; color: var(--text-muted);">Please check back in 5 minutes.</span>`;
-        }
-    }
+                    <div class="stat-card">
+                        <div class="stat-lbl">Invalid Read Count</div>
+                        <div class="stat-val" id="dispInvCount" style="font-size:1.1rem;">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Alarm Ack State</div>
+                        <div class="stat-val" id="dispAckState" style="font-size:1.1rem;">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Last Heartbeat</div>
+                        <div class="stat-val" id="dispLastSeen" style="font-size:0.95rem;">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">OTA System State</div>
+                        <div class="stat-val" id="dispOtaState" style="font-size:0.95rem;">--</div>
+                    </div>
+                </div>
+            </div>
 
-    document.getElementById("lookupId").addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") checkDeviceStatus();
-    });
-</script>
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <h3 style="margin:0;color:var(--accent-blue);">⚡ Remote Technical Support Actions</h3>
+                    <span id="fwVerBadge" style="font-size:0.85rem;color:var(--text-muted);">FW: --</span>
+                </div>
+                <div class="action-grid">
+                    <button class="btn-blue"
+                        onclick="confirmAction('TOGGLE MOTOR STATE',()=>sendMqttCmd({toggle:1}), true)">🔄 Toggle Motor
+                        State</button>
+                    <button class="btn-yellow"
+                        onclick="confirmAction('RESET ALARM / LOCKOUT', () => { sendMqttCmd({reset:1}); showToast('Reset Sent', 'Reset command dispatched to target device.', 'info'); })">🔔
+                        Reset Alarm / Lockout</button>
+                    <button class="btn-red" onclick="confirmAction('WIPE LOGS',()=>sendMqttCmd({clearLog:1}), true)">🗑️
+                        Wipe Event Logs</button>
+                    <button class="btn-purple"
+                        onclick="confirmAction('RESET MOTOR LIFE COUNTER',()=>sendMqttCmd({resetRun:1}), true)">⏱️ Reset
+                        Motor Lifetime</button>
+                    <button class="btn-dark" onclick="sendMqttCmd({otaCheck:1})">🔍 Check Remote OTA Version</button>
+                    <button class="btn-yellow"
+                        onclick="confirmAction('FORCE OTA FIRMWARE UPDATE',()=>sendMqttCmd({otaStart:1}), true)">🚀
+                        Force OTA Update</button>
+                </div>
+
+                <hr style="border:0;border-top:1px solid var(--card-border);margin:20px 0;">
+
+                <label>Push System Broadcast Banner (Promo Message)</label>
+                <div style="display:flex;gap:10px;margin-top:5px;">
+                    <input id="promoText" placeholder="Type banner message to render on device display/web UI...">
+                    <button class="btn-green" style="white-space:nowrap;" onclick="sendBroadcastMessage()">📢 Push
+                        Banner</button>
+                    <button class="btn-red" style="white-space:nowrap;" onclick="clearBroadcastMessage()">❌ Clear
+                        Banner</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DEVICE PARAMETERS (NVS CONFIG) -->
+        <div id="configTab" class="tab-content">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <div>
+                        <h3 style="margin:0;color:var(--accent-yellow);">⚙️ Hardware NVS Thresholds & System Parameters
+                        </h3>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">
+                            Remotely update hardware protection cutoffs, timers, and operating modes saved in target
+                            device EEPROM.
+                        </span>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <span id="cfgSyncBadge" class="badge badge-success">✓ Synced with Device</span>
+                        <button class="btn-dark" onclick="fetchDeviceTelemetry(true)">🔄 Discard & Re-sync</button>
+                    </div>
+                </div>
+
+                <!-- SECTION 1: VOLTAGE SAFEGUARDS -->
+                <div class="section-title">⚡ Voltage Cutoff & Recovery Safeguards</div>
+                <div class="grid-3" style="margin-bottom:15px;">
+                    <div>
+                        <label>Over-Voltage Limit (V)</label>
+                        <select id="cfg_vH"></select>
+                    </div>
+                    <div>
+                        <label>Under-Voltage Limit (V)</label>
+                        <select id="cfg_vL"></select>
+                    </div>
+                    <div>
+                        <label>Resume Gap Hysteresis (V)</label>
+                        <select id="cfg_vG"></select>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: TANK LEVEL & SENSOR CALIBRATION -->
+                <div class="section-title">💧 Tank Calibration & Auto Level Thresholds</div>
+                <div class="grid-4" style="margin-bottom:15px;">
+                    <div>
+                        <label>Water Sensor Hardware</label>
+                        <select id="cfg_sType">
+                            <option value="0">Ultrasonic</option>
+                            <option value="1">Hydrostatic Pressure</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Configured Tank Height (Inches)</label>
+                        <select id="cfg_uH"></select>
+                    </div>
+                    <div>
+                        <label>Auto-Start Level (%)</label>
+                        <select id="cfg_lowTank"></select>
+                    </div>
+                    <div>
+                        <label>Auto-Stop Level (%)</label>
+                        <select id="cfg_fullTank"></select>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: PROTECTION TIMERS -->
+                <div class="section-title">⏱️ Protection Timers & Motor Maintenance</div>
+                <div class="grid-4" style="margin-bottom:15px;">
+                    <div>
+                        <label>Dry-Run Delay (Sec)</label>
+                        <select id="cfg_dD"></select>
+                    </div>
+                    <div>
+                        <label>Auto-Retry Interval</label>
+                        <select id="cfg_rM">
+                            <option value="0">Disabled</option>
+                            <option value="30">30 Minutes</option>
+                            <option value="60">60 Minutes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>1-Hour Cooldown Rest</label>
+                        <select id="cfg_rstM">
+                            <option value="0">Disabled</option>
+                            <option value="5">5 Minutes</option>
+                            <option value="10">10 Minutes</option>
+                            <option value="15">15 Minutes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Motor Life Limit (Hours)</label>
+                        <select id="cfg_motLim">
+                            <option value="0">Disabled</option>
+                            <option value="100">100 Hours</option>
+                            <option value="250">250 Hours</option>
+                            <option value="500">500 Hours</option>
+                            <option value="1000">1000 Hours</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: MODE & SYSTEM ROLE -->
+                <div class="section-title">🔀 Mode & Master / Slave Setup</div>
+                <div class="grid-4" style="margin-bottom:15px;">
+                    <div>
+                        <label>Operating Mode</label>
+                        <select id="cfg_opM">
+                            <option value="0">Water Pump</option>
+                            <option value="1">Air Compressor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Valve Vent Delay (Sec)</label>
+                        <select id="cfg_vDly"></select>
+                    </div>
+                    <div>
+                        <label>System Role</label>
+                        <select id="cfg_sysRole">
+                            <option value="0">Standalone</option>
+                            <option value="1">Master (Sump Tank)</option>
+                            <option value="2">Slave (Upper Tank)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Master Settling (Min)</label>
+                        <select id="cfg_setM">
+                            <option value="0">No Settling</option>
+                            <option value="5">5 Minutes</option>
+                            <option value="10">10 Minutes</option>
+                            <option value="15">15 Minutes</option>
+                            <option value="20">20 Minutes</option>
+                            <option value="30">30 Minutes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: DND & SYSTEM ACCESS -->
+                <div class="section-title">🌙 Smart DND Window & System Credentials</div>
+                <div class="grid-4" style="margin-bottom:20px;">
+                    <div>
+                        <label>DND Scheduling</label>
+                        <select id="cfg_dndEn">
+                            <option value="0">Disabled</option>
+                            <option value="1">Enabled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>DND Start Hour</label>
+                        <select id="cfg_dndS"></select>
+                    </div>
+                    <div>
+                        <label>DND End Hour</label>
+                        <select id="cfg_dndE"></select>
+                    </div>
+                    <div>
+                        <label>Home Timezone (GMT)</label>
+                        <select id="cfg_tzOf"></select>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-bottom:20px;">
+                    <div>
+                        <label>Linked Master ID (Slave Mode)</label>
+                        <input id="cfg_linkID" placeholder="Master Cloud ID" style="text-transform:uppercase;">
+                    </div>
+                    <div>
+                        <label>Device PIN (Cloud Access)</label>
+                        <input id="cfg_newPin" placeholder="Enter new PIN">
+                    </div>
+                </div>
+
+                <div
+                    style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);padding:10px 15px;border-radius:10px;font-size:0.8rem;color:#ffc107;margin-bottom:20px;">
+                    ⚠️ <strong>Note:</strong> Saving remote parameters writes directly to device NVS memory. The target
+                    ESP32 hardware will automatically reboot (~15 seconds) after parameters are saved.
+                </div>
+
+                <div style="display:flex;justify-content:center;gap:10px;">
+                    <button class="btn-green" style="padding:14px 30px;min-width:280px;font-size:1rem;"
+                        onclick="saveRemoteConfig()">💾 Push & Save
+                        Settings to EEPROM</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: LOG INSPECTOR -->
+        <div id="logsTab" class="tab-content">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <div>
+                        <h3 style="margin:0;color:var(--accent-green);">📜 Device Event Log History (/events.txt)</h3>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">Displays up to 2,500 bytes of
+                            timestamped field events from target device</span>
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn-green" onclick="downloadLogFile()">💾 Export Log (.txt)</button>
+                    </div>
+                </div>
+
+                <!-- QUICK FILTER CHIPS (CENTERED) -->
+                <div style="display:flex;justify-content:center;gap:8px;margin-bottom:15px;flex-wrap:wrap;"
+                    id="logFilterChips">
+                    <button class="btn-dark" onclick="setLogFilter('')">All Logs</button>
+                    <button class="btn-dark" onclick="setLogFilter('ULTRASONIC|TANK|SENSOR')">💧 Sensor</button>
+                    <button class="btn-dark" onclick="setLogFilter('VOLT|OVER|UNDER')">⚡ Voltage</button>
+                    <button class="btn-dark" onclick="setLogFilter('DRY_RUN|DRY')">🏜️ Dry Run</button>
+                    <button class="btn-dark" onclick="setLogFilter('FLOW')">🌊 Flow</button>
+                    <button class="btn-dark" onclick="setLogFilter('SYS')">⚙️ System</button>
+                    <button class="btn-dark" onclick="setLogFilter('OTA|LIC')">🔑 OTA / License</button>
+                    <button class="btn-dark" style="border-color:var(--accent-red);color:#ff6b6b;"
+                        onclick="setLogFilter('ERR|ALR|FAIL|OVER|UNDER|LOCKOUT')">🚨 Critical Only</button>
+                </div>
+
+                <input id="logFilterInput" placeholder="Filter keywords (e.g. VOLT, DRY_RUN, FLOW, SYS)..."
+                    style="margin-bottom:10px;" onkeyup="filterLogs()">
+                <div class="terminal" id="logTerminal">Select a device and click "Fetch Telemetry"</div>
+            </div>
+        </div>
+
+        <!-- TAB 4: LICENSE GENERATOR -->
+        <div id="licenseTab" class="tab-content">
+            <div class="card">
+                <h3 style="margin-top:0;color:var(--accent-purple);">🔑 Support Token Generator & OTA License Activator
+                </h3>
+                <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px;">
+                    Generate cryptographic Base64 MD5 license tokens to extend trial days remotely. Select preset or
+                    enter manual days (use negative like -30 to subtract days).
+                </p>
+                <div class="grid-4" style="margin-bottom:15px;">
+                    <div>
+                        <label>Target Device ID</label>
+                        <input id="licTargetID" placeholder="e.g. 4C752520" style="text-transform:uppercase;">
+                    </div>
+                    <div>
+                        <label>Preset Duration</label>
+                        <select id="licPresetSelect" onchange="onLicPresetChange(this.value)">
+                            <option value="30">30 Days (1 Month)</option>
+                            <option value="60">60 Days (2 Months)</option>
+                            <option value="90">90 Days (3 Months)</option>
+                            <option value="180">180 Days (6 Months)</option>
+                            <option value="365">365 Days (1 Year)</option>
+                            <option value="1000">1000 Days (Lifetime)</option>
+                            <option value="custom">-- Custom Days --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Days Value (+ or -)</label>
+                        <input type="number" id="licCustomDays" value="30" placeholder="e.g. 30 or -30 to subtract">
+                    </div>
+                    <div style="display:flex;align-items:flex-end;">
+                        <button class="btn-purple" style="width:100%;height:40px;" onclick="generateToken()">🔑 Generate
+                            Token</button>
+                    </div>
+                </div>
+                <label>Generated Base64 License Token String</label>
+                <textarea id="licTokenOut" rows="3" readonly
+                    placeholder="Click Generate to construct valid token..."></textarea>
+                <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:15px;">
+                    <button class="btn-dark" style="flex:1 1 180px;max-width:240px;padding:12px;"
+                        onclick="copyTokenToClipboard()">📋 Copy Token</button>
+                    <button class="btn-green" style="flex:1 1 240px;max-width:320px;padding:12px;"
+                        onclick="sendLicenseOta()">🚀 Push License Over-The-Air (OTA)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: FLEET LIST -->
+        <div id="fleetTab" class="tab-content">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <div>
+                        <h3 style="margin:0;color:var(--accent-yellow);">🌐 Active Fleet Auto-Discovery Matrix</h3>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">
+                            Devices grayed out as 🔴 OFFLINE if silent for &gt;10 minutes. Last known values still
+                            shown.
+                        </span>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:center;">
+                        <span id="fleetSummary" style="font-size:0.85rem;color:var(--text-muted);"></span>
+                        <button class="btn-green" style="padding:6px 14px;font-size:0.85rem;"
+                            onclick="exportFleetCsv()">📊 Export Fleet CSV</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Device</th>
+                                <th>IP Address</th>
+                                <th>Tank / Volt</th>
+                                <th>Motor</th>
+                                <th>Diagnostic</th>
+                                <th>FW &amp; License</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fleetTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align:center;color:var(--text-muted);">Scanning for online
+                                    devices...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <script>
+        let client = null;
+        const fleetMap = new Map(); // deviceID -> latest data object
+
+        // Form Dirty Tracking Flags
+        let isConfigDirty = false;
+        let loadedConfigDeviceID = "";
+
+        const defaultConfig = {
+            host: "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud",
+            port: 8884, user: "Smart_Pump", pass: "Sm@rt_Pump_2026"
+        };
+
+        const OFFLINE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+        const OFFLINE_CHECK_MS = 2 * 60 * 1000; // check every 2 minutes
+
+        window.onload = () => {
+            document.getElementById('cfgHost').value = localStorage.getItem('amk_host') || defaultConfig.host;
+            document.getElementById('cfgPort').value = localStorage.getItem('amk_port') || defaultConfig.port;
+            document.getElementById('cfgUser').value = localStorage.getItem('amk_user') || defaultConfig.user;
+            document.getElementById('cfgPass').value = localStorage.getItem('amk_pass') || defaultConfig.pass;
+
+            initSelectOptions();
+            bindConfigTabDirtyListeners();
+
+            // Focus on PIN input field automatically on launch
+            setTimeout(() => {
+                const pinInput = document.getElementById('appLockPin');
+                if (pinInput) pinInput.focus();
+            }, 300);
+        };
+
+        function unlockWithPin() {
+            const pin = document.getElementById('appLockPin').value.trim();
+            if (pin === "161985" || pin === "AMK_ADMIN_2026") {
+                document.getElementById('appLockOverlay').style.display = 'none';
+                document.getElementById('appLockPin').value = '';
+                if (!client) {
+                    initMQTT();
+                    setInterval(checkOfflineDevices, OFFLINE_CHECK_MS);
+                }
+                showToast("Console Unlocked", "Welcome back, Admin!", "success");
+            } else {
+                showToast("Access Denied", "Incorrect PIN Code!", "error");
+                document.getElementById('appLockPin').value = '';
+            }
+        }
+
+        function lockConsole() {
+            document.getElementById('appLockOverlay').style.display = 'flex';
+            document.getElementById('appLockPin').value = '';
+            setTimeout(() => {
+                const pinInput = document.getElementById('appLockPin');
+                if (pinInput) pinInput.focus();
+            }, 200);
+            showToast("Locked", "Logged out of AMK Technical Console.", "info");
+        }
+
+        // ─── LISTEN FOR USER EDITS IN CONFIG FORM ──────────────────────────────────
+        function bindConfigTabDirtyListeners() {
+            const configTab = document.getElementById('configTab');
+            configTab.addEventListener('change', () => markConfigDirty(true));
+            configTab.addEventListener('input', () => markConfigDirty(true));
+        }
+
+        function markConfigDirty(dirty) {
+            isConfigDirty = dirty;
+            const badge = document.getElementById('cfgSyncBadge');
+            if (badge) {
+                if (dirty) {
+                    badge.className = 'badge badge-warning';
+                    badge.innerText = '⚠️ Unsaved Changes';
+                } else {
+                    badge.className = 'badge badge-success';
+                    badge.innerText = '✓ Synced with Device';
+                }
+            }
+        }
+
+        // ─── INITIALIZE CONFIG FORM SELECT OPTIONS ──────────────────────────────────
+        function initSelectOptions() {
+            // Voltage High
+            const vH = document.getElementById('cfg_vH');
+            for (let i = 230; i <= 260; i++) vH.add(new Option(i + " V", i));
+
+            // Voltage Low
+            const vL = document.getElementById('cfg_vL');
+            for (let i = 150; i <= 190; i++) vL.add(new Option(i + " V", i));
+
+            // Voltage Gap
+            const vG = document.getElementById('cfg_vG');
+            for (let i = 1; i <= 10; i++) vG.add(new Option(i + " V", i));
+
+            // Tank Height (inches)
+            const uH = document.getElementById('cfg_uH');
+            for (let i = 12; i <= 84; i += 6) uH.add(new Option((i / 12).toFixed(1) + " ft (" + i + "\")", i));
+
+            // Tank Low Level
+            const lowTank = document.getElementById('cfg_lowTank');
+            for (let i = 20; i <= 70; i += 5) lowTank.add(new Option(i + " %", i));
+
+            // Tank Full Level
+            const fullTank = document.getElementById('cfg_fullTank');
+            for (let i = 80; i <= 100; i += 5) fullTank.add(new Option(i + " %", i));
+
+            // Dry Run Delay
+            const dD = document.getElementById('cfg_dD');
+            for (let i = 30; i <= 180; i += 5) dD.add(new Option(i + " Sec", i));
+
+            // Valve Delay
+            const vDly = document.getElementById('cfg_vDly');
+            for (let i = 5; i <= 15; i++) vDly.add(new Option(i + " Sec", i));
+
+            // DND Hours
+            const dndS = document.getElementById('cfg_dndS');
+            const dndE = document.getElementById('cfg_dndE');
+            for (let i = 0; i < 24; i++) {
+                const label = (i < 10 ? '0' : '') + i + ':00';
+                dndS.add(new Option(label, i));
+                dndE.add(new Option(label, i));
+            }
+
+            // Timezone
+            const tzOf = document.getElementById('cfg_tzOf');
+            for (let i = -12; i <= 14; i += 0.5) {
+                const label = "GMT " + (i >= 0 ? "+" : "") + i;
+                tzOf.add(new Option(label, i));
+            }
+        }
+
+        // ─── TOAST ──────────────────────────────────────────────────────────────────
+        function showToast(title, msg, type = 'info') {
+            const bench = document.getElementById('toastBench');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            const colors = {
+                info: 'var(--accent-blue)', success: 'var(--accent-green)',
+                warn: 'var(--accent-yellow)', error: 'var(--accent-red)'
+            };
+            t.style.borderLeftColor = colors[type] || colors.info;
+            t.innerHTML = `<strong>${esc(title)}</strong><br><span style="font-size:.82rem;color:#ccc;">${esc(msg)}</span>`;
+            bench.appendChild(t);
+            setTimeout(() => {
+                t.style.transition = 'opacity .3s'; t.style.opacity = '0';
+                setTimeout(() => t.remove(), 300);
+            }, 5500);
+        }
+
+        // ─── SETTINGS ───────────────────────────────────────────────────────────────
+        function toggleSettingsPanel() {
+            const p = document.getElementById('settingsPanel');
+            p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        }
+        function saveAndReconnect() {
+            localStorage.setItem('amk_host', document.getElementById('cfgHost').value.trim());
+            localStorage.setItem('amk_port', document.getElementById('cfgPort').value.trim());
+            localStorage.setItem('amk_user', document.getElementById('cfgUser').value.trim());
+            localStorage.setItem('amk_pass', document.getElementById('cfgPass').value.trim());
+            location.reload();
+        }
+
+        // ─── MQTT ───────────────────────────────────────────────────────────────────
+        function initMQTT() {
+            const host = localStorage.getItem('amk_host') || defaultConfig.host;
+            const port = parseInt(localStorage.getItem('amk_port') || defaultConfig.port, 10);
+            const user = localStorage.getItem('amk_user') || defaultConfig.user;
+            const pass = localStorage.getItem('amk_pass') || defaultConfig.pass;
+
+            const clientId = "Admin_" + Math.random().toString(16).substr(2, 8);
+            client = new Paho.MQTT.Client(host, port, clientId);
+
+            client.onConnectionLost = () => {
+                document.getElementById('connPill').className = 'conn-pill';
+                document.getElementById('connTxt').innerText = 'Disconnected';
+            };
+            client.onMessageArrived = (m) => handleIncomingMessage(m.destinationName, m.payloadString);
+
+            client.connect({
+                useSSL: true, userName: user, password: pass, timeout: 10,
+                onSuccess: () => {
+                    document.getElementById('connPill').className = 'conn-pill connected';
+                    document.getElementById('connTxt').innerText = 'Connected (' + host.substring(0, 14) + '...)';
+                    client.subscribe("smartpump/+/status");
+                },
+                onFailure: (e) => showToast("Connection Error", e.errorMessage, "error")
+            });
+        }
+
+        // ─── INCOMING MQTT MESSAGE ───────────────────────────────────────────────────
+        function handleIncomingMessage(topic, payloadStr) {
+            try {
+                const data = JSON.parse(payloadStr);
+                const devID = data.id || topic.split('/')[1];
+                if (!devID) return;
+
+                // Alert toast from device
+                if (data.alert) {
+                    const type = data.alert.includes('Success') || data.alert.includes('Date') ? 'success'
+                        : data.alert.includes('Update Found') ? 'warn' : 'info';
+                    showToast(`[${devID}] ${data.alert}`, data.reason || '', type);
+                }
+
+                // License expiry warning toast
+                const daysLeft = data.daysLeft !== undefined ? parseInt(data.daysLeft, 10) : null;
+                const prevData = fleetMap.get(devID);
+                if (daysLeft !== null && !prevData?._licWarnShown) {
+                    if (data.expired) {
+                        showToast(`⛔ [${devID}] License EXPIRED`, "Push a new license token immediately.", "error");
+                        data._licWarnShown = true;
+                    } else if (daysLeft <= 7) {
+                        showToast(`🔴 [${devID}] License Critical`, `Only ${daysLeft} day(s) left!`, "error");
+                        data._licWarnShown = true;
+                    } else if (daysLeft <= 30) {
+                        showToast(`🟡 [${devID}] License Expiring Soon`, `${daysLeft} days remaining.`, "warn");
+                        data._licWarnShown = true;
+                    } else {
+                        data._licWarnShown = prevData?._licWarnShown || false;
+                    }
+                } else {
+                    data._licWarnShown = prevData?._licWarnShown || false;
+                }
+
+                data._lastSeenMs = Date.now();
+                data._lastSeenStr = new Date().toLocaleTimeString();
+                data._online = true;
+                fleetMap.set(devID, data);
+
+                updateFleetDropdown();
+                updateFleetTable();
+
+                const target = document.getElementById('targetID').value.trim().toUpperCase();
+                if (target === devID || target === '+') {
+                    renderTelemetry(data);
+
+                    // Only auto-populate config form if form is NOT edited by user AND (device changed OR form never loaded)
+                    if (!isConfigDirty && loadedConfigDeviceID !== devID) {
+                        populateConfigForm(data, false);
+                    }
+                }
+
+            } catch (e) {console.error("MQTT parse error:", e);}
+        }
+
+        // ─── OFFLINE CHECKER (runs every 2 min) ─────────────────────────────────────
+        function checkOfflineDevices() {
+            const now = Date.now();
+            let changed = false;
+            fleetMap.forEach((v, k) => {
+                const wasOnline = v._online;
+                v._online = (now - v._lastSeenMs) < OFFLINE_TIMEOUT_MS;
+                if (wasOnline && !v._online) {
+                    const mins = Math.round((now - v._lastSeenMs) / 60000);
+                    showToast(`📡 [${k}] Device Offline`,
+                        `No signal for ${mins} min. Last seen: ${v._lastSeenStr}`, "error");
+                    changed = true;
+                }
+            });
+            if (changed) {updateFleetTable(); updateFleetDropdown();}
+        }
+
+        // ─── LICENSE BADGE HELPER ────────────────────────────────────────────────────
+        function licBadgeHtml(daysLeft, expired) {
+            if (expired || daysLeft === 0)
+                return `<span class="badge badge-offline">⛔ EXPIRED</span>`;
+            if (daysLeft <= 7)
+                return `<span class="badge badge-danger">🔴 ${daysLeft}d left</span>`;
+            if (daysLeft <= 30)
+                return `<span class="badge badge-warning">🟡 ${daysLeft}d left</span>`;
+            return `<span class="badge badge-success">🟢 ${daysLeft}d left</span>`;
+        }
+
+        // ─── RENDER SINGLE DEVICE TELEMETRY (Tab 1) ─────────────────────────────────
+        function renderTelemetry(data) {
+            if (data.tank !== undefined) document.getElementById('dispTank').innerText = data.tank + '%';
+            if (data.volt !== undefined) document.getElementById('dispVolt').innerText = data.volt + ' V';
+            if (data.pStat !== undefined) {
+                const p = document.getElementById('dispPump');
+                p.innerText = data.pStat;
+                p.style.color = data.pStat === 'ON' ? '#03ef62' : '#8b949e';
+            }
+            if (data.info !== undefined) {
+                const el = document.getElementById('dispInfo');
+                el.innerText = data.info;
+                el.style.color = /ALARM|OVER|UNDER|ERR/.test(data.info) ? '#ff6b6b' : '#03ef62';
+            }
+
+            // --- EXTENDED SENSOR DIAGNOSTICS FIELDS ---
+            // Dynamic Sensor Title Label Update (Ultrasonic vs Hydrostatic)
+            const lblEl = document.getElementById('dispSensorLabel');
+            if (lblEl && data.sType !== undefined) {
+                lblEl.innerText = (data.sType == 1) ? "Hydrostatic Sensor" : "Ultrasonic Sensor";
+            }
+
+            // Sensor Hardware Health Check (Checks uErr, sErr, tStr, and info)
+            const uErrEl = document.getElementById('dispUSensor');
+            const isSensorErr = (data.uErr !== undefined ? data.uErr : data.sErr) == 1 || (data.tStr === "ERR") || (data.info === "SENSOR_ERROR!");
+
+            if (data.uErr !== undefined || data.sErr !== undefined || data.tStr !== undefined || data.info !== undefined) {
+                uErrEl.innerText = isSensorErr ? "🔴 ERROR" : "🟢 NORMAL";
+                uErrEl.style.color = isSensorErr ? "#ff6b6b" : "#03ef62";
+            } else {
+                uErrEl.innerText = "--";
+            }
+
+            // Invalid Sensor Reading Count Display
+            const invEl = document.getElementById('dispInvCount');
+            if (data.invCnt !== undefined) {
+                invEl.innerText = data.invCnt;
+                invEl.style.color = data.invCnt >= 10 ? "#ff6b6b" : (data.invCnt > 0 ? "#ffc107" : "#03ef62");
+            } else {
+                invEl.innerText = "0";
+            }
+
+            // Alarm Ack State (Smart Error Validation)
+            const ackEl = document.getElementById('dispAckState');
+            const hasActiveError = /ALARM|OVER|UNDER|ERR|FAIL|LOCKOUT|DRY/.test(data.info || "");
+
+            if (hasActiveError) {
+                const isAcked = (data.ack == 1 || data.ack === true || String(data.ack).toUpperCase() === 'ACKED');
+                ackEl.innerText = isAcked ? "✓ ACKED" : "⚠️ UNACKED";
+                ackEl.style.color = isAcked ? "#8b949e" : "#ffc107";
+            } else {
+                ackEl.innerText = "NONE";
+                ackEl.style.color = "#8b949e";
+            }
+
+            // Last Telemetry Heartbeat Time
+            document.getElementById('dispLastSeen').innerText = data._lastSeenStr || new Date().toLocaleTimeString();
+
+            // Detailed OTA / Firmware Execution State
+            const otaEl = document.getElementById('dispOtaState');
+            if (data.otaStat !== undefined) {
+                otaEl.innerText = data.otaStat;
+                if (data.otaStat === "UPDATE READY") otaEl.style.color = "#ffc107";
+                else if (data.otaStat === "OTA PENDING" || data.otaStat === "UPDATING...") otaEl.style.color = "#17a2b8";
+                else otaEl.style.color = "#03ef62";
+            } else if (data.ver !== undefined) {
+                otaEl.innerText = (data.nVer && data.nVer > data.ver) ? "UPDATE READY" : "IDLE / OK";
+                otaEl.style.color = (data.nVer && data.nVer > data.ver) ? "#ffc107" : "#03ef62";
+            }
+
+            // License remaining
+            const daysLeft = data.daysLeft !== undefined ? parseInt(data.daysLeft, 10) : null;
+            const expired = !!data.expired;
+            if (daysLeft !== null) {
+                const licEl = document.getElementById('dispLic');
+                if (expired || daysLeft === 0) {
+                    licEl.innerText = 'EXPIRED';
+                    licEl.style.color = '#888';
+                } else if (daysLeft <= 7) {
+                    licEl.innerText = daysLeft + ' days';
+                    licEl.style.color = '#ff6b6b';
+                } else if (daysLeft <= 30) {
+                    licEl.innerText = daysLeft + ' days';
+                    licEl.style.color = '#ffc107';
+                } else {
+                    licEl.innerText = daysLeft + ' days';
+                    licEl.style.color = '#03ef62';
+                }
+                document.getElementById('dispExpired').innerHTML =
+                    expired ? '<span class="badge badge-offline">⛔ EXPIRED</span>'
+                        : daysLeft <= 7 ? '<span class="badge badge-danger">Critical</span>'
+                            : daysLeft <= 30 ? '<span class="badge badge-warning">Expiring Soon</span>'
+                                : '<span class="badge badge-success">Active</span>';
+            }
+
+            // Firmware / OTA
+            if (data.ver !== undefined) {
+                const rem = data.nVer || data.ver;
+                const upd = data.ota === 1 || rem > data.ver;
+                document.getElementById('fwVerBadge').innerHTML =
+                    `FW: v${data.ver}` + (upd ? ` → <span style="color:#ffc107;">v${rem} AVAIL</span>` : ` <span style="color:#28a745;">✓ Up to Date</span>`);
+            }
+
+            // Logs
+            if (data.logs) {
+                document.getElementById('logTerminal').dataset.rawLogs = data.logs;
+                filterLogs();
+            }
+        }
+
+        // ─── POPULATE CONFIG TAB FROM TELEMETRY (Tab 2) ─────────────────────────────
+        function populateConfigForm(data, force = false) {
+            if (!data) return;
+            // Prevent overwriting form fields if the user has unsaved edits, unless force is true
+            if (isConfigDirty && !force) return;
+
+            if (data.vH !== undefined) document.getElementById('cfg_vH').value = data.vH;
+            if (data.vL !== undefined) document.getElementById('cfg_vL').value = data.vL;
+            if (data.vG !== undefined) document.getElementById('cfg_vG').value = data.vG;
+            if (data.sType !== undefined) document.getElementById('cfg_sType').value = data.sType;
+            if (data.uH !== undefined) document.getElementById('cfg_uH').value = data.uH;
+            if (data.lowTank !== undefined) document.getElementById('cfg_lowTank').value = data.lowTank;
+            if (data.fullTank !== undefined) document.getElementById('cfg_fullTank').value = data.fullTank;
+            if (data.dD !== undefined) document.getElementById('cfg_dD').value = data.dD;
+            if (data.rM !== undefined) document.getElementById('cfg_rM').value = data.rM;
+            if (data.rstM !== undefined) document.getElementById('cfg_rstM').value = data.rstM;
+            if (data.motLim !== undefined) document.getElementById('cfg_motLim').value = data.motLim;
+            if (data.opM !== undefined) document.getElementById('cfg_opM').value = data.opM;
+            if (data.vDly !== undefined) document.getElementById('cfg_vDly').value = data.vDly;
+            if (data.sysRole !== undefined) document.getElementById('cfg_sysRole').value = data.sysRole;
+            if (data.setM !== undefined) document.getElementById('cfg_setM').value = data.setM;
+            if (data.linkID !== undefined) document.getElementById('cfg_linkID').value = data.linkID;
+            if (data.dndEn !== undefined) document.getElementById('cfg_dndEn').value = data.dndEn;
+            if (data.dndS !== undefined) document.getElementById('cfg_dndS').value = data.dndS;
+            if (data.dndE !== undefined) document.getElementById('cfg_dndE').value = data.dndE;
+            if (data.tzOf !== undefined) document.getElementById('cfg_tzOf').value = data.tzOf;
+            if (data.pin !== undefined) document.getElementById('cfg_newPin').value = data.pin;
+
+            markConfigDirty(false);
+            loadedConfigDeviceID = data.id || document.getElementById('targetID').value.trim().toUpperCase();
+        }
+
+        // ─── SAVE REMOTE DEVICE PARAMETERS (Tab 2 Action) ───────────────────────────
+        function saveRemoteConfig() {
+            const id = document.getElementById('targetID').value.trim().toUpperCase();
+            if (!id || id === '+') {
+                return showToast("Error", "Specify a single Target Device ID (Broadcast '+' is blocked for config save).", "error");
+            }
+
+            const payload = {
+                save: 1,
+                sType: parseInt(document.getElementById('cfg_sType').value, 10),
+                vH: parseInt(document.getElementById('cfg_vH').value, 10),
+                vL: parseInt(document.getElementById('cfg_vL').value, 10),
+                vG: parseInt(document.getElementById('cfg_vG').value, 10),
+                uH: parseFloat(document.getElementById('cfg_uH').value),
+                lowTank: parseInt(document.getElementById('cfg_lowTank').value, 10),
+                fullTank: parseInt(document.getElementById('cfg_fullTank').value, 10),
+                dD: parseInt(document.getElementById('cfg_dD').value, 10),
+                rM: parseInt(document.getElementById('cfg_rM').value, 10),
+                rstM: parseInt(document.getElementById('cfg_rstM').value, 10),
+                motLim: parseInt(document.getElementById('cfg_motLim').value, 10),
+                opM: parseInt(document.getElementById('cfg_opM').value, 10),
+                vDly: parseInt(document.getElementById('cfg_vDly').value, 10),
+                sysRole: parseInt(document.getElementById('cfg_sysRole').value, 10),
+                setM: parseInt(document.getElementById('cfg_setM').value, 10),
+                linkID: document.getElementById('cfg_linkID').value.trim().toUpperCase(),
+                dndEn: parseInt(document.getElementById('cfg_dndEn').value, 10),
+                dndS: parseInt(document.getElementById('cfg_dndS').value, 10),
+                dndE: parseInt(document.getElementById('cfg_dndE').value, 10),
+                tzOf: parseFloat(document.getElementById('cfg_tzOf').value)
+            };
+
+            const newPin = document.getElementById('cfg_newPin').value.trim();
+            if (newPin) payload.newPin = newPin;
+
+            confirmAction('SAVE EEPROM PARAMETERS & REBOOT DEVICE', () => {
+                sendMqttCmd(payload);
+                markConfigDirty(false);
+                showToast("Parameters Dispatched", `Updating NVS configuration on device [${id}]. Rebooting hardware...`, "success");
+            }, true);
+        }
+
+        // ─── FLEET DROPDOWN ──────────────────────────────────────────────────────────
+        function updateFleetDropdown() {
+            const sel = document.getElementById('fleetSelect');
+            const cur = sel.value;
+            let online = 0;
+            let html = '';
+            fleetMap.forEach((v, k) => {
+                if (v._online) online++;
+                const offStr = v._online ? '' : ' [OFFLINE]';
+                html += `<option value="${k}" ${k === cur ? 'selected' : ''}>${offStr}Device: ${k}  Tank:${v.tank || '--'}%  Volt:${v.volt || '--'}V  FW:v${v.ver || '?'}</option>`;
+            });
+            sel.innerHTML = `<option value="">-- Select Device (${online} Online / ${fleetMap.size} Known) --</option>` + html;
+        }
+
+        // ─── FLEET TABLE ─────────────────────────────────────────────────────────────
+        function updateFleetTable() {
+            if (fleetMap.size === 0) return;
+            let html = '';
+            let online = 0, expiring = 0, expired = 0;
+
+            fleetMap.forEach((v, k) => {
+                const isOnline = !!v._online;
+                if (isOnline) online++;
+
+                const motorBadge = v.pStat === 'ON'
+                    ? '<span class="badge badge-success">RUNNING</span>'
+                    : '<span class="badge badge-info">IDLE</span>';
+
+                // FW + OTA merged into one compact cell
+                const fwUpd = v.ota === 1 || (v.nVer && v.nVer > v.ver);
+                const fwCell = fwUpd
+                    ? `<span class="badge badge-warning">v${v.ver || 1}→v${v.nVer}</span>`
+                    : `<span class="badge badge-success">v${v.ver || 1} ✓</span>`;
+
+                // License days
+                const daysLeft = v.daysLeft !== undefined ? parseInt(v.daysLeft, 10) : null;
+                const isExpired = !!v.expired;
+                if (isExpired) expired++;
+                else if (daysLeft !== null && daysLeft <= 30) expiring++;
+                const licCell = daysLeft !== null ? licBadgeHtml(daysLeft, isExpired) : '--';
+
+                // Last seen hint
+                const seenHint = `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">Seen: ${v._lastSeenStr || '--'}</div>`;
+
+                // Dot indicator embedded in device cell
+                const dot = `<span class="dev-dot ${isOnline ? 'on' : 'off'}"></span>`;
+
+                html += `<tr class="${isOnline ? '' : 'row-offline'}">
+                <td><strong>${dot}${k}</strong></td>
+                <td style="font-size:0.82rem;">${v.ip || '--'}</td>
+                <td><span style="font-weight:600;">${v.tank !== undefined ? v.tank + '%' : '--'}</span>
+                    <span style="color:var(--text-muted);margin:0 3px;">/</span>
+                    ${v.volt !== undefined ? v.volt + ' V' : '--'}</td>
+                <td>${motorBadge}</td>
+                <td class="wrap-cell" style="font-size:0.82rem;">${v.info || '--'}</td>
+                <td><div style="display:flex;gap:6px;align-items:center;">${fwCell}${licCell}</div>${seenHint}</td>
+                <td><button class="btn-dark" style="padding:5px 12px;font-size:0.78rem;"
+                    onclick="selectFleetDevice('${k}')">Inspect</button></td>
+            </tr>`;
+            });
+
+            document.getElementById('fleetTableBody').innerHTML = html;
+            document.getElementById('fleetSummary').innerHTML =
+                `<span style="color:#28a745;">🟢 ${online} Online</span> &nbsp;|&nbsp; ` +
+                (expiring > 0 ? `<span style="color:#ffc107;">🟡 ${expiring} Expiring Soon</span> &nbsp;|&nbsp; ` : '') +
+                (expired > 0 ? `<span style="color:#ff6b6b;">⛔ ${expired} Expired</span>` : '');
+        }
+
+        // ─── DEVICE SELECTION ────────────────────────────────────────────────────────
+        function selectFleetDevice(id) {
+            if (!id) return;
+            document.getElementById('targetID').value = id;
+            document.getElementById('licTargetID').value = id;
+
+            // Reset form dirty lock when changing device
+            loadedConfigDeviceID = "";
+            markConfigDirty(false);
+
+            if (fleetMap.has(id)) {
+                const data = fleetMap.get(id);
+                renderTelemetry(data);
+                populateConfigForm(data, true);
+            }
+            switchTab('controlTab', document.querySelectorAll('.tab-btn')[0]);
+        }
+
+        // ─── COMMANDS ────────────────────────────────────────────────────────────────
+        function fetchDeviceTelemetry(forceConfigSync = false) {
+            if (forceConfigSync) {
+                loadedConfigDeviceID = "";
+                markConfigDirty(false);
+            }
+            sendMqttCmd({get: 1});
+            showToast("Request Sent", "Fetching status and telemetry from target device...", "info");
+        }
+
+        function sendMqttCmd(cmdObj) {
+            if (!client || !client.isConnected())
+                return showToast("Error", "MQTT Broker not connected!", "error");
+            const id = document.getElementById('targetID').value.trim().toUpperCase();
+            const key = document.getElementById('adminKey').value.trim();
+            if (!id || !key)
+                return showToast("Error", "Specify Target Device ID and Admin Key.", "error");
+            cmdObj.pin = key;
+            const topic = id === '+' ? 'smartpump/all/set' : `smartpump/${id}/set`;
+            const msg = new Paho.MQTT.Message(JSON.stringify(cmdObj));
+            msg.destinationName = topic;
+            client.send(msg);
+        }
+
+        function sendBroadcastMessage() {
+            const txt = document.getElementById('promoText').value.trim();
+            if (!txt) return showToast("Error", "Enter banner text first.", "error");
+            sendMqttCmd({promo: txt});
+            document.getElementById('promoText').value = '';
+            showToast("Broadcast Dispatched", "Announcement banner sent to target device(s).", "success");
+        }
+
+        function clearBroadcastMessage() {
+            const id = document.getElementById('targetID').value.trim().toUpperCase();
+            if (!id) return showToast("Error", "Specify Target Device ID first.", "error");
+            if (confirm(`Clear broadcast banner message from device: ${id}?`)) {
+                sendMqttCmd({promo: ""});
+                showToast("Banner Cleared", "Broadcast message cleared from target device.", "success");
+            }
+        }
+
+        function confirmAction(name, cb, critical = false) {
+            const id = document.getElementById('targetID').value.trim().toUpperCase();
+            if (!id) return showToast("Error", "Specify Target Device ID first.", "error");
+
+            const targetLabel = id === '+'
+                ? 'ALL DEVICES using broadcast target (+)'
+                : `device: ${id}`;
+
+            if (!confirm(`⚠️ Are you sure you want to trigger [${name}] on ${targetLabel}?`)) return;
+
+            if (critical) {
+                const broadcastWarning = id === '+'
+                    ? '\n\nBROADCAST WARNING: this command may affect every online device in the fleet.'
+                    : '';
+                if (!confirm(`FINAL CONFIRMATION\n\nAction: ${name}\nTarget: ${targetLabel}${broadcastWarning}\n\nContinue?`)) return;
+            }
+
+            cb();
+        }
+
+        // ─── LICENSE TOKEN ───────────────────────────────────────────────────────────
+        function onLicPresetChange(val) {
+            if (val !== 'custom') document.getElementById('licCustomDays').value = val;
+        }
+
+        function generateToken() {
+            const devID = document.getElementById('licTargetID').value.trim().toUpperCase();
+            const days = parseInt(document.getElementById('licCustomDays').value, 10);
+            if (!devID) return showToast("Error", "Enter Target Device ID.", "error");
+            if (isNaN(days) || days === 0) return showToast("Error", "Enter a valid number of days.", "error");
+
+            const ts = Math.floor(Date.now() / 1000);
+            const payload = ts + "|" + days + "|ACER123|" + devID;
+            const sig = CryptoJS.MD5(payload).toString();
+            const tokenB64 = btoa(ts + "|" + days + "|" + sig);
+
+            document.getElementById('licTokenOut').value = tokenB64;
+            showToast("Token Generated",
+                `${days > 0 ? 'Extend +' : 'Revoke '}${days} days token for ${devID}.`, "success");
+        }
+
+        function copyTokenToClipboard() {
+            const tok = document.getElementById('licTokenOut').value;
+            if (!tok) return showToast("Error", "Generate a token first.", "error");
+            navigator.clipboard.writeText(tok);
+            showToast("Copied", "Token copied to clipboard!", "success");
+        }
+
+        function sendLicenseOta() {
+            const tok = document.getElementById('licTokenOut').value.trim();
+            if (!tok) return showToast("Error", "Generate a license token first.", "error");
+            confirmAction('PUSH LICENSE TOKEN OTA', () => {
+                sendMqttCmd({lic: tok});
+                showToast("License Dispatched", "Token pushed over-the-air to target device!", "success");
+            }, true);
+        }
+
+        // ─── LOG FILTER CHIP ACTION ──────────────────────────────────────────────────
+        function setLogFilter(pattern) {
+            document.getElementById('logFilterInput').value = pattern;
+            filterLogs();
+        }
+
+        // ─── LOG TOOLS (REGEX & QUICK-CHIP ENHANCED) ───────────────────────────────
+        function filterLogs() {
+            const term = document.getElementById('logTerminal');
+            const raw = term.dataset.rawLogs || "";
+            const query = document.getElementById('logFilterInput').value.trim();
+            if (!raw) return;
+
+            let regex = null;
+            if (query) {
+                try {
+                    regex = new RegExp(query, 'i');
+                } catch (e) {
+                    regex = null;
+                }
+            }
+
+            let html = '';
+            raw.split('\n').forEach(line => {
+                if (query) {
+                    if (regex && !regex.test(line)) return;
+                    if (!regex && !line.toLowerCase().includes(query.toLowerCase())) return;
+                }
+
+                let cls = '';
+                if (/VOLT:|ALR:|ERR:|FAIL|OVER|UNDER|LOCKOUT/.test(line)) cls = 'log-line-err';
+                else if (/FLOW:|OK|TANK:|START/.test(line)) cls = 'log-line-info';
+                else if (/SYS:|OTA:|LIC:/.test(line)) cls = 'log-line-sys';
+
+                html += `<div class="${cls}">${esc(line)}</div>`;
+            });
+
+            term.innerHTML = html || "No matching log lines found.";
+        }
+
+        function downloadLogFile() {
+            const raw = document.getElementById('logTerminal').dataset.rawLogs || "";
+            const devID = document.getElementById('targetID').value.trim().toUpperCase() || "Device";
+            if (!raw) return showToast("Error", "No log data to export.", "error");
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([raw], {type: "text/plain;charset=utf-8"}));
+            a.download = `Log_${devID}_${new Date().toISOString().slice(0, 10)}.txt`;
+            a.click();
+            showToast("Exported", `Log saved for ${devID}.`, "success");
+        }
+
+        function exportFleetCsv() {
+            if (fleetMap.size === 0) return showToast("Error", "No fleet devices discovered yet.", "error");
+            let csv = "Device ID,IP Address,Tank Level (%),AC Voltage (V),Pump State,Diagnostic Info,Firmware Version,License Days Left,Status,Last Seen\n";
+            fleetMap.forEach((v, k) => {
+                const days = v.daysLeft !== undefined ? v.daysLeft : "--";
+                const status = v._online ? "ONLINE" : "OFFLINE";
+                csv += `"${k}","${v.ip || '--'}","${v.tank !== undefined ? v.tank : '--'}","${v.volt !== undefined ? v.volt : '--'}","${v.pStat || '--'}","${v.info || '--'}","v${v.ver || 1}","${days}","${status}","${v._lastSeenStr || '--'}"\n`;
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv;charset=utf-8;"}));
+            a.download = `AMK_Fleet_Inventory_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            showToast("Report Exported", "Fleet inventory CSV downloaded successfully!", "success");
+        }
+
+        // ─── TAB SWITCH ──────────────────────────────────────────────────────────────
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // ─── UTILS ───────────────────────────────────────────────────────────────────
+        function esc(s) {
+            return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
 
 </html>
