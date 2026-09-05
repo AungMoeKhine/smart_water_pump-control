@@ -836,20 +836,10 @@
                     </div>
                     <div>
                         <label>Auto-Retry Interval</label>
-                        <select id="cfg_rM" onchange="toggleAdminRetryLimit()">
+                        <select id="cfg_rM">
                             <option value="0">Disabled</option>
                             <option value="30">30 Minutes</option>
                             <option value="60">60 Minutes</option>
-                        </select>
-                    </div>
-                    <div id="cfg_maxRet_wrap" style="display:none;">
-                        <label>Max Retry Limit</label>
-                        <select id="cfg_maxRet">
-                            <option value="1">1 Attempt</option>
-                            <option value="2">2 Attempts</option>
-                            <option value="3">3 Attempts (Rec.)</option>
-                            <option value="5">5 Attempts</option>
-                            <option value="0">Unlimited</option>
                         </select>
                     </div>
                     <div>
@@ -1144,12 +1134,6 @@
             const configTab = document.getElementById('configTab');
             configTab.addEventListener('change', () => markConfigDirty(true));
             configTab.addEventListener('input', () => markConfigDirty(true));
-        }
-
-        function toggleAdminRetryLimit() {
-            const rm = document.getElementById('cfg_rM').value;
-            const wrap = document.getElementById('cfg_maxRet_wrap');
-            if (wrap) wrap.style.display = (rm === "30" || rm === "60") ? "block" : "none";
         }
 
         function markConfigDirty(dirty) {
@@ -1482,11 +1466,7 @@
             if (data.lowTank !== undefined) document.getElementById('cfg_lowTank').value = data.lowTank;
             if (data.fullTank !== undefined) document.getElementById('cfg_fullTank').value = data.fullTank;
             if (data.dD !== undefined) document.getElementById('cfg_dD').value = data.dD;
-            if (data.rM !== undefined) {
-                document.getElementById('cfg_rM').value = data.rM;
-                toggleAdminRetryLimit();
-            }
-            if (data.maxRet !== undefined) document.getElementById('cfg_maxRet').value = data.maxRet;
+            if (data.rM !== undefined) document.getElementById('cfg_rM').value = data.rM;
             if (data.rstM !== undefined) document.getElementById('cfg_rstM').value = data.rstM;
             if (data.motLim !== undefined) document.getElementById('cfg_motLim').value = data.motLim;
             if (data.opM !== undefined) document.getElementById('cfg_opM').value = data.opM;
@@ -1522,7 +1502,6 @@
                 fullTank: parseInt(document.getElementById('cfg_fullTank').value, 10),
                 dD: parseInt(document.getElementById('cfg_dD').value, 10),
                 rM: parseInt(document.getElementById('cfg_rM').value, 10),
-                maxRet: parseInt(document.getElementById('cfg_maxRet').value, 10),
                 rstM: parseInt(document.getElementById('cfg_rstM').value, 10),
                 motLim: parseInt(document.getElementById('cfg_motLim').value, 10),
                 opM: parseInt(document.getElementById('cfg_opM').value, 10),
