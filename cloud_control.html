@@ -963,7 +963,7 @@
                     </div>
                     <div id="eventHistoryWrap">
                         <div id="logBox"
-                            style="background:#000; color:#0f0; font-family:monospace; padding:10px 20px 10px 10px; border-radius:10px; height:250px; overflow-y:auto; overflow-x:hidden; font-size:0.65rem; text-align:left !important; border:1px solid #333; margin-top:8px; line-height:1.4; white-space:pre-wrap; word-break:break-word; letter-spacing: -0.2px; scrollbar-gutter: stable;">Waiting for logs...</div>
+                            style="background:#000; color:#0f0; font-family:monospace; padding:10px 20px 10px 10px; border-radius:10px; height:250px; overflow-y:auto; overflow-x:hidden; font-size:0.65rem; text-align:left !important; border:1px solid #333; margin-top:8px; line-height:1.4; white-space:pre-wrap; word-break:break-word; letter-spacing: -0.2px; scrollbar-gutter: stable;"> Waiting for logs...</div>
                     </div>
                 </div>
                 <div id="otaHub"
@@ -1534,7 +1534,34 @@
                     else {btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect"); btnLogin.disabled = false;}
                 }
             };
-            client.connect({useSSL: true, userName: USER, password: PASS, timeout: 10, onSuccess: () => {isConnecting = false; btnLogin.innerText = (sysLang == 1 ? "စင့်ခ်လုပ်နေသည်..." : "Syncing..."); client.subscribe(`smartpump/${deviceID}/status`); client.subscribe(`smartpump/${deviceID}/online`); setTimeout(requestData, 500);}, onFailure: (e) => {isConnecting = false; const err = document.getElementById('loginError'); err.innerText = "Connection failed: " + e.errorMessage; err.style.display = 'block'; btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect"); btnLogin.disabled = false;}});
+            client.connect({
+                useSSL: true,
+                userName: USER,
+                password: PASS,
+                timeout: 10,
+                onSuccess: () => {
+                    isConnecting = false;
+                    btnLogin.innerText = (sysLang == 1 ? "စင့်ခ်လုပ်နေသည်..." : "Syncing...");
+                    client.subscribe(`smartpump/${deviceID}/status`);
+                    client.subscribe(`smartpump/${deviceID}/online`);
+                    setTimeout(requestData, 500);
+                },
+                onFailure: (e) => {
+                    isConnecting = false;
+                    const err = document.getElementById('loginError');
+                    let userMsg = sysLang == 1
+                        ? "ဆာဗာသို့ ချိတ်ဆက်၍မရပါ။ အင်တာနက်လိုင်းကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။"
+                        : "Unable to connect to cloud server. Please check your internet connection.";
+                    if (e.errorCode === 4 || e.errorCode === 5) {
+                        userMsg = sysLang == 1 ? "ဆာဗာ အသုံးပြုခွင့် မှားယွင်းနေပါသည်။" : "Server authentication failed.";
+                    }
+                    err.innerText = userMsg;
+                    err.style.display = 'block';
+                    btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect");
+                    btnLogin.disabled = false;
+                    console.warn("MQTT Connection Error:", e.errorMessage, "Code:", e.errorCode);
+                }
+            });
         }
         function requestData() {vibe();[document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.add('spinning')); if (client && client.isConnected()) {sendCmd({get: 1});} else {connect();} }
         function logout() {
