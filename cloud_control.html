@@ -419,6 +419,14 @@
             bottom: 100%;
         }
 
+        .tank-glaze {
+            position: absolute;
+            inset: 0;
+            z-index: 6;
+            pointer-events: none;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(0, 0, 0, 0.22) 100%);
+        }
+
         .tank-ruler {
             position: absolute;
             left: -12px;
@@ -968,6 +976,7 @@
                     <div class="tank-ruler" id="tankRuler" aria-hidden="true"></div>
                     <div class="tank-inner">
                         <div id="tankFill" class="tank-fill"></div>
+                        <div class="tank-glaze"></div>
                     </div>
                     <div class="tank-grid-lines">
                         <div class="grid-line line-25"></div>
