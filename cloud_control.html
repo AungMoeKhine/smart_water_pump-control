@@ -635,8 +635,6 @@
         .diagnostic-banner {
             margin-top: 8px;
             padding: 10px 12px;
-            background: rgba(3, 239, 98, 0.06);
-            border: 1px solid rgba(3, 239, 98, 0.25);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -646,8 +644,32 @@
             gap: 8px;
             font-size: 0.84rem;
             font-weight: 700;
-            color: #03ef62;
             letter-spacing: 0.3px;
+            transition: all 0.3s ease;
+        }
+
+        .diag-green {
+            background: rgba(3, 239, 98, 0.08);
+            border: 1px solid rgba(3, 239, 98, 0.35);
+            color: #03ef62;
+        }
+
+        .diag-yellow {
+            background: rgba(255, 171, 0, 0.12);
+            border: 1px solid rgba(255, 171, 0, 0.35);
+            color: #ffab00;
+        }
+
+        .diag-red {
+            background: rgba(255, 23, 68, 0.12);
+            border: 1px solid rgba(255, 23, 68, 0.35);
+            color: #ff1744;
+        }
+
+        .diag-blue {
+            background: rgba(0, 180, 255, 0.12);
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            color: #00b4ff;
         }
 
         /* Restores Total Motor Life to left-and-right balanced layout */
@@ -1020,7 +1042,7 @@
                     <!-- TILE 3: System Diagnostic Info -->
                     <div class="bento-tile full-width">
                         <div class="tile-label">🛡️ System Diagnostic</div>
-                        <div class="diagnostic-banner">
+                        <div class="diagnostic-banner diag-green">
                             <span class="dot-indicator" style="background:#03ef62;"></span>
                             <span id="info">SYSTEM_STANDBY!</span>
                         </div>
@@ -1847,10 +1869,25 @@
             if (iEl) {
                 iEl.innerText = iF;
                 let dotColor = '#03ef62';
-                if (rawInfo.includes("OVER_VOLTAGE") || rawInfo.includes("UNDER_VOLTAGE") || rawInfo.includes("ALARM") || rawInfo.includes("ERROR")) dotColor = '#ff1744';
-                else if (rawInfo.includes("VOLT_DELAY") || rawInfo.includes("WAITING") || rawInfo.includes("LOCKED") || rawInfo.includes("COOLING") || rawInfo.includes("VENTING") || rawInfo.includes("SETTLING")) dotColor = '#ffab00';
-                else if (rawInfo.includes("FLOW_CHECKING")) dotColor = '#00b4ff';
-                if (iEl.previousElementSibling) iEl.previousElementSibling.style.background = dotColor;
+                let diagCls = 'diag-green';
+
+                if (rawInfo.includes("OVER_VOLTAGE") || rawInfo.includes("UNDER_VOLTAGE") || rawInfo.includes("ALARM") || rawInfo.includes("ERROR")) {
+                    dotColor = '#ff1744';
+                    diagCls = 'diag-red';
+                } else if (rawInfo.includes("VOLT_DELAY") || rawInfo.includes("WAITING") || rawInfo.includes("LOCKED") || rawInfo.includes("COOLING") || rawInfo.includes("VENTING") || rawInfo.includes("SETTLING")) {
+                    dotColor = '#ffab00';
+                    diagCls = 'diag-yellow';
+                } else if (rawInfo.includes("FLOW_CHECKING")) {
+                    dotColor = '#00b4ff';
+                    diagCls = 'diag-blue';
+                }
+
+                if (iEl.parentElement) {
+                    iEl.parentElement.className = 'diagnostic-banner ' + diagCls;
+                }
+                if (iEl.previousElementSibling) {
+                    iEl.previousElementSibling.style.background = dotColor;
+                }
             }
             const tankFill = document.getElementById('tankFill'); if (tankFill && activeTab !== 'saving') {setTankGuides(d); tankFill.style.height = (d.tank || 0) + '%'; if (d.tank <= (d.lowTank || 30)) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water'); if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');}
             if (activeTab !== 'saving') {
