@@ -588,6 +588,8 @@
             letter-spacing: 0.4px;
             text-transform: uppercase;
             width: fit-content;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .pill-green {
@@ -1049,16 +1051,11 @@
                     </div>
 
                     <!-- TILE 4: Active Protection Countdown (Hidden by default) -->
-                    <div class="bento-tile full-width" id="cdRow"
-                        style="display:none; background:rgba(255,171,0,0.04); border-color:rgba(255,171,0,0.2);">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="tile-label" style="color:#ffab00;">⏱️ Active Protection Guard</div>
-                            <span class="status-pill pill-yellow" id="cdType">Retry</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:6px;">
-                            <span style="font-size:0.75rem; color:#8b949e;" id="cdLabel">Remaining window:</span>
-                            <span class="tabular-nums" id="cd"
-                                style="font-size:1.15rem; font-weight:800; color:#ffab00;">--</span>
+                    <div class="motor-life-tile" id="cdRow"
+                        style="display:none; background:rgba(255,171,0,0.04); border-color:rgba(255,171,0,0.25);">
+                        <div class="tile-label" style="color:#ffab00;">⏱️ Safeguard</div>
+                        <div class="status-pill pill-yellow tabular-nums" style="font-size:0.8rem; padding:5px 12px;">
+                            <span class="dot-indicator"></span> <span id="cdText">--</span>
                         </div>
                     </div>
 
@@ -1484,7 +1481,9 @@
             "🛡️ SYSTEM DIAGNOSTIC": "🛡️ စနစ် စစ်ဆေးချက်",
             "⏱️ Total Motor Life": "⏱️ စုစုပေါင်း မောင်းနှင်ချိန်",
             "⏱️ TOTAL MOTOR LIFE": "⏱️ စုစုပေါင်း မောင်းနှင်ချိန်",
-            "⏱️ Active Protection Guard": "⏱️ အကာအကွယ်စနစ် လုပ်ဆောင်နေသည်",
+            "⏱️ Safeguard": "⏱️ အကာအကွယ်",
+            "Dry-Run": "ရေမရှိ",
+            "Settling": "အနည်ထိုင်",
             "Remaining window:": "ကျန်ရှိချိန်-"
         };
 
@@ -1912,30 +1911,20 @@
             if (d.alertMsg && d.alertMsg !== lastWebAlert) {showModal(d.alertMsg); lastWebAlert = d.alertMsg;} else if (!d.alertMsg) {lastWebAlert = "";}
             updateOnlineStatus(true); const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset'); if (d.err) {btn.style.display = 'none'; rst.style.display = 'block'; rst.innerText = (sysLang == 1 ? "အချက်ပေး ပြန်ပိတ်မည်" : "Reset Alarm");} else if (d.sErr && !d.ack) {btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = (sysLang == 1 ? "အချက်ပေး ပြန်ပိတ်မည်" : "Reset Alarm"); btn.className = "btn btn-red"; btn.disabled = false;} else if (rawInfo.includes("VENTING_VALVE") || rawInfo.includes("VENTING") || rawInfo.includes("လေလျှော့နေသည်")) {btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = tr("PLEASE WAIT..."); btn.className = "btn btn-grey"; btn.disabled = true;} else {btn.style.display = 'block'; rst.style.display = 'none'; if (isExpired) {btn.innerText = tr("LICENSE EXPIRED"); btn.className = "btn btn-grey"; btn.disabled = true;} else {btn.disabled = false; let btnTxt = (d.pStat == "ON" ? 'Stop Pump' : 'Start Pump'); btn.innerText = tr(btnTxt); btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green");} }
             const cdRow = document.getElementById('cdRow');
-            const cdType = document.getElementById('cdType');
-            const cdLabel = document.getElementById('cdLabel');
-            const cdVal = document.getElementById('cd');
-            if (cdRow && cdVal) {
+            const cdText = document.getElementById('cdText');
+            if (cdRow && cdText) {
                 if (d.err == 2 && d.rM > 0 && d.rCd > 0) {
-                    cdRow.style.display = 'block';
-                    if (cdType) cdType.innerText = tr("Auto-Retry");
-                    if (cdLabel) cdLabel.innerText = tr("Retry in:");
-                    cdVal.innerText = Math.max(0, Math.ceil(d.rCd / 60)) + "m";
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Auto-Retry") + " • " + Math.max(0, Math.ceil(d.rCd / 60)) + "m";
                 } else if (rawInfo.includes("COOLING") || rawInfo.includes("အအေးခံနေသည်")) {
-                    cdRow.style.display = 'block';
-                    if (cdType) cdType.innerText = tr("Cooldown");
-                    if (cdLabel) cdLabel.innerText = tr("Cooling in:");
-                    cdVal.innerText = Math.max(0, Math.ceil(d.rstCd / 60)) + "m";
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Cooldown") + " • " + Math.max(0, Math.ceil(d.rstCd / 60)) + "m";
                 } else if (d.isDR) {
-                    cdRow.style.display = 'block';
-                    if (cdType) cdType.innerText = tr("Dry-Run Guard");
-                    if (cdLabel) cdLabel.innerText = tr("Dry-Run in:");
-                    cdVal.innerText = d.cd + "s";
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Dry-Run") + " • " + d.cd + "s";
                 } else if (rawInfo.includes("SETTLING_WATER") || (d.setCd !== undefined && d.setCd > 0)) {
-                    cdRow.style.display = 'block';
-                    if (cdType) cdType.innerText = tr("Settling Guard");
-                    if (cdLabel) cdLabel.innerText = tr("Settling in:");
-                    cdVal.innerText = Math.max(0, Math.ceil(d.setCd / 60)) + "m";
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Settling") + " • " + Math.max(0, Math.ceil(d.setCd / 60)) + "m";
                 } else {
                     cdRow.style.display = 'none';
                 }
