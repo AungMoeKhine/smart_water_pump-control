@@ -2076,20 +2076,13 @@
         }
 
         // ============================================================================
-        // UNIVERSAL DUAL VOICE ENGINE (PWA SPEECH RECOGNITION + GEMINI APK FALLBACK)
+        // FAST STANDALONE VOICE ENGINE (NO EXTERNAL API KEY REQUIRED)
         // ============================================================================
-        const GEMINI_API_KEY = "AQ.Ab8RN6JJGhRMA6ga5YqaIlwoZqpXNjFBIu5igaWas39UVkYPSA";
         let recognition = null;
         let isListening = false;
         let latestTelemetry = {};
         let mobileTranscriptBuffer = '';
         let commandDispatched = false;
-
-        // Gemini MediaRecorder components for Android Studio APK
-        let apkMediaRecorder = null;
-        let apkAudioChunks = [];
-        let apkAutoTimer = null;
-        const hasNativeSpeech = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
         function initSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2162,213 +2155,37 @@
                 aPlayer.src = "";
             }
 
-            // 1. ENGINE 1: Chrome PWA & Desktop (SpeechRecognition Available)
-            if (hasNativeSpeech) {
-                if (!recognition) recognition = initSpeechRecognition();
+            if (!recognition) recognition = initSpeechRecognition();
 
-                if (isListening) {
-                    stopVoiceAssistant();
-                } else {
-                    recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                    mobileTranscriptBuffer = '';
-                    commandDispatched = false;
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        try {
-                            recognition.abort();
-                            setTimeout(() => {try {recognition.start();} catch (err) { } }, 120);
-                        } catch (err) { }
-                    }
-                }
+            if (!recognition) {
+                alert(sysLang === 1 ? "ဤဘရောက်ဇာတွင် အသံစနစ် အသုံးပြု၍မရပါ" : "Voice commands not supported in this browser.");
                 return;
             }
 
-            // 2. ENGINE 2: Android Studio APK WebView Fallback (Uses Gemini MediaRecorder)
             if (isListening) {
-                finishApkAudioRecording();
-                return;
-            }
-
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert(sysLang === 1 ? "မိုက်ခရိုဖုန်း အသုံးပြုခွင့် မရရှိပါ" : "Microphone permission not available.");
-                return;
-            }
-
-            navigator.mediaDevices.getUserMedia({audio: true})
-                .then(stream => {
-                    startApkAudioRecording(stream);
-                })
-                .catch(err => {
-                    console.error("[APK Audio] Mic error:", err);
-                    alert(sysLang === 1 ? "မိုက်ခရိုဖုန်း ဖွင့်၍မရပါ: " + err.message : "Cannot open microphone: " + err.message);
-                });
-        }
-
-        function startApkAudioRecording(stream) {
-            apkAudioChunks = [];
-            let options = {};
-            if (typeof MediaRecorder !== "undefined") {
-                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                    options = {mimeType: 'audio/webm;codecs=opus'};
-                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    options = {mimeType: 'audio/mp4'};
+                stopVoiceAssistant();
+            } else {
+                recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                mobileTranscriptBuffer = '';
+                commandDispatched = false;
+                try {
+                    recognition.start();
+                } catch (e) {
+                    try {
+                        recognition.abort();
+                        setTimeout(() => {try {recognition.start();} catch (err) { } }, 120);
+                    } catch (err) { }
                 }
             }
-
-            try {
-                apkMediaRecorder = new MediaRecorder(stream, options);
-            } catch (e) {
-                apkMediaRecorder = new MediaRecorder(stream);
-            }
-
-            apkMediaRecorder.ondataavailable = e => {
-                if (e.data && e.data.size > 0) apkAudioChunks.push(e.data);
-            };
-
-            apkMediaRecorder.onstop = () => {
-                stream.getTracks().forEach(track => track.stop());
-                const audioBlob = new Blob(apkAudioChunks, {type: apkMediaRecorder.mimeType || 'audio/webm'});
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = function () {
-                    const base64Audio = reader.result.split(',')[1];
-                    const mimeType = audioBlob.type.split(';')[0] || 'audio/webm';
-                    callGeminiVoiceAPI(null, base64Audio, mimeType);
-                };
-            };
-
-            apkMediaRecorder.start();
-            isListening = true;
-
-            document.getElementById('voiceFab').classList.add('listening');
-            document.getElementById('voiceOverlay').style.display = 'flex';
-            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak now";
-            document.getElementById('voiceTranscript').innerText = (sysLang === 1) ? "စကားပြောပြီးပါက ခလုတ်ကို နှိပ်ပါ သို့မဟုတ် ခဏစောင့်ပါ..." : "Speak now, then tap button or wait...";
-            document.getElementById('voiceFeedback').innerText = "";
-
-            if (apkAutoTimer) clearTimeout(apkAutoTimer);
-            apkAutoTimer = setTimeout(() => {
-                if (isListening) finishApkAudioRecording();
-            }, 3800);
-        }
-
-        function finishApkAudioRecording() {
-            if (apkAutoTimer) clearTimeout(apkAutoTimer);
-            if (apkMediaRecorder && apkMediaRecorder.state !== 'inactive') {
-                apkMediaRecorder.stop();
-            }
-            isListening = false;
-            document.getElementById('voiceFab').classList.remove('listening');
-            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "Gemini စစ်ဆေးနေပါသည်..." : "Gemini analyzing...";
-            document.getElementById('voiceTranscript').innerText = "⏳ Processing...";
         }
 
         function stopVoiceAssistant() {
-            if (apkAutoTimer) clearTimeout(apkAutoTimer);
-            if (apkMediaRecorder && apkMediaRecorder.state !== 'inactive') {
-                apkMediaRecorder.stop();
-            }
             if (recognition && isListening) {
                 recognition.stop();
             }
             isListening = false;
             document.getElementById('voiceFab').classList.remove('listening');
             document.getElementById('voiceOverlay').style.display = 'none';
-        }
-
-        // --- GEMINI AI ASSISTANT DISPATCHER (TEXT & AUDIO) ---
-        async function callGeminiVoiceAPI(transcriptText, base64Audio, mimeType) {
-            const isRunning = (latestTelemetry.pStat === "ON");
-            const tank = latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
-            const volt = latestTelemetry.volt !== undefined ? latestTelemetry.volt : 220;
-            const info = latestTelemetry.info || "SYSTEM_STANDBY";
-            const err = latestTelemetry.err || 0;
-
-            const prompt = `You are the smart voice AI assistant for an ESP32 Water Pump & Air Compressor System.
-Current Hardware Telemetry:
-- Motor Running: ${isRunning ? "ON" : "OFF"}
-- Water Tank Level: ${tank}%
-- AC Line Voltage: ${volt}V
-- Diagnostic Info: ${info}
-- Error Code: ${err}
-
-User Input: ${transcriptText ? `User said: "${transcriptText}"` : "User provided voice audio input."}
-
-Task:
-Analyze the command or question (which may be in Myanmar/Burmese or English).
-Return a raw JSON object strictly matching this schema:
-{
-  "action": "START" | "STOP" | "RESET" | "STATUS" | "EXPLAIN" | "UNKNOWN",
-  "reply": "Concise natural spoken reply under 15 words in the SAME language the user used (Burmese if Burmese, English if English)"
-}
-
-Rules:
-1. If the user wants to start the pump, verify if tank >= 100%. If full, set action to "EXPLAIN" and state it is already full. Otherwise set action to "START".
-2. If the user wants to turn off or stop, set action to "STOP".
-3. If the user wants to clear/reset alarm or dry-run, set action to "RESET".
-4. If the user asks about water level, voltage, or why the pump stopped, set action to "STATUS" or "EXPLAIN".
-5. Return ONLY JSON without markdown code fences.`;
-
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-            const parts = [{text: prompt}];
-
-            if (base64Audio) {
-                parts.push({
-                    inlineData: {
-                        mimeType: mimeType,
-                        data: base64Audio
-                    }
-                });
-            }
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        contents: [{parts: parts}],
-                        generationConfig: {responseMimeType: "application/json"}
-                    })
-                });
-
-                const resData = await response.json();
-                if (resData.candidates && resData.candidates[0].content.parts[0].text) {
-                    let clean = resData.candidates[0].content.parts[0].text.trim();
-                    clean = clean.replace(/```json/g, "").replace(/```/g, "").trim();
-                    const parsed = JSON.parse(clean);
-                    executeVoiceAction(parsed);
-                } else {
-                    throw new Error("Invalid Gemini response");
-                }
-            } catch (err) {
-                console.error("[Gemini AI] Call error:", err);
-                const failMsg = (sysLang === 1) ? "Gemini စနစ် မအားသေးပါ" : "Gemini is busy, try again.";
-                document.getElementById('voiceFeedback').style.color = '#ff1744';
-                document.getElementById('voiceFeedback').innerText = failMsg;
-                speakText(failMsg);
-                setTimeout(stopVoiceAssistant, 2000);
-            }
-        }
-
-        function executeVoiceAction(data) {
-            const feedbackEl = document.getElementById('voiceFeedback');
-            const transcriptEl = document.getElementById('voiceTranscript');
-            feedbackEl.style.color = '#03ef62';
-            transcriptEl.innerText = `"${data.reply}"`;
-            feedbackEl.innerText = data.reply;
-
-            speakText(data.reply);
-
-            if (data.action === "START") {
-                if (latestTelemetry.pStat !== "ON") sendToggle();
-            } else if (data.action === "STOP") {
-                if (latestTelemetry.pStat === "ON") sendToggle();
-            } else if (data.action === "RESET") {
-                sendReset();
-            }
-
-            setTimeout(stopVoiceAssistant, 3000);
         }
 
         function speakText(text) {
@@ -2385,7 +2202,7 @@ Rules:
 
             const langCode = (sysLang === 1) ? 'my' : 'en';
 
-            // High-Fidelity Audio Streaming (Works 100% inside Android Studio APK & WebView)
+            // High-Fidelity Audio Streaming (Works in both Myanmar and English across APK and PWA)
             if (aPlayer) {
                 const cleanText = encodeURIComponent(text.substring(0, 130));
                 const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
@@ -2403,7 +2220,6 @@ Rules:
                 return;
             }
 
-            // Fallback for systems without audio element
             if (window.speechSynthesis) {
                 const utter = new SpeechSynthesisUtterance(text);
                 utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
@@ -2422,7 +2238,7 @@ Rules:
             const tankLevel = latestTelemetry.tank !== undefined ? latestTelemetry.tank : "--";
             const voltage = latestTelemetry.volt !== undefined ? latestTelemetry.volt : "--";
 
-            // 1. FAST START PUMP
+            // 1. START PUMP
             const startPhrases = ["start", "on", "pump on", "turn on", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်"];
             if (startPhrases.some(p => text.includes(p))) {
                 if (isRunning) {
@@ -2443,7 +2259,7 @@ Rules:
                 return;
             }
 
-            // 2. FAST STOP PUMP
+            // 2. STOP PUMP
             const stopPhrases = ["stop", "off", "pump off", "turn off", "ပိတ်", "မော်တာပိတ်", "ရပ်", "ရပ်တန့်"];
             if (stopPhrases.some(p => text.includes(p))) {
                 if (!isRunning) {
@@ -2460,7 +2276,7 @@ Rules:
                 return;
             }
 
-            // 3. FAST RESET ALARM
+            // 3. RESET ALARM
             const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်"];
             if (resetPhrases.some(p => text.includes(p))) {
                 feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
@@ -2470,7 +2286,7 @@ Rules:
                 return;
             }
 
-            // 4. FAST STATUS CHECK
+            // 4. STATUS CHECK
             const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
             if (statusPhrases.some(p => text.includes(p))) {
                 const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားသည်" : "Stopped");
@@ -2483,9 +2299,12 @@ Rules:
                 return;
             }
 
-            // 5. IF IT IS A COMPLEX QUESTION, SEND TO GEMINI CHATBOT ASSISTANT
-            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "Gemini စဉ်းစားနေသည်..." : "Gemini thinking...";
-            callGeminiVoiceAPI(rawText, null, null);
+            // 5. UNRECOGNIZED COMMAND
+            const unknownMsg = (sysLang === 1) ? "နားမလည်ပါ: " + rawText : "Command not recognized: " + rawText;
+            feedbackEl.style.color = '#ffab00';
+            feedbackEl.innerText = unknownMsg;
+            speakText(unknownMsg);
+            setTimeout(stopVoiceAssistant, 2000);
         }
     </script>
 </body>
