@@ -889,19 +889,19 @@
             text-align: center;
         }
 
-        /* --- VOICE ASSISTANT MIC BUTTON (COMPACT & BESIDE TANK) --- */
+        /* --- VOICE ASSISTANT MIC BUTTON (MINI & DISCREET) --- */
         .voice-fab {
             position: absolute;
-            right: -52px;
-            bottom: 6px;
-            width: 40px;
-            height: 40px;
+            right: -42px;
+            bottom: 4px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #00d2ff, #0066ff);
-            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.45);
-            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.85), rgba(0, 102, 255, 0.85));
+            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             color: #ffffff;
-            font-size: 1.15rem;
+            font-size: 0.88rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -910,11 +910,13 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            opacity: 0.85;
         }
 
         .voice-fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.65);
+            transform: scale(1.12);
+            opacity: 1;
+            box-shadow: 0 4px 14px rgba(0, 210, 255, 0.55);
         }
 
         .voice-fab:active {
@@ -922,8 +924,9 @@
         }
 
         .voice-fab.listening {
+            opacity: 1 !important;
             background: linear-gradient(135deg, #ff1744, #d50000) !important;
-            box-shadow: 0 0 20px rgba(255, 23, 68, 0.85) !important;
+            box-shadow: 0 0 16px rgba(255, 23, 68, 0.85) !important;
             animation: pulse-ring 1.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
         }
 
@@ -2073,26 +2076,29 @@
         }
 
         // ============================================================================
-        // VOICE ASSISTANT & INTENT ENGINE (FAST KEYWORDS + MULTILINGUAL)
+        // UNIVERSAL DUAL VOICE ENGINE (PWA SPEECH RECOGNITION + GEMINI APK FALLBACK)
         // ============================================================================
+        const GEMINI_API_KEY = "AQ.Ab8RN6JJGhRMA6ga5YqaIlwoZqpXNjFBIu5igaWas39UVkYPSA";
         let recognition = null;
         let isListening = false;
         let latestTelemetry = {};
         let mobileTranscriptBuffer = '';
         let commandDispatched = false;
 
+        // Gemini MediaRecorder components for Android Studio APK
+        let apkMediaRecorder = null;
+        let apkAudioChunks = [];
+        let apkAutoTimer = null;
+        const hasNativeSpeech = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
         function initSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                console.warn("[Voice] Web Speech API not supported on this browser.");
-                return null;
-            }
+            if (!SpeechRecognition) return null;
 
             const rec = new SpeechRecognition();
             rec.continuous = false;
             rec.interimResults = true;
             rec.maxAlternatives = 1;
-
             rec.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
 
             rec.onstart = function () {
@@ -2113,7 +2119,6 @@
                 mobileTranscriptBuffer = transcript;
                 document.getElementById('voiceTranscript').innerText = `"${transcript}"`;
 
-                // Desktop trigger
                 if (event.results[current].isFinal && !commandDispatched) {
                     commandDispatched = true;
                     processVoiceCommand(transcript);
@@ -2121,16 +2126,12 @@
             };
 
             rec.onerror = function (event) {
-                console.warn("[Voice] Recognition event:", event.error);
-
-                // Silently ignore pauses and cancels on mobile without speaking error
+                console.warn("[Voice] Speech event:", event.error);
                 if (event.error === 'no-speech' || event.error === 'aborted') {
                     document.getElementById('voiceFeedback').innerText = "";
                     stopVoiceAssistant();
                     return;
                 }
-
-                // Show real error code on screen (e.g. not-allowed, network)
                 let errText = (sysLang === 1) ? "အသံဖမ်းယူမှု မအောင်မြင်ပါ" : "Didn't catch that.";
                 document.getElementById('voiceFeedback').style.color = '#ff1744';
                 document.getElementById('voiceFeedback').innerText = `${errText} (${event.error})`;
@@ -2141,8 +2142,6 @@
             rec.onend = function () {
                 isListening = false;
                 document.getElementById('voiceFab').classList.remove('listening');
-
-                // Mobile Android safeguard: if Android finished without isFinal flag, execute now
                 if (mobileTranscriptBuffer && !commandDispatched) {
                     commandDispatched = true;
                     processVoiceCommand(mobileTranscriptBuffer);
@@ -2155,10 +2154,7 @@
         function toggleVoiceAssistant() {
             vibe();
 
-            // Stop any previous speech or audio and clear source so old messages never repeat
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-            }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
             const aPlayer = document.getElementById('myanmarAudio');
             if (aPlayer) {
                 aPlayer.pause();
@@ -2166,43 +2162,213 @@
                 aPlayer.src = "";
             }
 
-            if (!recognition) {
-                recognition = initSpeechRecognition();
-                if (!recognition) {
-                    alert(sysLang === 1 ? "ဤဘရောက်ဇာတွင် အသံစနစ် အသုံးပြု၍မရပါ (Chrome သို့မဟုတ် Edge ကို သုံးပါ)" : "Voice commands not supported in this browser. Please use Chrome or Edge.");
-                    return;
-                }
-            }
+            // 1. ENGINE 1: Chrome PWA & Desktop (SpeechRecognition Available)
+            if (hasNativeSpeech) {
+                if (!recognition) recognition = initSpeechRecognition();
 
-            if (isListening) {
-                stopVoiceAssistant();
-            } else {
-                recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                mobileTranscriptBuffer = '';
-                commandDispatched = false;
-
-                // Clean restart safeguard for mobile devices
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.warn("[Voice] Re-centering recognition engine:", e);
+                if (isListening) {
+                    stopVoiceAssistant();
+                } else {
+                    recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                    mobileTranscriptBuffer = '';
+                    commandDispatched = false;
                     try {
-                        recognition.abort();
-                        setTimeout(() => {
-                            try {recognition.start();} catch (err) {console.error(err);}
-                        }, 120);
-                    } catch (err) { }
+                        recognition.start();
+                    } catch (e) {
+                        try {
+                            recognition.abort();
+                            setTimeout(() => {try {recognition.start();} catch (err) { } }, 120);
+                        } catch (err) { }
+                    }
+                }
+                return;
+            }
+
+            // 2. ENGINE 2: Android Studio APK WebView Fallback (Uses Gemini MediaRecorder)
+            if (isListening) {
+                finishApkAudioRecording();
+                return;
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert(sysLang === 1 ? "မိုက်ခရိုဖုန်း အသုံးပြုခွင့် မရရှိပါ" : "Microphone permission not available.");
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({audio: true})
+                .then(stream => {
+                    startApkAudioRecording(stream);
+                })
+                .catch(err => {
+                    console.error("[APK Audio] Mic error:", err);
+                    alert(sysLang === 1 ? "မိုက်ခရိုဖုန်း ဖွင့်၍မရပါ: " + err.message : "Cannot open microphone: " + err.message);
+                });
+        }
+
+        function startApkAudioRecording(stream) {
+            apkAudioChunks = [];
+            let options = {};
+            if (typeof MediaRecorder !== "undefined") {
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    options = {mimeType: 'audio/webm;codecs=opus'};
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    options = {mimeType: 'audio/mp4'};
                 }
             }
+
+            try {
+                apkMediaRecorder = new MediaRecorder(stream, options);
+            } catch (e) {
+                apkMediaRecorder = new MediaRecorder(stream);
+            }
+
+            apkMediaRecorder.ondataavailable = e => {
+                if (e.data && e.data.size > 0) apkAudioChunks.push(e.data);
+            };
+
+            apkMediaRecorder.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+                const audioBlob = new Blob(apkAudioChunks, {type: apkMediaRecorder.mimeType || 'audio/webm'});
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = function () {
+                    const base64Audio = reader.result.split(',')[1];
+                    const mimeType = audioBlob.type.split(';')[0] || 'audio/webm';
+                    callGeminiVoiceAPI(null, base64Audio, mimeType);
+                };
+            };
+
+            apkMediaRecorder.start();
+            isListening = true;
+
+            document.getElementById('voiceFab').classList.add('listening');
+            document.getElementById('voiceOverlay').style.display = 'flex';
+            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak now";
+            document.getElementById('voiceTranscript').innerText = (sysLang === 1) ? "စကားပြောပြီးပါက ခလုတ်ကို နှိပ်ပါ သို့မဟုတ် ခဏစောင့်ပါ..." : "Speak now, then tap button or wait...";
+            document.getElementById('voiceFeedback').innerText = "";
+
+            if (apkAutoTimer) clearTimeout(apkAutoTimer);
+            apkAutoTimer = setTimeout(() => {
+                if (isListening) finishApkAudioRecording();
+            }, 3800);
+        }
+
+        function finishApkAudioRecording() {
+            if (apkAutoTimer) clearTimeout(apkAutoTimer);
+            if (apkMediaRecorder && apkMediaRecorder.state !== 'inactive') {
+                apkMediaRecorder.stop();
+            }
+            isListening = false;
+            document.getElementById('voiceFab').classList.remove('listening');
+            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "Gemini စစ်ဆေးနေပါသည်..." : "Gemini analyzing...";
+            document.getElementById('voiceTranscript').innerText = "⏳ Processing...";
         }
 
         function stopVoiceAssistant() {
+            if (apkAutoTimer) clearTimeout(apkAutoTimer);
+            if (apkMediaRecorder && apkMediaRecorder.state !== 'inactive') {
+                apkMediaRecorder.stop();
+            }
             if (recognition && isListening) {
                 recognition.stop();
             }
             isListening = false;
             document.getElementById('voiceFab').classList.remove('listening');
             document.getElementById('voiceOverlay').style.display = 'none';
+        }
+
+        // --- GEMINI AI ASSISTANT DISPATCHER (TEXT & AUDIO) ---
+        async function callGeminiVoiceAPI(transcriptText, base64Audio, mimeType) {
+            const isRunning = (latestTelemetry.pStat === "ON");
+            const tank = latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+            const volt = latestTelemetry.volt !== undefined ? latestTelemetry.volt : 220;
+            const info = latestTelemetry.info || "SYSTEM_STANDBY";
+            const err = latestTelemetry.err || 0;
+
+            const prompt = `You are the smart voice AI assistant for an ESP32 Water Pump & Air Compressor System.
+Current Hardware Telemetry:
+- Motor Running: ${isRunning ? "ON" : "OFF"}
+- Water Tank Level: ${tank}%
+- AC Line Voltage: ${volt}V
+- Diagnostic Info: ${info}
+- Error Code: ${err}
+
+User Input: ${transcriptText ? `User said: "${transcriptText}"` : "User provided voice audio input."}
+
+Task:
+Analyze the command or question (which may be in Myanmar/Burmese or English).
+Return a raw JSON object strictly matching this schema:
+{
+  "action": "START" | "STOP" | "RESET" | "STATUS" | "EXPLAIN" | "UNKNOWN",
+  "reply": "Concise natural spoken reply under 15 words in the SAME language the user used (Burmese if Burmese, English if English)"
+}
+
+Rules:
+1. If the user wants to start the pump, verify if tank >= 100%. If full, set action to "EXPLAIN" and state it is already full. Otherwise set action to "START".
+2. If the user wants to turn off or stop, set action to "STOP".
+3. If the user wants to clear/reset alarm or dry-run, set action to "RESET".
+4. If the user asks about water level, voltage, or why the pump stopped, set action to "STATUS" or "EXPLAIN".
+5. Return ONLY JSON without markdown code fences.`;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const parts = [{text: prompt}];
+
+            if (base64Audio) {
+                parts.push({
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: base64Audio
+                    }
+                });
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{parts: parts}],
+                        generationConfig: {responseMimeType: "application/json"}
+                    })
+                });
+
+                const resData = await response.json();
+                if (resData.candidates && resData.candidates[0].content.parts[0].text) {
+                    let clean = resData.candidates[0].content.parts[0].text.trim();
+                    clean = clean.replace(/```json/g, "").replace(/```/g, "").trim();
+                    const parsed = JSON.parse(clean);
+                    executeVoiceAction(parsed);
+                } else {
+                    throw new Error("Invalid Gemini response");
+                }
+            } catch (err) {
+                console.error("[Gemini AI] Call error:", err);
+                const failMsg = (sysLang === 1) ? "Gemini စနစ် မအားသေးပါ" : "Gemini is busy, try again.";
+                document.getElementById('voiceFeedback').style.color = '#ff1744';
+                document.getElementById('voiceFeedback').innerText = failMsg;
+                speakText(failMsg);
+                setTimeout(stopVoiceAssistant, 2000);
+            }
+        }
+
+        function executeVoiceAction(data) {
+            const feedbackEl = document.getElementById('voiceFeedback');
+            const transcriptEl = document.getElementById('voiceTranscript');
+            feedbackEl.style.color = '#03ef62';
+            transcriptEl.innerText = `"${data.reply}"`;
+            feedbackEl.innerText = data.reply;
+
+            speakText(data.reply);
+
+            if (data.action === "START") {
+                if (latestTelemetry.pStat !== "ON") sendToggle();
+            } else if (data.action === "STOP") {
+                if (latestTelemetry.pStat === "ON") sendToggle();
+            } else if (data.action === "RESET") {
+                sendReset();
+            }
+
+            setTimeout(stopVoiceAssistant, 3000);
         }
 
         function speakText(text) {
@@ -2217,40 +2383,30 @@
                 window.speechSynthesis.cancel();
             }
 
-            // 1. MYANMAR LANGUAGE AUDIO (Streams High-Fidelity Burmese Voice)
-            if (sysLang === 1) {
-                // Check if device actually has a native Myanmar TTS voice installed
-                let myVoice = null;
-                if (window.speechSynthesis) {
-                    const voices = window.speechSynthesis.getVoices() || [];
-                    myVoice = voices.find(v => v.lang.startsWith('my') || /burmese|myanmar/i.test(v.name));
-                }
+            const langCode = (sysLang === 1) ? 'my' : 'en';
 
-                if (myVoice) {
-                    const utter = new SpeechSynthesisUtterance(text);
-                    utter.voice = myVoice;
-                    utter.lang = 'my-MM';
-                    utter.rate = 1.0;
-                    window.speechSynthesis.speak(utter);
-                    return;
-                }
-
-                // If no native offline voice exists, stream directly via no-referrer audio element
-                if (aPlayer) {
-                    const cleanText = encodeURIComponent(text.substring(0, 130));
-                    const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=my&q=${cleanText}`;
-                    aPlayer.src = streamUrl;
-                    aPlayer.play().catch(e => {
-                        console.warn("[Voice] Myanmar audio stream blocked:", e);
-                    });
-                    return;
-                }
+            // High-Fidelity Audio Streaming (Works 100% inside Android Studio APK & WebView)
+            if (aPlayer) {
+                const cleanText = encodeURIComponent(text.substring(0, 130));
+                const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
+                aPlayer.src = streamUrl;
+                aPlayer.play().catch(e => {
+                    console.warn("[Voice] Audio stream fallback:", e);
+                    if (window.speechSynthesis) {
+                        const utter = new SpeechSynthesisUtterance(text);
+                        utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                        utter.rate = 1.0;
+                        utter.pitch = 1.0;
+                        window.speechSynthesis.speak(utter);
+                    }
+                });
+                return;
             }
 
-            // 2. ENGLISH LANGUAGE AUDIO (Native SpeechSynthesis)
+            // Fallback for systems without audio element
             if (window.speechSynthesis) {
                 const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'en-US';
+                utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
                 utter.rate = 1.0;
                 utter.pitch = 1.0;
                 window.speechSynthesis.speak(utter);
@@ -2266,29 +2422,9 @@
             const tankLevel = latestTelemetry.tank !== undefined ? latestTelemetry.tank : "--";
             const voltage = latestTelemetry.volt !== undefined ? latestTelemetry.volt : "--";
 
-            // 1. START PUMP COMMAND
+            // 1. FAST START PUMP
             const startPhrases = ["start", "on", "pump on", "turn on", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်"];
-            const isStart = startPhrases.some(p => text.includes(p));
-
-            // 2. STOP PUMP COMMAND
-            const stopPhrases = ["stop", "off", "pump off", "turn off", "ပိတ်", "မော်တာပိတ်", "ရပ်", "ရပ်တန့်"];
-            const isStop = stopPhrases.some(p => text.includes(p));
-
-            // 3. RESET ALARM
-            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်"];
-            const isReset = resetPhrases.some(p => text.includes(p));
-
-            // 4. STATUS / TELEMETRY QUERY
-            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
-            const isStatus = statusPhrases.some(p => text.includes(p));
-
-            if (isReset) {
-                feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
-                speakText(feedbackEl.innerText);
-                sendReset();
-                setTimeout(stopVoiceAssistant, 1500);
-            }
-            else if (isStart) {
+            if (startPhrases.some(p => text.includes(p))) {
                 if (isRunning) {
                     const msg = (sysLang === 1) ? "မော်တာ လည်ပတ်နေပြီး ဖြစ်ပါသည်" : "Pump is already running.";
                     feedbackEl.innerText = msg;
@@ -2304,8 +2440,12 @@
                     sendToggle();
                 }
                 setTimeout(stopVoiceAssistant, 1800);
+                return;
             }
-            else if (isStop) {
+
+            // 2. FAST STOP PUMP
+            const stopPhrases = ["stop", "off", "pump off", "turn off", "ပိတ်", "မော်တာပိတ်", "ရပ်", "ရပ်တန့်"];
+            if (stopPhrases.some(p => text.includes(p))) {
                 if (!isRunning) {
                     const msg = (sysLang === 1) ? "မော်တာ ပိတ်ထားပြီး ဖြစ်ပါသည်" : "Pump is already stopped.";
                     feedbackEl.innerText = msg;
@@ -2317,8 +2457,22 @@
                     sendToggle();
                 }
                 setTimeout(stopVoiceAssistant, 1800);
+                return;
             }
-            else if (isStatus) {
+
+            // 3. FAST RESET ALARM
+            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်"];
+            if (resetPhrases.some(p => text.includes(p))) {
+                feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
+                speakText(feedbackEl.innerText);
+                sendReset();
+                setTimeout(stopVoiceAssistant, 1500);
+                return;
+            }
+
+            // 4. FAST STATUS CHECK
+            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
+            if (statusPhrases.some(p => text.includes(p))) {
                 const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားသည်" : "Stopped");
                 const resp = (sysLang === 1)
                     ? `ရေအမှတ် ${tankLevel} ရာခိုင်နှုန်း၊ ဗို့အား ${voltage} ဗို့၊ မော်တာ ${pText} ဖြစ်ပါသည်။`
@@ -2326,14 +2480,12 @@
                 feedbackEl.innerText = resp;
                 speakText(resp);
                 setTimeout(stopVoiceAssistant, 3500);
+                return;
             }
-            else {
-                const unknownMsg = (sysLang === 1) ? "နားမလည်ပါ: " + rawText : "Command not recognized: " + rawText;
-                feedbackEl.style.color = '#ffab00';
-                feedbackEl.innerText = unknownMsg;
-                speakText(unknownMsg);
-                setTimeout(stopVoiceAssistant, 2000);
-            }
+
+            // 5. IF IT IS A COMPLEX QUESTION, SEND TO GEMINI CHATBOT ASSISTANT
+            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "Gemini စဉ်းစားနေသည်..." : "Gemini thinking...";
+            callGeminiVoiceAPI(rawText, null, null);
         }
     </script>
 </body>
