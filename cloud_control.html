@@ -2289,7 +2289,7 @@
             // 4. STATUS CHECK
             const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
             if (statusPhrases.some(p => text.includes(p))) {
-                const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားသည်" : "Stopped");
+                const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားပြီး" : "Stopped");
                 const resp = (sysLang === 1)
                     ? `ရေအမှတ် ${tankLevel} ရာခိုင်နှုန်း၊ ဗို့အား ${voltage} ဗို့၊ မော်တာ ${pText} ဖြစ်ပါသည်။`
                     : `Water level is ${tankLevel} percent. Voltage is ${voltage} Volts. Pump is ${pText}.`;
