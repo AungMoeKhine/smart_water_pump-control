@@ -2246,6 +2246,7 @@
         var isListening = false;
         var isWakeListening = false;
         var isSpeaking = false;
+        var speechGeneration = 0;
         var wakeWordEnabled = true;
         var commandDispatched = false;
         var mobileTranscriptBuffer = '';
@@ -2557,13 +2558,10 @@
             if (sysLang === 1) restartVoiceEngineForCurrentState();
 
             clearTimeout(activeCommandTimeout);
-            activeCommandTimeout = setTimeout(() => {
-                if (voiceState === 'active' && !commandDispatched) {
-                    const fb = document.getElementById('voiceFeedback');
-                    if (fb) fb.innerText = (sysLang === 1) ? "အချိန်ပြည့်သွားပါပြီ" : "Listening timed out.";
-                    setTimeout(stopVoiceAssistant, 1200);
-                }
-            }, 8500);
+            // Keep manual and wake-word command sessions open until the user cancels
+            // them or a valid command is completed. This avoids losing a Myanmar
+            // command while the browser is still switching recognition languages.
+            activeCommandTimeout = null;
         }
 
         function isActionableCommand(raw) {
@@ -2577,16 +2575,35 @@
 
         function toggleVoiceAssistant() {
             vibe();
+            // Invalidate completion handlers from a previous spoken response.
+            // Without this, cancelling speech here can invoke its old delayed
+            // stop callback and close the newly opened listening panel.
+            speechGeneration++;
+            isSpeaking = false;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             const aPlayer = document.getElementById('myanmarAudio');
             if (aPlayer) {
+                aPlayer.onended = null;
+                aPlayer.onerror = null;
                 aPlayer.pause();
                 aPlayer.currentTime = 0;
                 aPlayer.src = "";
             }
 
             if (voiceState === 'active') {
-                stopVoiceAssistant();
+                // The microphone button must never act as a hidden Cancel button.
+                // Clear any stale recognition result and continue listening instead.
+                commandDispatched = false;
+                lastWakeTranscript = '';
+                const transcript = document.getElementById('voiceTranscript');
+                const feedback = document.getElementById('voiceFeedback');
+                const status = document.getElementById('voiceStatusLabel');
+                if (transcript) transcript.innerText = '...';
+                if (feedback) feedback.innerText = '';
+                if (status) status.innerText = (sysLang === 1)
+                    ? 'နားထောင်နေသည်... စကားပြောပါ'
+                    : 'Listening... Speak command';
+                restartVoiceEngineForCurrentState();
             } else {
                 activateVoiceOverlay();
             }
@@ -2652,6 +2669,7 @@
                 return;
             }
 
+            const speechToken = ++speechGeneration;
             isSpeaking = true;
             stopWakeWordListener();
 
@@ -2667,6 +2685,8 @@
             const langCode = (sysLang === 1) ? 'my' : 'en';
 
             function finishSpeaking() {
+                // This response was cancelled/replaced by a newer mic session.
+                if (speechToken !== speechGeneration) return;
                 isSpeaking = false;
                 if (onComplete) onComplete();
                 if (wakeWordEnabled && !isListening) {
