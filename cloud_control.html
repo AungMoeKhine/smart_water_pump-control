@@ -2349,15 +2349,36 @@
                 return;
             }
             if (!voiceEngineRunning) {
-                try { voiceEngine.start(); } catch (e) { /* already starting */ }
+                try {voiceEngine.start();} catch (e) { /* already starting */}
             }
         }
 
         function stopWakeWordListener() {
             clearTimeout(wakeRestartTimer);
             if (voiceEngine && voiceEngineRunning) {
-                try { voiceEngine.abort(); } catch (e) { }
+                try {voiceEngine.abort();} catch (e) { }
             }
+        }
+
+        // SpeechRecognition.lang is fixed when a session starts. Recreate it when
+        // switching from the English wake phrase to Myanmar command recognition.
+        function restartVoiceEngineForCurrentState() {
+            if (isSpeaking) return;
+            clearTimeout(wakeRestartTimer);
+            if (voiceEngine) {
+                try {
+                    voiceEngine.onstart = null;
+                    voiceEngine.onresult = null;
+                    voiceEngine.onerror = null;
+                    voiceEngine.onend = null;
+                    voiceEngine.abort();
+                } catch (e) { }
+            }
+            voiceEngine = null;
+            voiceEngineRunning = false;
+            setTimeout(() => {
+                if (!isSpeaking && wakeWordEnabled) initVoiceEngine();
+            }, 80);
         }
 
         function recognitionAlternatives(event) {
@@ -2371,7 +2392,7 @@
                     if (transcript && !texts.includes(transcript)) texts.push(transcript);
                 }
             }
-            return { texts, hasFinal };
+            return {texts, hasFinal};
         }
 
         function initVoiceEngine() {
@@ -2531,6 +2552,10 @@
 
             updateVoiceChipsUI();
 
+            // The wake phrase stays English; Myanmar mode switches only the
+            // following command-listening session to Burmese recognition.
+            if (sysLang === 1) restartVoiceEngineForCurrentState();
+
             clearTimeout(activeCommandTimeout);
             activeCommandTimeout = setTimeout(() => {
                 if (voiceState === 'active' && !commandDispatched) {
@@ -2578,8 +2603,10 @@
             const overlay = document.getElementById('voiceOverlay');
             if (overlay) overlay.style.display = 'none';
 
-            // Ensure background engine is running smoothly in idle wake mode
-            if (voiceEngine && wakeWordEnabled && !isSpeaking) {
+            // Return to English recognition for the "OK Pump" wake phrase.
+            if (sysLang === 1 && wakeWordEnabled && !isSpeaking) {
+                restartVoiceEngineForCurrentState();
+            } else if (voiceEngine && wakeWordEnabled && !isSpeaking) {
                 startWakeWordListener();
             }
         }
