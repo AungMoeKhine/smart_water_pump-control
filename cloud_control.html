@@ -2076,181 +2076,191 @@
         }
 
         // ============================================================================
-        // CAPACITOR NATIVE ANDROID HANDS-FREE VOICE RECEIVER (MYANMAR + ENGLISH)
+        // FAST STANDALONE VOICE ENGINE (NO EXTERNAL API KEY REQUIRED)
         // ============================================================================
-        let speechGeneration = 0;
+        let recognition = null;
+        let isListening = false;
+        let latestTelemetry = {};
+        let mobileTranscriptBuffer = '';
+        let commandDispatched = false;
 
-        function playChime() {
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                const ctx = new AudioCtx();
-                const now = ctx.currentTime;
-                const o1 = ctx.createOscillator(), g1 = ctx.createGain();
-                o1.type = 'sine'; o1.frequency.setValueAtTime(587.33, now);
-                g1.gain.setValueAtTime(0.2, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-                o1.connect(g1); g1.connect(ctx.destination);
-                o1.start(now); o1.stop(now + 0.12);
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return null;
 
-                const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-                o2.type = 'sine'; o2.frequency.setValueAtTime(880.00, now + 0.09);
-                g2.gain.setValueAtTime(0.25, now + 0.09); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-                o2.connect(g2); g2.connect(ctx.destination);
-                o2.start(now + 0.09); o2.stop(now + 0.28);
-            } catch (e) { }
+            const rec = new SpeechRecognition();
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.maxAlternatives = 1;
+            rec.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+
+            rec.onstart = function () {
+                isListening = true;
+                mobileTranscriptBuffer = '';
+                commandDispatched = false;
+                document.getElementById('voiceFab').classList.add('listening');
+                document.getElementById('voiceOverlay').style.display = 'flex';
+                document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak now";
+                document.getElementById('voiceTranscript').innerText = "...";
+                document.getElementById('voiceFeedback').innerText = "";
+                vibe();
+            };
+
+            rec.onresult = function (event) {
+                let current = event.resultIndex;
+                let transcript = event.results[current][0].transcript.trim();
+                mobileTranscriptBuffer = transcript;
+                document.getElementById('voiceTranscript').innerText = `"${transcript}"`;
+
+                if (event.results[current].isFinal && !commandDispatched) {
+                    commandDispatched = true;
+                    processVoiceCommand(transcript);
+                }
+            };
+
+            rec.onerror = function (event) {
+                console.warn("[Voice] Speech event:", event.error);
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    document.getElementById('voiceFeedback').innerText = "";
+                    stopVoiceAssistant();
+                    return;
+                }
+                let errText = (sysLang === 1) ? "အသံဖမ်းယူမှု မအောင်မြင်ပါ" : "Didn't catch that.";
+                document.getElementById('voiceFeedback').style.color = '#ff1744';
+                document.getElementById('voiceFeedback').innerText = `${errText} (${event.error})`;
+                speakText(errText);
+                setTimeout(stopVoiceAssistant, 2200);
+            };
+
+            rec.onend = function () {
+                isListening = false;
+                document.getElementById('voiceFab').classList.remove('listening');
+                if (mobileTranscriptBuffer && !commandDispatched) {
+                    commandDispatched = true;
+                    processVoiceCommand(mobileTranscriptBuffer);
+                }
+            };
+
+            return rec;
         }
 
-        // Sync native Android recognizer language whenever page loads or language toggles
-        function syncNativeVoiceLanguage() {
-            if (window.AndroidBridge && window.AndroidBridge.setLanguage) {
-                window.AndroidBridge.setLanguage(sysLang === 1 ? "my-MM" : "en-US");
-            }
-        }
-        syncNativeVoiceLanguage();
-
-        // ENTRY POINT: Called directly from native Android Studio Java when voice is heard
-        window.onNativeVoiceCommand = function (rawText) {
-            vibe();
-            playChime();
-
-            const overlay = document.getElementById('voiceOverlay');
-            if (overlay) overlay.style.display = 'flex';
-            const fab = document.getElementById('voiceFab');
-            if (fab) fab.classList.add('listening');
-
-            document.getElementById('voiceTranscript').innerText = `"${rawText}"`;
-            document.getElementById('voiceFeedback').innerText = "";
-            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "အမိန့်ကို ဆောင်ရွက်နေသည်..." : "Processing Command...";
-
-            processVoiceCommand(rawText);
-        };
-
-        // Manual tap on mic icon: Prompts the user instead of hardcoded status
         function toggleVoiceAssistant() {
             vibe();
-            playChime();
-            const overlay = document.getElementById('voiceOverlay');
-            if (overlay) overlay.style.display = 'flex';
-            const fab = document.getElementById('voiceFab');
-            if (fab) fab.classList.add('listening');
 
-            document.getElementById('voiceTranscript').innerText = "...";
-            document.getElementById('voiceFeedback').innerText = "";
-            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak command";
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            const aPlayer = document.getElementById('myanmarAudio');
+            if (aPlayer) {
+                aPlayer.pause();
+                aPlayer.currentTime = 0;
+                aPlayer.src = "";
+            }
 
-            // Ensure native recognizer is ready
-            if (window.AndroidBridge && window.AndroidBridge.resumeWakeListening) {
-                window.AndroidBridge.resumeWakeListening();
+            if (!recognition) recognition = initSpeechRecognition();
+
+            if (!recognition) {
+                alert(sysLang === 1 ? "ဤဘရောက်ဇာတွင် အသံစနစ် အသုံးပြု၍မရပါ" : "Voice commands not supported in this browser.");
+                return;
+            }
+
+            if (isListening) {
+                stopVoiceAssistant();
+            } else {
+                recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                mobileTranscriptBuffer = '';
+                commandDispatched = false;
+                try {
+                    recognition.start();
+                } catch (e) {
+                    try {
+                        recognition.abort();
+                        setTimeout(() => {try {recognition.start();} catch (err) { } }, 120);
+                    } catch (err) { }
+                }
             }
         }
 
         function stopVoiceAssistant() {
-            const fab = document.getElementById('voiceFab');
-            if (fab) fab.classList.remove('listening');
-            document.getElementById('voiceOverlay').style.display = 'none';
-
-            // Resumes background wake listening in native Android so mic stays ready
-            if (window.AndroidBridge && window.AndroidBridge.resumeWakeListening) {
-                window.AndroidBridge.resumeWakeListening();
+            if (recognition && isListening) {
+                recognition.stop();
             }
+            isListening = false;
+            document.getElementById('voiceFab').classList.remove('listening');
+            document.getElementById('voiceOverlay').style.display = 'none';
         }
 
         function speakText(text) {
-            if (!text) {stopVoiceAssistant(); return;}
+            if (!text) return;
 
-            // Pause native mic so speaker voice doesn't trigger the microphone
-            if (window.AndroidBridge && window.AndroidBridge.pauseWakeListening) {
-                window.AndroidBridge.pauseWakeListening();
-            }
-
-            const currentToken = ++speechGeneration;
             const aPlayer = document.getElementById('myanmarAudio');
             if (aPlayer) {
                 aPlayer.pause();
                 aPlayer.currentTime = 0;
             }
-            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
 
             const langCode = (sysLang === 1) ? 'my' : 'en';
 
-            function finishSpeech() {
-                if (currentToken !== speechGeneration) return;
-                setTimeout(() => {
-                    stopVoiceAssistant();
-                }, 800);
-            }
-
+            // High-Fidelity Audio Streaming (Works in both Myanmar and English across APK and PWA)
             if (aPlayer) {
                 const cleanText = encodeURIComponent(text.substring(0, 130));
-                aPlayer.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
-                aPlayer.onended = finishSpeech;
-                aPlayer.onerror = function () {
+                const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
+                aPlayer.src = streamUrl;
+                aPlayer.play().catch(e => {
+                    console.warn("[Voice] Audio stream fallback:", e);
                     if (window.speechSynthesis) {
                         const utter = new SpeechSynthesisUtterance(text);
                         utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                        utter.onend = finishSpeech;
-                        utter.onerror = finishSpeech;
+                        utter.rate = 1.0;
+                        utter.pitch = 1.0;
                         window.speechSynthesis.speak(utter);
-                    } else {
-                        finishSpeech();
                     }
-                };
-                aPlayer.play().catch(() => finishSpeech());
+                });
                 return;
             }
 
             if (window.speechSynthesis) {
                 const utter = new SpeechSynthesisUtterance(text);
                 utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                utter.onend = finishSpeech;
-                utter.onerror = finishSpeech;
+                utter.rate = 1.0;
+                utter.pitch = 1.0;
                 window.speechSynthesis.speak(utter);
-            } else {
-                finishSpeech();
             }
         }
 
         function processVoiceCommand(rawText) {
-            // Cleans all Myanmar & English wake word variations (with or without spaces: အိုကေ, အိုကေပန့်, အိုကေမော်တာ, OK Pump)
-            const text = rawText.toLowerCase().replace(/(?:\b(?:ok|okay)\s*(?:pump|pamp|pam|pan)\b|အိုကေ\s*(?:ပန့်|မော်တာ)?|အိုခေ\s*(?:ပန့်|မော်တာ)?|\bပန့်\b)/ig, '').trim();
+            const text = rawText.toLowerCase();
             const feedbackEl = document.getElementById('voiceFeedback');
             feedbackEl.style.color = '#03ef62';
 
-            const telem = (typeof latestTelemetry !== 'undefined' && latestTelemetry) ? latestTelemetry : {};
-            const isRunning = (telem.pStat === "ON");
-            const tankLevel = telem.tank !== undefined ? telem.tank : "--";
-            const voltage = telem.volt !== undefined ? telem.volt : "--";
-
-            // If user said only the wake word ("အိုကေ", "အိုကေပန့်", or "OK Pump"), prompt for the command
-            if (!text || text === "") {
-                const promptMsg = (sysLang === 1) ? "ဟုတ်ကဲ့၊ အမိန့်ပေးပါ" : "Yes, listening...";
-                feedbackEl.innerText = promptMsg;
-                speakText(promptMsg);
-                return;
-            }
+            const isRunning = (latestTelemetry.pStat === "ON");
+            const tankLevel = latestTelemetry.tank !== undefined ? latestTelemetry.tank : "--";
+            const voltage = latestTelemetry.volt !== undefined ? latestTelemetry.volt : "--";
 
             // 1. START PUMP
-            const startPhrases = ["start", "on", "pump on", "turn on", "run", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်", "ရေမော်တာဖွင့်"];
+            const startPhrases = ["start", "on", "pump on", "turn on", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်"];
             if (startPhrases.some(p => text.includes(p))) {
                 if (isRunning) {
                     const msg = (sysLang === 1) ? "မော်တာ လည်ပတ်နေပြီး ဖြစ်ပါသည်" : "Pump is already running.";
                     feedbackEl.innerText = msg;
                     speakText(msg);
-                } else if (telem.tank >= (telem.fullTank || 100)) {
+                } else if (latestTelemetry.tank >= (latestTelemetry.fullTank || 100)) {
                     const msg = (sysLang === 1) ? "ရေတိုင်ကီ ပြည့်နေသဖြင့် ဖွင့်၍မရပါ" : "Tank is already full. Cannot start.";
                     feedbackEl.innerText = msg;
                     speakText(msg);
                 } else {
                     const msg = (sysLang === 1) ? "ရေမော်တာကို ဖွင့်လိုက်ပါပြီ" : "Starting pump now.";
                     feedbackEl.innerText = msg;
-                    sendToggle();
                     speakText(msg);
+                    sendToggle();
                 }
+                setTimeout(stopVoiceAssistant, 1800);
                 return;
             }
 
             // 2. STOP PUMP
-            const stopPhrases = ["stop", "off", "pump off", "turn off", "ရပ်", "ရပ်တန့်", "ပိတ်", "မော်တာပိတ်", "ရေမော်တာပိတ်"];
+            const stopPhrases = ["stop", "off", "pump off", "turn off", "ပိတ်", "မော်တာပိတ်", "ရပ်", "ရပ်တန့်"];
             if (stopPhrases.some(p => text.includes(p))) {
                 if (!isRunning) {
                     const msg = (sysLang === 1) ? "မော်တာ ပိတ်ထားပြီး ဖြစ်ပါသည်" : "Pump is already stopped.";
@@ -2259,38 +2269,42 @@
                 } else {
                     const msg = (sysLang === 1) ? "ရေမော်တာကို ပိတ်လိုက်ပါပြီ" : "Stopping pump now.";
                     feedbackEl.innerText = msg;
-                    sendToggle();
                     speakText(msg);
+                    sendToggle();
                 }
+                setTimeout(stopVoiceAssistant, 1800);
                 return;
             }
 
             // 3. RESET ALARM
-            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်", "အချက်ပေးရပ်"];
+            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်"];
             if (resetPhrases.some(p => text.includes(p))) {
                 feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
-                sendReset();
                 speakText(feedbackEl.innerText);
+                sendReset();
+                setTimeout(stopVoiceAssistant, 1500);
                 return;
             }
 
             // 4. STATUS CHECK
-            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား", "ရေဘယ်လောက်"];
+            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
             if (statusPhrases.some(p => text.includes(p))) {
-                const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားသည်" : "Stopped");
+                const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားပြီး" : "Stopped");
                 const resp = (sysLang === 1)
                     ? `ရေအမှတ် ${tankLevel} ရာခိုင်နှုန်း၊ ဗို့အား ${voltage} ဗို့၊ မော်တာ ${pText} ဖြစ်ပါသည်။`
                     : `Water level is ${tankLevel} percent. Voltage is ${voltage} Volts. Pump is ${pText}.`;
                 feedbackEl.innerText = resp;
                 speakText(resp);
+                setTimeout(stopVoiceAssistant, 3500);
                 return;
             }
 
-            // 5. UNRECOGNIZED
+            // 5. UNRECOGNIZED COMMAND
             const unknownMsg = (sysLang === 1) ? "နားမလည်ပါ: " + rawText : "Command not recognized: " + rawText;
             feedbackEl.style.color = '#ffab00';
             feedbackEl.innerText = unknownMsg;
             speakText(unknownMsg);
+            setTimeout(stopVoiceAssistant, 2000);
         }
     </script>
 </body>
