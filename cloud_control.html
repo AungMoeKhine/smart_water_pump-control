@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#121212">
-    <meta name="referrer" content="no-referrer">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -888,122 +887,6 @@
             color: #6e7681;
             text-align: center;
         }
-
-        /* --- VOICE ASSISTANT MIC BUTTON (MINI & DISCREET) --- */
-        .voice-fab {
-            position: absolute;
-            right: -42px;
-            bottom: 4px;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(0, 210, 255, 0.85), rgba(0, 102, 255, 0.85));
-            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #ffffff;
-            font-size: 0.88rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            opacity: 0.85;
-        }
-
-        .voice-fab:hover {
-            transform: scale(1.12);
-            opacity: 1;
-            box-shadow: 0 4px 14px rgba(0, 210, 255, 0.55);
-        }
-
-        .voice-fab:active {
-            transform: scale(0.92);
-        }
-
-        .voice-fab.listening {
-            opacity: 1 !important;
-            background: linear-gradient(135deg, #ff1744, #d50000) !important;
-            box-shadow: 0 0 16px rgba(255, 23, 68, 0.85) !important;
-            animation: pulse-ring 1.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-        }
-
-        @keyframes pulse-ring {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
-            }
-
-            70% {
-                transform: scale(1.08);
-                box-shadow: 0 0 0 18px rgba(255, 23, 68, 0);
-            }
-
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(255, 23, 68, 0);
-            }
-        }
-
-        /* Voice Overlay Modal */
-        .voice-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(11, 14, 20, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            z-index: 1001;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .voice-card {
-            background: rgba(22, 27, 34, 0.95);
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            border-radius: 20px;
-            padding: 28px 24px;
-            max-width: 340px;
-            width: 90%;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-        }
-
-        .mic-wave-container {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: rgba(0, 210, 255, 0.15);
-            border: 2px solid #00d2ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px auto;
-            font-size: 2rem;
-            animation: pulse-ring 1.8s infinite;
-        }
-
-        .voice-transcript {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 12px 0;
-            min-height: 2.4em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .voice-feedback {
-            font-size: 0.85rem;
-            color: #03ef62;
-            min-height: 1.5em;
-            font-weight: 600;
-        }
     </style>
 </head>
 
@@ -1132,11 +1015,6 @@
                         <span class="tank-guide-label" id="fullTankMarkerLabel">FULL 100%</span>
                     </div>
                     <div id="tankVal" class="tank-text tabular-nums">-- %</div>
-
-                    <!-- COMPACT MIC BUTTON PLACED BESIDE TANK -->
-                    <div id="voiceFab" class="voice-fab" onclick="toggleVoiceAssistant()" title="Voice Command">
-                        🎙️
-                    </div>
                 </div>
 
                 <!-- BALANCED BENTO TELEMETRY TILES -->
@@ -1487,26 +1365,6 @@
                     onclick="logout()">Logout</button></div>
         </div>
     </div>
-
-    <!-- VOICE LISTENING OVERLAY -->
-    <div id="voiceOverlay" class="voice-overlay" onclick="stopVoiceAssistant()">
-        <div class="voice-card" onclick="event.stopPropagation()">
-            <div class="mic-wave-container" id="micWave">🎙️</div>
-            <div style="font-size:0.85rem; color:#8b949e; text-transform:uppercase; letter-spacing:0.6px;"
-                id="voiceStatusLabel">
-                Listening...
-            </div>
-            <div id="voiceTranscript" class="voice-transcript">"..."</div>
-            <div id="voiceFeedback" class="voice-feedback"></div>
-            <button class="btn btn-red" style="margin-top: 15px; padding: 10px; font-size: 0.9rem;"
-                onclick="stopVoiceAssistant()">
-                Cancel
-            </button>
-        </div>
-    </div>
-
-    <!-- DEDICATED AUDIO PLAYER FOR MYANMAR VOICE -->
-    <audio id="myanmarAudio" referrerpolicy="no-referrer" preload="auto"></audio>
 
     <script>
         function updateWifiIcon(rssi) {
@@ -1940,7 +1798,6 @@
         function safeUpdate(id, val, suffix) {const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return; if (el.tagName === 'SELECT') {let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) {let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt);} el.value = val;} else {el.value = val;} }
 
         function updateUI(d) {
-            latestTelemetry = d;
             renderTankRulerTicks(); if (sysLang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm'); if (document.getElementById('dndBadgeC')) {document.getElementById('dndBadgeC').style.display = (d.dndAct == 1) ? 'block' : 'none';}
             let rb = document.getElementById('roleBadgeC'); if (rb) {if (d.sysRole == 1) {rb.innerText = sysLang == 1 ? "👑 အောက်တိုင်ကီ (MASTER)" : "👑 MASTER (SUMP)"; rb.className = "badge bg-info"; rb.style.display = "block"; rb.style.color = "#17a2b8";} else if (d.sysRole == 2) {rb.innerText = sysLang == 1 ? "👷 အပေါ်တိုင်ကီ (SLAVE)" : "👷 SLAVE (ROOF)"; rb.className = "badge bg-warning"; rb.style.display = "block"; rb.style.color = "#ffc107";} else {rb.style.display = "none";} }
             isExpired = d.expired ? true : false;
@@ -2073,238 +1930,6 @@
                     cdRow.style.display = 'none';
                 }
             }
-        }
-
-        // ============================================================================
-        // FAST STANDALONE VOICE ENGINE (NO EXTERNAL API KEY REQUIRED)
-        // ============================================================================
-        let recognition = null;
-        let isListening = false;
-        let latestTelemetry = {};
-        let mobileTranscriptBuffer = '';
-        let commandDispatched = false;
-
-        function initSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return null;
-
-            const rec = new SpeechRecognition();
-            rec.continuous = false;
-            rec.interimResults = true;
-            rec.maxAlternatives = 1;
-            rec.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-
-            rec.onstart = function () {
-                isListening = true;
-                mobileTranscriptBuffer = '';
-                commandDispatched = false;
-                document.getElementById('voiceFab').classList.add('listening');
-                document.getElementById('voiceOverlay').style.display = 'flex';
-                document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak now";
-                document.getElementById('voiceTranscript').innerText = "...";
-                document.getElementById('voiceFeedback').innerText = "";
-                vibe();
-            };
-
-            rec.onresult = function (event) {
-                let current = event.resultIndex;
-                let transcript = event.results[current][0].transcript.trim();
-                mobileTranscriptBuffer = transcript;
-                document.getElementById('voiceTranscript').innerText = `"${transcript}"`;
-
-                if (event.results[current].isFinal && !commandDispatched) {
-                    commandDispatched = true;
-                    processVoiceCommand(transcript);
-                }
-            };
-
-            rec.onerror = function (event) {
-                console.warn("[Voice] Speech event:", event.error);
-                if (event.error === 'no-speech' || event.error === 'aborted') {
-                    document.getElementById('voiceFeedback').innerText = "";
-                    stopVoiceAssistant();
-                    return;
-                }
-                let errText = (sysLang === 1) ? "အသံဖမ်းယူမှု မအောင်မြင်ပါ" : "Didn't catch that.";
-                document.getElementById('voiceFeedback').style.color = '#ff1744';
-                document.getElementById('voiceFeedback').innerText = `${errText} (${event.error})`;
-                speakText(errText);
-                setTimeout(stopVoiceAssistant, 2200);
-            };
-
-            rec.onend = function () {
-                isListening = false;
-                document.getElementById('voiceFab').classList.remove('listening');
-                if (mobileTranscriptBuffer && !commandDispatched) {
-                    commandDispatched = true;
-                    processVoiceCommand(mobileTranscriptBuffer);
-                }
-            };
-
-            return rec;
-        }
-
-        function toggleVoiceAssistant() {
-            vibe();
-
-            if (window.speechSynthesis) window.speechSynthesis.cancel();
-            const aPlayer = document.getElementById('myanmarAudio');
-            if (aPlayer) {
-                aPlayer.pause();
-                aPlayer.currentTime = 0;
-                aPlayer.src = "";
-            }
-
-            if (!recognition) recognition = initSpeechRecognition();
-
-            if (!recognition) {
-                alert(sysLang === 1 ? "ဤဘရောက်ဇာတွင် အသံစနစ် အသုံးပြု၍မရပါ" : "Voice commands not supported in this browser.");
-                return;
-            }
-
-            if (isListening) {
-                stopVoiceAssistant();
-            } else {
-                recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                mobileTranscriptBuffer = '';
-                commandDispatched = false;
-                try {
-                    recognition.start();
-                } catch (e) {
-                    try {
-                        recognition.abort();
-                        setTimeout(() => {try {recognition.start();} catch (err) { } }, 120);
-                    } catch (err) { }
-                }
-            }
-        }
-
-        function stopVoiceAssistant() {
-            if (recognition && isListening) {
-                recognition.stop();
-            }
-            isListening = false;
-            document.getElementById('voiceFab').classList.remove('listening');
-            document.getElementById('voiceOverlay').style.display = 'none';
-        }
-
-        function speakText(text) {
-            if (!text) return;
-
-            const aPlayer = document.getElementById('myanmarAudio');
-            if (aPlayer) {
-                aPlayer.pause();
-                aPlayer.currentTime = 0;
-            }
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-            }
-
-            const langCode = (sysLang === 1) ? 'my' : 'en';
-
-            // High-Fidelity Audio Streaming (Works in both Myanmar and English across APK and PWA)
-            if (aPlayer) {
-                const cleanText = encodeURIComponent(text.substring(0, 130));
-                const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
-                aPlayer.src = streamUrl;
-                aPlayer.play().catch(e => {
-                    console.warn("[Voice] Audio stream fallback:", e);
-                    if (window.speechSynthesis) {
-                        const utter = new SpeechSynthesisUtterance(text);
-                        utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                        utter.rate = 1.0;
-                        utter.pitch = 1.0;
-                        window.speechSynthesis.speak(utter);
-                    }
-                });
-                return;
-            }
-
-            if (window.speechSynthesis) {
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                utter.rate = 1.0;
-                utter.pitch = 1.0;
-                window.speechSynthesis.speak(utter);
-            }
-        }
-
-        function processVoiceCommand(rawText) {
-            const text = rawText.toLowerCase();
-            const feedbackEl = document.getElementById('voiceFeedback');
-            feedbackEl.style.color = '#03ef62';
-
-            const isRunning = (latestTelemetry.pStat === "ON");
-            const tankLevel = latestTelemetry.tank !== undefined ? latestTelemetry.tank : "--";
-            const voltage = latestTelemetry.volt !== undefined ? latestTelemetry.volt : "--";
-
-            // 1. START PUMP
-            const startPhrases = ["start", "on", "pump on", "turn on", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်"];
-            if (startPhrases.some(p => text.includes(p))) {
-                if (isRunning) {
-                    const msg = (sysLang === 1) ? "မော်တာ လည်ပတ်နေပြီး ဖြစ်ပါသည်" : "Pump is already running.";
-                    feedbackEl.innerText = msg;
-                    speakText(msg);
-                } else if (latestTelemetry.tank >= (latestTelemetry.fullTank || 100)) {
-                    const msg = (sysLang === 1) ? "ရေတိုင်ကီ ပြည့်နေသဖြင့် ဖွင့်၍မရပါ" : "Tank is already full. Cannot start.";
-                    feedbackEl.innerText = msg;
-                    speakText(msg);
-                } else {
-                    const msg = (sysLang === 1) ? "ရေမော်တာကို ဖွင့်လိုက်ပါပြီ" : "Starting pump now.";
-                    feedbackEl.innerText = msg;
-                    speakText(msg);
-                    sendToggle();
-                }
-                setTimeout(stopVoiceAssistant, 1800);
-                return;
-            }
-
-            // 2. STOP PUMP
-            const stopPhrases = ["stop", "off", "pump off", "turn off", "ပိတ်", "မော်တာပိတ်", "ရပ်", "ရပ်တန့်"];
-            if (stopPhrases.some(p => text.includes(p))) {
-                if (!isRunning) {
-                    const msg = (sysLang === 1) ? "မော်တာ ပိတ်ထားပြီး ဖြစ်ပါသည်" : "Pump is already stopped.";
-                    feedbackEl.innerText = msg;
-                    speakText(msg);
-                } else {
-                    const msg = (sysLang === 1) ? "ရေမော်တာကို ပိတ်လိုက်ပါပြီ" : "Stopping pump now.";
-                    feedbackEl.innerText = msg;
-                    speakText(msg);
-                    sendToggle();
-                }
-                setTimeout(stopVoiceAssistant, 1800);
-                return;
-            }
-
-            // 3. RESET ALARM
-            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်"];
-            if (resetPhrases.some(p => text.includes(p))) {
-                feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
-                speakText(feedbackEl.innerText);
-                sendReset();
-                setTimeout(stopVoiceAssistant, 1500);
-                return;
-            }
-
-            // 4. STATUS CHECK
-            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
-            if (statusPhrases.some(p => text.includes(p))) {
-                const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားပြီး" : "Stopped");
-                const resp = (sysLang === 1)
-                    ? `ရေအမှတ် ${tankLevel} ရာခိုင်နှုန်း၊ ဗို့အား ${voltage} ဗို့၊ မော်တာ ${pText} ဖြစ်ပါသည်။`
-                    : `Water level is ${tankLevel} percent. Voltage is ${voltage} Volts. Pump is ${pText}.`;
-                feedbackEl.innerText = resp;
-                speakText(resp);
-                setTimeout(stopVoiceAssistant, 3500);
-                return;
-            }
-
-            // 5. UNRECOGNIZED COMMAND
-            const unknownMsg = (sysLang === 1) ? "နားမလည်ပါ: " + rawText : "Command not recognized: " + rawText;
-            feedbackEl.style.color = '#ffab00';
-            feedbackEl.innerText = unknownMsg;
-            speakText(unknownMsg);
-            setTimeout(stopVoiceAssistant, 2000);
         }
     </script>
 </body>
