@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+    <meta name="referrer" content="no-referrer">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Smart Pump Cloud</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+            background: #0b0e14;
+            background-image: radial-gradient(circle at 50% 0%, #1a2332 0%, #0b0e14 75%);
+            color: #f0f6fc;
+            text-align: center;
+            /* MODIFIED: Centering body content vertically and horizontally using Flexbox */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            /* END MODIFICATION */
+            padding: 10px;
+            /* Reduced top/bottom padding as flex handles centering */
+            margin: 0;
+            min-height: 100vh;
+            letter-spacing: -0.2px;
+        }
+
+        /* ADDED: Ensure dashboard content maintains vertical centering and correct width within flex body */
+        #dashboard {
+            width: 100%;
+            max-width: 400px;
+            /* Matches card constraints */
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .card {
+            background: rgba(18, 24, 34, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 22px;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto 20px auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            position: relative;
+            text-align: left;
+        }
+
+        .tabs {
+            display: flex;
+            max-width: 400px;
+            margin: 0 auto 16px auto;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 9px 3px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #8b949e;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            user-select: none;
+            border: none;
+            background: transparent;
+            white-space: nowrap;
+        }
+
+        .tab-active {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .tab-inactive:hover {
+            color: #c9d1d9;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Myanmar Language Adjustment: Shrinks text slightly to guarantee 1 single line */
+        .lang-mm .tab {
+            font-size: 0.71rem !important;
+            gap: 3px;
+            padding: 9px 1px;
+            letter-spacing: -0.3px;
+            white-space: nowrap !important;
+        }
+
+        .conn-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #03ef62;
+            box-shadow: 0 0 8px #03ef62;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .off {
+            background: #dc3545 !important;
+            box-shadow: 0 0 8px #dc3545 !important;
+        }
+
+        .logo {
+            width: 72px;
+            height: 72px;
+            margin: 4px auto 8px auto;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 210, 255, 0.35);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.25);
+            object-fit: cover;
+            display: block;
+            background: #0d1117;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #00d2ff;
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: transform 0.3s, color 0.2s;
+            margin: 0;
+            padding: 0;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #00d2ff;
+            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            color: white;
+            background: #007bff;
+            border: none;
+            border-radius: 12px;
+            margin-top: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1.05rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.08);
+        }
+
+        .btn:active,
+        .refresh-btn:active {
+            transform: scale(0.97);
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+            color: #03ef62 !important;
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #00c853, #009624) !important;
+            box-shadow: 0 6px 20px rgba(0, 200, 83, 0.35) !important;
+        }
+
+        .btn-red {
+            background: linear-gradient(135deg, #dc3545, #bd2130) !important;
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.35) !important;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #6f42c1, #52279b) !important;
+            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.35) !important;
+        }
+
+        .btn-grey {
+            background: #333 !important;
+            color: #888 !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* --- WIFI METER --- */
+        .wifi-box {
+            display: flex;
+            align-items: flex-end;
+            gap: 2.5px;
+            height: 14px;
+        }
+
+        .wifi-bar {
+            width: 3px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 1px;
+            transition: 0.3s;
+        }
+
+        .wifi-1 {
+            height: 30%;
+        }
+
+        .wifi-2 {
+            height: 55%;
+        }
+
+        .wifi-3 {
+            height: 80%;
+        }
+
+        .wifi-4 {
+            height: 100%;
+        }
+
+        .wifi-active {
+            background: #03ef62 !important;
+            box-shadow: 0 0 8px rgba(3, 239, 98, 0.6);
+        }
+
+        .wifi-weak {
+            background: #ffc107 !important;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
+
+        .wifi-dead {
+            background: #ff6b6b !important;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+        }
+
+        /* --- PRECISION TANK GAUGE --- */
+        .tank-wrap {
+            width: 145px;
+            height: 195px;
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            margin: 32px auto 20px auto;
+            position: relative;
+            background: radial-gradient(ellipse at top, rgba(20, 28, 40, 0.8) 0%, rgba(10, 14, 20, 0.95) 100%);
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.9), 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tank-wrap::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 65px;
+            height: 10px;
+            background: #1c2430;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            z-index: 1;
+        }
+
+        .tank-inner {
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .tank-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(180deg, #00d2ff 0%, #0066ff 60%, #002b80 100%);
+            box-shadow: 0 0 25px rgba(0, 210, 255, 0.35);
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 0%;
+            overflow: visible;
+        }
+
+        /* Dual SVG Wave Layers */
+        .tank-fill::before,
+        .tank-fill::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 200%;
+            height: 25px;
+            opacity: 0;
+            transition: opacity 0.5s, background-image 0.5s;
+            background-repeat: repeat-x;
+            background-size: 50% 100%;
+            top: -15px;
+        }
+
+        /* Wave 1: Soft Matching Surface Reflection */
+        .tank-fill::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2366e5ff' opacity='0.45'/%3E%3C/svg%3E");
+            animation: wave 4s linear infinite;
+            z-index: 1;
+        }
+
+        /* Wave 2: Primary Wave (Matches Water Surface 1:1) */
+        .tank-fill::after {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2300d2ff'/%3E%3C/svg%3E");
+            animation: wave 3s linear infinite reverse;
+            z-index: 2;
+            margin-top: 1px;
+        }
+
+        /* Low Water Theme */
+        .tank-fill.low-water {
+            background: linear-gradient(180deg, #ffab00 0%, #ff5722 65%, #b71c1c 100%) !important;
+            box-shadow: 0 0 25px rgba(255, 171, 0, 0.4) !important;
+        }
+
+        /* Low Water Waves: Harmonious Matching Amber */
+        .tank-fill.low-water::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ffd54f' opacity='0.45'/%3E%3C/svg%3E");
+        }
+
+        .tank-fill.low-water::after {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ffab00'/%3E%3C/svg%3E");
+        }
+
+        /* Show Waves ONLY When Pump is Running */
+        .tank-fill.pumping::before,
+        .tank-fill.pumping::after {
+            opacity: 1;
+        }
+
+        @keyframes wave {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .tank-grid-lines {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 0 5px rgba(0, 210, 255, 0.5);
+        }
+
+        .line-25 {
+            bottom: 25%;
+        }
+
+        .line-50 {
+            bottom: 50%;
+        }
+
+        .line-75 {
+            bottom: 75%;
+        }
+
+        .line-100 {
+            bottom: 100%;
+        }
+
+        .tank-glaze {
+            position: absolute;
+            inset: 0;
+            z-index: 6;
+            pointer-events: none;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(0, 0, 0, 0.22) 100%);
+        }
+
+        .tank-ruler {
+            position: absolute;
+            left: -12px;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            z-index: 4;
+        }
+
+        .tank-ruler-tick {
+            position: absolute;
+            left: 0;
+            width: 4px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        .tank-ruler-tick.major {
+            width: 7px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .tank-guide-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            z-index: 5;
+        }
+
+        .tank-guide-line.low-marker {
+            background: rgba(255, 171, 0, 0.55);
+            box-shadow: 0 0 4px rgba(255, 171, 0, 0.3);
+        }
+
+        .tank-guide-line.full-marker {
+            background: rgba(3, 239, 98, 0.55);
+            box-shadow: 0 0 4px rgba(3, 239, 98, 0.3);
+        }
+
+        .tank-guide-label {
+            position: absolute;
+            left: -80px;
+            top: -6px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            width: 70px;
+            text-align: right;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+            opacity: 0.7;
+        }
+
+        .low-marker .tank-guide-label {
+            color: #ffb300;
+        }
+
+        .full-marker .tank-guide-label {
+            color: #03ef62;
+        }
+
+        .tank-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.1rem;
+            font-weight: 800;
+            color: #ffffff;
+            z-index: 8;
+            text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95);
+        }
+
+        /* --- BALANCED BENTO TILES --- */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            text-align: left;
+        }
+
+        .bento-tile {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            min-height: 118px;
+            height: auto;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .bento-tile:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        .bento-tile.full-width {
+            grid-column: span 2;
+            height: auto;
+            min-height: auto;
+            padding: 14px 16px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .tile-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Center the labels ONLY inside the top 3 bento tiles */
+        .bento-tile .tile-label {
+            justify-content: center;
+            width: 100%;
+        }
+
+        .tile-hero {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 2px;
+            margin: 2px 0 6px 0;
+        }
+
+        .hero-value {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.25;
+        }
+
+        /* Myanmar Language Adjustment: Prevents tall ascenders/descenders from clipping */
+        .lang-mm .hero-value {
+            font-size: 1.35rem;
+            line-height: 1.35;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            width: fit-content;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .pill-green {
+            background: rgba(3, 239, 98, 0.12);
+            color: #03ef62;
+            border: 1px solid rgba(3, 239, 98, 0.35);
+            box-shadow: 0 0 10px rgba(3, 239, 98, 0.15);
+        }
+
+        .pill-grey {
+            background: rgba(255, 255, 255, 0.08);
+            color: #adb5bd;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .pill-yellow {
+            background: rgba(255, 171, 0, 0.12);
+            color: #ffab00;
+            border: 1px solid rgba(255, 171, 0, 0.35);
+            box-shadow: 0 0 10px rgba(255, 171, 0, 0.15);
+        }
+
+        .pill-red {
+            background: rgba(255, 23, 68, 0.12);
+            color: #ff1744;
+            border: 1px solid rgba(255, 23, 68, 0.35);
+            box-shadow: 0 0 10px rgba(255, 23, 68, 0.15);
+        }
+
+        .pill-blue {
+            background: rgba(0, 180, 255, 0.12);
+            color: #00b4ff;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.15);
+        }
+
+        .dot-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        .diagnostic-banner {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            gap: 8px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            transition: all 0.3s ease;
+        }
+
+        .diag-green {
+            background: rgba(3, 239, 98, 0.08);
+            border: 1px solid rgba(3, 239, 98, 0.35);
+            color: #03ef62;
+        }
+
+        .diag-yellow {
+            background: rgba(255, 171, 0, 0.12);
+            border: 1px solid rgba(255, 171, 0, 0.35);
+            color: #ffab00;
+        }
+
+        .diag-red {
+            background: rgba(255, 23, 68, 0.12);
+            border: 1px solid rgba(255, 23, 68, 0.35);
+            color: #ff1744;
+        }
+
+        .diag-blue {
+            background: rgba(0, 180, 255, 0.12);
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            color: #00b4ff;
+        }
+
+        /* Restores Total Motor Life to left-and-right balanced layout */
+        .motor-life-tile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 16px;
+            grid-column: span 2;
+        }
+
+        .motor-life-tile .tile-label {
+            width: auto;
+            justify-content: flex-start;
+        }
+
+        .life-badge {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #ffffff;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* --- FLUSH-LEFT LOG CONSOLE --- */
+        #logBox {
+            background: #05070a;
+            color: #03ef62;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            padding: 12px 14px !important;
+            border-radius: 12px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 0.68rem;
+            text-align: left !important;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 8px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        /* --- SETTINGS CARDS & FORM ELEMENTS --- */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+
+        .section-title {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #00d2ff;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lbl-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0 5px 0;
+        }
+
+        label {
+            font-weight: 700;
+            color: #8b949e;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .range {
+            color: #6e7681;
+            font-size: 0.7rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #00d2ff;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.25);
+        }
+
+        /* Center-align text & placeholder for Device ID and PIN */
+        #loginScreen input {
+            text-align: center !important;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+        }
+
+        #devPin {
+            letter-spacing: 6px !important;
+            font-size: 1.15rem !important;
+        }
+
+        .show-pass {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: #8b949e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .show-pass input {
+            width: auto;
+            margin-right: 4px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+        }
+
+        .modal-content {
+            background: rgba(22, 27, 34, 0.95);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 25px;
+            border-left: 5px solid #ffc107;
+            border-radius: 16px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-title {
+            color: #ffc107;
+            font-size: 1.25rem;
+            margin: 0 0 10px 0;
+        }
+
+        .modal-text {
+            color: #ddd;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .modal-close {
+            background: #333;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        .banner {
+            padding: 12px;
+            border-radius: 14px;
+            margin: 0 auto 15px auto;
+            font-weight: 700;
+            max-width: 400px;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .banner-red {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.5);
+        }
+
+        .banner-yellow {
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
+
+        .footer {
+            margin-top: 22px;
+            font-size: 0.72rem;
+            color: #6e7681;
+            text-align: center;
+        }
+
+        /* --- VOICE ASSISTANT MIC BUTTON (MINI & DISCREET) --- */
+        .voice-fab {
+            position: absolute;
+            right: -42px;
+            bottom: 4px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.85), rgba(0, 102, 255, 0.85));
+            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            opacity: 0.85;
+        }
+
+        .voice-fab:hover {
+            transform: scale(1.12);
+            opacity: 1;
+            box-shadow: 0 4px 14px rgba(0, 210, 255, 0.55);
+        }
+
+        .voice-fab:active {
+            transform: scale(0.92);
+        }
+
+        .voice-fab.listening {
+            opacity: 1 !important;
+            background: linear-gradient(135deg, #ff1744, #d50000) !important;
+            box-shadow: 0 0 16px rgba(255, 23, 68, 0.85) !important;
+            animation: pulse-ring 1.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
+            }
+
+            70% {
+                transform: scale(1.08);
+                box-shadow: 0 0 0 18px rgba(255, 23, 68, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 23, 68, 0);
+            }
+        }
+
+        /* Voice Overlay Modal */
+        .voice-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 14, 20, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 1001;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .voice-card {
+            background: rgba(22, 27, 34, 0.95);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 340px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+        }
+
+        .mic-wave-container {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(0, 210, 255, 0.15);
+            border: 2px solid #00d2ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+            font-size: 2rem;
+            animation: pulse-ring 1.8s infinite;
+        }
+
+        .voice-transcript {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 12px 0;
+            min-height: 2.4em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-feedback {
+            font-size: 0.85rem;
+            color: #03ef62;
+            min-height: 1.5em;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="warnModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title"><span>🔔</span> System Notice</h3>
+            <div id="warnText" class="modal-text">System processing...</div>
+            <button class="modal-close" onclick="closeModal()">Understood</button>
+        </div>
+    </div>
+
+    <div id="loginScreen" class="card">
+        <img src="logo.png" alt="Logo" class="logo">
+        <h1 style="color:white; margin: 10px 0 5px 0; text-align: center; font-size: 1.5rem; letter-spacing: -0.5px;">
+            Smart Pump Cloud</h1>
+        <div id="keychainSection" style="display:none; margin-bottom:20px;">
+            <p id="savedDevicesLabel"
+                style="color:#8b949e; font-size:0.85rem; margin-bottom:10px; text-align:center; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">
+                Saved Devices:</p>
+            <div id="keychainList"
+                style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right:5px;">
+            </div>
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:20px 0 10px 0;">
+        </div>
+        <p id="manualLabel" style="color:#888; text-align: center; font-size:0.9rem; margin-bottom: 15px;">Connect New
+            Device</p>
+        <div style="max-width: 280px; margin: 0 auto;">
+            <div id="loginError"
+                style="color: #ff6b6b; font-size: 0.85rem; margin-bottom: 10px; display: none; font-weight: bold; text-align: center;">
+            </div>
+            <input type="text" id="devID" placeholder="DEVICE ID" style="text-transform:uppercase;">
+            <input type="password" id="devPin" placeholder="••••••">
+            <p style="text-align:center; font-size:0.75rem; color:#555; cursor:pointer; margin-top:10px;"
+                onclick="unlockFactory()">⚙️ Advanced Server Settings</p>
+            <div id="brokerSec"
+                style="display:none; margin-top:10px; border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:12px; background: rgba(0,0,0,0.2);">
+                <label style="font-size:0.7rem; color:#888;">Broker URL</label>
+                <input type="text" id="cfgBroker" placeholder="Cluster URL"
+                    style="font-size:0.9rem; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:#888;">Port (Usually 8883)</label>
+                <input type="number" id="cfgPort" value="8884" style="font-size:0.9rem; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:#888;">MQTT User</label>
+                <input type="text" id="cfgUser" placeholder="Smart_Pump" style="font-size:0.9rem; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:#888;">MQTT Password</label>
+                <input type="password" id="cfgPass" placeholder="••••••" style="font-size:0.9rem; margin-bottom:10px;">
+                <button class="btn btn-purple" style="padding:10px; font-size:0.9rem;" onclick="saveLocalServer()">Apply
+                    Server Settings</button>
+            </div>
+            <button id="btnLogin" class="btn" onclick="connect()"
+                style="margin-top: 15px; border-radius: 10px; padding: 16px; font-size: 1.1rem; background: #007bff;">Connect</button>
+        </div>
+    </div>
+
+    <div id="dashboard" style="display:none;">
+        <div id="expiryBanner" class="banner banner-red">⚠️ SYSTEM EXPIRED ⚠️<br><span
+                style="font-size:0.8rem; font-weight:normal; color:#ddd;">Pump operations are disabled.</span></div>
+        <div id="warnBanner" class="banner banner-yellow">⚠️ SUBSCRIPTION ENDING SOON ⚠️<br><span
+                style="font-size:0.8rem; font-weight:normal; color:#ddd;" id="warnMsg"></span></div>
+        <div id="promoBanner"
+            style="display:none; background: linear-gradient(135deg, #6e8efb, #a777e3); color:white; padding:15px; border-radius:15px; margin: 0 auto 15px auto; font-weight:bold; max-width:400px; border:2px solid #fff; box-shadow:0 4px 15px rgba(0,0,0,0.3); text-align:center;">
+            <span style="font-size:1.2rem; display:block; margin-bottom:5px;">📢 Message from AMK</span>
+            <span id="promoText" style="font-weight:normal; font-size:1rem;"></span>
+            <button onclick="dismissPromo()"
+                style="background:rgba(255,255,255,0.2); border:none; color:white; margin-top:10px; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.8rem;">Dismiss</button>
+        </div>
+        <div class="tabs">
+            <div id="tabHome" class="tab tab-active" onclick="showTab('home')">🏠 Home</div>
+            <div id="tabSettings" class="tab tab-inactive" onclick="showTab('settings')">⚙️ Settings</div>
+            <div id="tabSupport" class="tab tab-inactive" onclick="showTab('support')">💬 Support</div>
+        </div>
+
+        <div id="homeView">
+            <div class="card">
+                <!-- TOP STATUS BAR (LEFT: STATUS, CENTER: WIFI, RIGHT: REFRESH) -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%;">
+                    <div style="flex: 1; text-align: left; display: flex; align-items: center; white-space: nowrap;">
+                        <span id="statusDot" class="conn-dot"></span>
+                        <span id="statusTxt" style="color:#8b949e; font-size: 0.8rem;">Connecting...</span>
+                    </div>
+
+                    <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+                        <div class="wifi-box" id="wifiBox">
+                            <div class="wifi-bar wifi-1" id="wb1"></div>
+                            <div class="wifi-bar wifi-2" id="wb2"></div>
+                            <div class="wifi-bar wifi-3" id="wb3"></div>
+                            <div class="wifi-bar wifi-4" id="wb4"></div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
+                        <button id="refreshBtn" class="refresh-btn" onclick="requestData()"
+                            title="Refresh Data">🔄</button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <img src="logo.png" alt="Logo" class="logo">
+                    <h2 style="color:#00d2ff; margin:0; font-weight:800; letter-spacing:-0.4px;">💧 Tank Water Level
+                    </h2>
+                    <div id="roleBadgeC" class="status-pill pill-blue" style="display:none; margin: 8px auto 0 auto;">
+                    </div>
+                    <div id="dndBadgeC" class="status-pill pill-purple"
+                        style="display:none; margin: 6px auto 0 auto; background:rgba(111,66,193,0.2); color:#d8b4fe; border:1px solid rgba(111,66,193,0.4);">
+                        🌙 DND Active</div>
+                </div>
+
+                <!-- PRECISION TANK GAUGE -->
+                <div class="tank-wrap">
+                    <div class="tank-ruler" id="tankRuler" aria-hidden="true"></div>
+                    <div class="tank-inner">
+                        <div id="tankFill" class="tank-fill"></div>
+                        <div class="tank-glaze"></div>
+                    </div>
+                    <div class="tank-grid-lines">
+                        <div class="grid-line line-25"></div>
+                        <div class="grid-line line-50"></div>
+                        <div class="grid-line line-75"></div>
+                        <div class="grid-line line-100"></div>
+                    </div>
+                    <div class="tank-guide-line low-marker" id="lowTankMarker" style="bottom: 30%;">
+                        <span class="tank-guide-label" id="lowTankMarkerLabel">LOW 30%</span>
+                    </div>
+                    <div class="tank-guide-line full-marker" id="fullTankMarker" style="bottom: 100%;">
+                        <span class="tank-guide-label" id="fullTankMarkerLabel">FULL 100%</span>
+                    </div>
+                    <div id="tankVal" class="tank-text tabular-nums">-- %</div>
+
+                    <!-- COMPACT MIC BUTTON PLACED BESIDE TANK -->
+                    <div id="voiceFab" class="voice-fab" onclick="toggleVoiceAssistant()" title="Voice Command">
+                        🎙️
+                    </div>
+                </div>
+
+                <!-- BALANCED BENTO TELEMETRY TILES -->
+                <div class="bento-grid">
+                    <!-- TILE 1: Voltage + Status -->
+                    <div class="bento-tile">
+                        <div class="tile-label">⚡ AC Line</div>
+                        <div class="tile-hero tabular-nums">
+                            <span class="hero-value" id="volt">-- V</span>
+                        </div>
+                        <div id="vstat" class="status-pill pill-grey">
+                            <span class="dot-indicator"></span> <span>--</span>
+                        </div>
+                    </div>
+
+                    <!-- TILE 2: Pump Motor State -->
+                    <div class="bento-tile">
+                        <div class="tile-label">💧 Pump Motor</div>
+                        <div class="tile-hero">
+                            <span class="hero-value" id="pstateVal" style="color:#adb5bd;">OFF</span>
+                        </div>
+                        <div id="pstate" class="status-pill pill-grey">
+                            <span class="dot-indicator"></span> <span>Standby</span>
+                        </div>
+                    </div>
+
+                    <!-- TILE 3: System Diagnostic Info -->
+                    <div class="bento-tile full-width">
+                        <div class="tile-label">🛡️ System Diagnostic</div>
+                        <div class="diagnostic-banner diag-green">
+                            <span class="dot-indicator" style="background:#03ef62;"></span>
+                            <span id="info">SYSTEM_STANDBY!</span>
+                        </div>
+                    </div>
+
+                    <!-- TILE 4: Active Protection Countdown (Hidden by default) -->
+                    <div class="motor-life-tile" id="cdRow"
+                        style="display:none; background:rgba(255,171,0,0.04); border-color:rgba(255,171,0,0.25);">
+                        <div class="tile-label" style="color:#ffab00;">⏱️ Safeguard</div>
+                        <div class="status-pill pill-yellow tabular-nums" style="font-size:0.8rem; padding:5px 12px;">
+                            <span class="dot-indicator"></span> <span id="cdText">--</span>
+                        </div>
+                    </div>
+
+                    <!-- TILE 5: Total Motor Life -->
+                    <div class="motor-life-tile">
+                        <div class="tile-label">⏱️ Total Motor Life</div>
+                        <div class="life-badge tabular-nums" id="dispRunHome">0h 0m</div>
+                    </div>
+                </div>
+
+                <!-- EVENT HISTORY (FLUSH-LEFT MONOSPACE) -->
+                <div style="margin-top: 16px;">
+                    <div
+                        style="display:flex; align-items:center; justify-content:space-between; padding:0 4px; gap:8px;">
+                        <label
+                            style="font-size:0.72rem; color:#8b949e; text-transform:uppercase; margin:0; white-space:nowrap;">📋
+                            Event History</label>
+                        <label
+                            style="display:flex; align-items:center; gap:6px; font-size:0.72rem; color:#8b949e; cursor:pointer; white-space:nowrap; flex-shrink:0;">
+                            <input id="showHistoryChk" type="checkbox" onchange="toggleEventHistory()">
+                            <span id="eventHistoryShowLabel" style="white-space:nowrap;">Show</span>
+                        </label>
+                    </div>
+                    <div id="eventHistoryWrap">
+                        <div id="logBox">Waiting for logs...</div>
+                    </div>
+                </div>
+
+                <div id="otaHub"
+                    style="display:none; margin:15px 0; padding:15px; border:1px solid rgba(3,239,98,0.3); border-radius:14px; background:rgba(3,239,98,0.05);">
+                    <div style="color:#03ef62; font-weight:bold; margin-bottom:10px;" id="otaMsg">New Version Available!
+                    </div>
+                    <button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">Update Now</button>
+                </div>
+
+                <button id="btnToggle" class="btn" onclick="sendToggle()">WAITING SYNC...</button>
+                <button id="btnReset" class="btn btn-red" onclick="sendReset()" style="display:none;">Reset
+                    Alarm</button>
+            </div>
+        </div>
+
+        <div id="settingsView" style="display:none;">
+            <div class="card">
+                <!-- SETTINGS HEADER (LEFT: STATUS, CENTER: WIFI, RIGHT: REFRESH) -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%;">
+                    <div style="flex: 1; text-align: left; display: flex; align-items: center; white-space: nowrap;">
+                        <span id="statusDotS" class="conn-dot"></span>
+                        <span id="statusTxtS" style="color:#8b949e; font-size: 0.8rem;">Connecting...</span>
+                    </div>
+
+                    <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+                        <div class="wifi-box" id="wifiBoxS">
+                            <div class="wifi-bar wifi-1" id="wb1s"></div>
+                            <div class="wifi-bar wifi-2" id="wb2s"></div>
+                            <div class="wifi-bar wifi-3" id="wb3s"></div>
+                            <div class="wifi-bar wifi-4" id="wb4s"></div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
+                        <button id="refreshBtnS" class="refresh-btn" onclick="requestData()"
+                            title="Refresh Data">🔄</button>
+                    </div>
+                </div>
+
+                <img src="logo.png" class="logo">
+                <h2 id="settingsTitle" style="color:#00d2ff; text-align:center; margin:0 0 16px 0; font-weight:800;">⚙️
+                    Settings</h2>
+
+                <!-- 1. NETWORK & CREDENTIALS -->
+                <div class="settings-section">
+                    <div class="section-title">📶 WiFi & Cloud Access</div>
+                    <div class="lbl-wrap"><label>WiFi SSID</label></div>
+                    <input type="text" id="ssid" placeholder="Current WiFi SSID" oninput="markDirty('ssid')">
+                    <div class="lbl-wrap"><label>WiFi Password</label></div>
+                    <input type="password" id="wifiPass" placeholder="Leave empty to keep current"
+                        oninput="markDirty('wifiPass')">
+                    <label class="show-pass"><input type="checkbox" onclick="togglePass('wifiPass')"> Show WiFi
+                        Password</label>
+                    <div class="lbl-wrap"><label>Device PIN (for Cloud)</label></div>
+                    <input type="password" id="newPin" placeholder="•••••" oninput="markDirty('newPin')">
+                    <label class="show-pass"><input type="checkbox" onclick="togglePass('newPin')"> Show PIN</label>
+                    <div class="lbl-wrap"><label>Interface Language</label></div>
+                    <select id="appLang" onchange="setAppLang()">
+                        <option value="0">English</option>
+                        <option value="1">Myanmar (မြန်မာ)</option>
+                    </select>
+                </div>
+
+                <!-- 2. ROLES & MACHINE MODE -->
+                <div class="settings-section">
+                    <div class="section-title">🔀 Mode & System Role</div>
+                    <div class="lbl-wrap"><label>System Role (Pairing)</label></div>
+                    <select id="sysRole" onchange="toggleRole(); markDirty('sysRole')">
+                        <option value="0">Standalone</option>
+                        <option value="1">Master (Sump Tank)</option>
+                        <option value="2">Slave (Upper Tank)</option>
+                    </select>
+                    <div id="masterOpts" style="display:none;">
+                        <div class="lbl-wrap"><label>Master Settling Time</label><span class="range">0 - 30 min</span>
+                        </div>
+                        <select id="setM" onchange="markDirty('setM')">
+                            <option value="0">No Settling</option>
+                            <option value="5">5 Minutes</option>
+                            <option value="10">10 Minutes</option>
+                            <option value="15">15 Minutes</option>
+                            <option value="20">20 Minutes</option>
+                            <option value="30">30 Minutes</option>
+                        </select>
+                    </div>
+                    <div id="slaveOpts" style="display:none;">
+                        <div class="lbl-wrap"><label>Linked Master ID</label></div>
+                        <input type="text" id="linkID" placeholder="Enter Master's Cloud ID"
+                            style="text-transform:uppercase; margin-top:5px;" oninput="markDirty('linkID')">
+                    </div>
+                    <div class="lbl-wrap"><label>Operating Mode</label></div>
+                    <select id="opM" onchange="toggleVDly(); markDirty('opM')">
+                        <option value="0">Water Pump</option>
+                        <option value="1">Air Compressor</option>
+                    </select>
+                    <div class="lbl-wrap" id="vWrap" style="display:none;"><label>Compressor Valve Delay</label><span
+                            class="range">5 - 15s</span></div>
+                    <select id="vDly" style="display:none;" onchange="markDirty('vDly')"></select>
+                    <div class="lbl-wrap"><label>Water Sensor Hardware</label></div>
+                    <select id="sType" onchange="markDirty('sType')">
+                        <option value="0">Ultrasonic</option>
+                        <option value="1">Hydrostatic Pressure</option>
+                    </select>
+                </div>
+
+                <!-- 3. TANK CALIBRATION -->
+                <div class="settings-section">
+                    <div class="section-title">💧 Tank Levels & Height</div>
+                    <div class="lbl-wrap"><label>Tank Height</label><span class="range">1.0 - 7.0 ft</span></div>
+                    <select id="uH" onchange="markDirty('uH')"></select>
+                    <div class="lbl-wrap"><label>High Tank Stop Level</label><span class="range">80 - 100 %</span></div>
+                    <select id="fullTank" onchange="markDirty('fullTank')"></select>
+                    <div class="lbl-wrap"><label>Low Tank Start Level</label><span class="range">20 - 70 %</span></div>
+                    <select id="lowTank" onchange="markDirty('lowTank')"></select>
+                </div>
+
+                <!-- 4. GUARDS & PROTECTION -->
+                <div class="settings-section">
+                    <div class="section-title">⚡ Voltage & Protection Guards</div>
+                    <div style="display:flex; gap:8px;">
+                        <div style="flex:1;">
+                            <div class="lbl-wrap"><label>High Volt</label></div>
+                            <select id="vH" onchange="markDirty('vH')"></select>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="lbl-wrap"><label>Low Volt</label></div>
+                            <select id="vL" onchange="markDirty('vL')"></select>
+                        </div>
+                    </div>
+                    <div class="lbl-wrap"><label>Voltage Resume Gap</label><span class="range">1 - 10 V</span></div>
+                    <select id="vG" onchange="markDirty('vG')"></select>
+                    <div class="lbl-wrap"><label>Dry-Run Delay</label><span class="range">30 - 180 s</span></div>
+                    <select id="dD" onchange="markDirty('dD')"></select>
+                    <div class="lbl-wrap"><label>Auto-Retry Wait</label><span class="range">Disable / 30 / 60</span>
+                    </div>
+                    <select id="rM" onchange="markDirty('rM'); toggleRetryLimit();">
+                        <option value="0">Disabled</option>
+                        <option value="30">30 Minutes</option>
+                        <option value="60">60 Minutes</option>
+                    </select>
+                    <div id="retryLimitWrap" style="display:none;">
+                        <div class="lbl-wrap"><label>Max Retry Attempts</label><span class="range">1 - 5 /
+                                Unlimited</span></div>
+                        <select id="maxRet" onchange="markDirty('maxRet')">
+                            <option value="1">1 Attempt</option>
+                            <option value="2">2 Attempts</option>
+                            <option value="3">3 Attempts (Recommended)</option>
+                            <option value="5">5 Attempts</option>
+                            <option value="0">Unlimited</option>
+                        </select>
+                    </div>
+                    <div class="lbl-wrap"><label>Cool-down (After 1Hr)</label><span class="range">Disable / 5 -
+                            15m</span></div>
+                    <select id="rstM" onchange="markDirty('rstM')">
+                        <option value="0">Disabled</option>
+                        <option value="5">5 Minutes</option>
+                        <option value="10">10 Minutes</option>
+                        <option value="15">15 Minutes</option>
+                    </select>
+                </div>
+
+                <!-- 5. SMART DND SCHEDULING -->
+                <div class="settings-section">
+                    <div class="section-title">🌙 Smart Scheduling (DND)</div>
+                    <div class="lbl-wrap"><label>DND Mode</label></div>
+                    <select id="dndEn" onchange="markDirty('dndEn')">
+                        <option value="0">Disabled</option>
+                        <option value="1">Enabled</option>
+                    </select>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <div style="flex:1;">
+                            <div class="lbl-wrap"><label>Start Hour</label></div><select id="dndS"
+                                onchange="markDirty('dndS')"></select>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="lbl-wrap"><label>End Hour</label></div><select id="dndE"
+                                onchange="markDirty('dndE')"></select>
+                        </div>
+                    </div>
+                    <div class="lbl-wrap"><label>📍 Home Time Zone (GMT)</label></div>
+                    <select id="tzOf" onchange="markDirty('tzOf')"></select>
+                </div>
+
+                <button id="btnSave" class="btn btn-green" onclick="sendSave()">💾 Save & Reboot</button>
+
+                <!-- 6. LICENSE MANAGEMENT -->
+                <div class="settings-section"
+                    style="margin-top:14px; background:rgba(3,239,98,0.04); border-color:rgba(3,239,98,0.25);">
+                    <div class="section-title" style="color:#03ef62;">🔑 License Management</div>
+                    <div style="font-size:0.8rem; margin-bottom:10px; color:#8b949e;">Status: <span id="licStat"
+                            style="color:white; font-weight:bold;">Unknown</span></div>
+                    <div class="lbl-wrap"><label>Upload Token File (.key)</label></div>
+                    <label
+                        style="display:flex; align-items:center; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); cursor:pointer; color:#8b949e; border-radius:10px; margin-bottom:5px; width:100%; box-sizing:border-box;">
+                        <span
+                            style="background:#007bff; color:white; padding:5px 8px; border-radius:6px; margin-right:6px; font-size:0.75rem;">📁
+                            Choose
+                            File</span>
+                        <span id="fileName"
+                            style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.72rem; flex:1;">No
+                            file chosen</span>
+                        <input type="file" id="licFile" accept=".key,.txt" style="display:none;"
+                            onchange="vibe(); document.getElementById('fileName').innerText = this.files[0] ? this.files[0].name : 'No file chosen'">
+                    </label>
+                    <button class="btn btn-green" style="margin-top:5px; padding:10px;" onclick="uploadLicenseFile()">📤
+                        Upload File</button>
+                    <div style="color:#6e7681; margin:10px 0; font-size:0.8rem; text-align:center;">- OR -</div>
+                    <div class="lbl-wrap"><label>Paste Token String</label></div>
+                    <input type="text" id="licText" placeholder="Paste MTc... string here" style="margin-bottom:5px;">
+                    <button class="btn btn-purple" style="margin-top:5px; padding:10px;"
+                        onclick="uploadLicenseText()">🔑 Activate via Text</button>
+                </div>
+
+                <!-- 7. MOTOR MAINTENANCE -->
+                <div class="settings-section" style="text-align:center;">
+                    <div class="section-title">⚙️ Motor Maintenance</div>
+                    <label style="display:block; margin-bottom:4px; color:#8b949e;">Accumulated Run Time</label>
+                    <div style="font-size:1.8rem; font-weight:800; color:#03ef62; margin-bottom:12px;" id="dispRunSett">
+                        0h 0m</div>
+                    <div class="lbl-wrap"><label>Service Limit (Hours)</label><span class="range">0 = Disable</span>
+                    </div>
+                    <select id="mSl" onchange="markDirty('mSl')" style="margin-bottom:14px;">
+                        <option value="0">Disable</option>
+                        <option value="100">100 Hours</option>
+                        <option value="250">250 Hours</option>
+                        <option value="500">500 Hours</option>
+                        <option value="1000">1000 Hours</option>
+                    </select>
+                    <button type="button" class="btn btn-red" style="padding:10px 20px; font-size:0.9rem;"
+                        onclick="resetMotorLife()">🔄 Reset Life Counter</button>
+                </div>
+
+                <!-- 8. FACTORY & FIRMWARE TOOLS -->
+                <div class="settings-section">
+                    <div class="section-title" style="color:#d8b4fe;">🛠️ Maintenance & System Tools</div>
+                    <button type="button" class="btn btn-purple" style="margin-bottom:10px; padding:10px;"
+                        onclick="unlockFactory()">🛠️ Factory Mode</button>
+                    <div id="factorySec"
+                        style="display:none; background:rgba(111,66,193,0.1); padding:12px; border-radius:12px; border:1px solid rgba(111,66,193,0.3); margin-bottom:12px;">
+                        <h4 style="color:#d8b4fe; text-align:center; margin:4px 0 8px 0;">Cloud Server Config</h4>
+                        <div class="lbl-wrap"><label>MQTT Server URL</label></div><input type="text" id="mqSrv_s"
+                            oninput="markDirty('mqSrv_s')">
+                        <div class="lbl-wrap"><label>MQTT Port</label></div><input type="number" id="mqPort_s"
+                            oninput="markDirty('mqPort_s')">
+                        <div class="lbl-wrap"><label>MQTT User</label></div><input type="text" id="mqUser_s"
+                            oninput="markDirty('mqUser_s')">
+                        <div class="lbl-wrap"><label>MQTT Password</label></div><input type="password" id="mqPass_s"
+                            oninput="markDirty('mqPass_s')">
+                    </div>
+                    <div id="otaHubS"
+                        style="display:none; margin-bottom:12px; padding:12px; border:1px solid rgba(111,66,193,0.3); border-radius:12px; background:rgba(111,66,193,0.05); text-align:left;">
+                        <div style="color:#d8b4fe; font-weight:bold; margin-bottom:8px;" id="otaMsgS">Update Available!
+                        </div>
+                        <button class="btn btn-green" style="margin-top:0;" onclick="startOTA()">🚀 Update Now</button>
+                    </div>
+                    <button class="btn btn-purple" style="margin-top:0;" onclick="checkOTA(this)">🔍 Check for
+                        Updates</button>
+                    <p style="font-size:0.75rem; color:#8b949e; margin:10px 0 12px 0; text-align:center;">Current
+                        Version: <span id="curVer" class="tabular-nums">--</span></p>
+                    <button class="btn" style="background:rgba(0,106,255,0.7); border:1px solid rgba(0,106,255,0.9);"
+                        onclick="vibe(); window.open('https://aungmoekhine.github.io/smart_water_pump-control/user_guide_premium.html', '_blank')">📖
+                        User Guide</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="supportView" style="display:none;">
+            <div class="card"
+                style="height: 80vh; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <iframe id="supportFrame" src="https://amk-pump-support.streamlit.app/?embed=true&theme=dark"
+                    style="width:100%; height:100%; border:none; background: transparent;"
+                    title="AMK AI Support"></iframe>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div id="lastMsg" style="margin-bottom:8px;">Waiting for first sync...</div>
+            <span>Cloud ID: <span id="dispCid">--</span></span><br><span>Device IP: <span id="dispIp">--</span></span>
+            <div style="margin-top: 15px;"><button class="btn"
+                    style="padding: 10px 20px; font-size: 0.95rem; width: auto; min-width: 120px; background: rgba(0,123,255,0.5); border: 1px solid rgba(0,123,255,0.8);"
+                    onclick="logout()">Logout</button></div>
+        </div>
+    </div>
+
+    <!-- VOICE LISTENING OVERLAY -->
+    <div id="voiceOverlay" class="voice-overlay" onclick="stopVoiceAssistant()">
+        <div class="voice-card" onclick="event.stopPropagation()">
+            <div class="mic-wave-container" id="micWave">🎙️</div>
+            <div style="font-size:0.85rem; color:#8b949e; text-transform:uppercase; letter-spacing:0.6px;"
+                id="voiceStatusLabel">
+                Listening...
+            </div>
+            <div id="voiceTranscript" class="voice-transcript">"..."</div>
+            <div id="voiceFeedback" class="voice-feedback"></div>
+            <button class="btn btn-red" style="margin-top: 15px; padding: 10px; font-size: 0.9rem;"
+                onclick="stopVoiceAssistant()">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- DEDICATED AUDIO PLAYER FOR MYANMAR VOICE -->
+    <audio id="myanmarAudio" referrerpolicy="no-referrer" preload="auto"></audio>
+
+    <script>
+        function updateWifiIcon(rssi) {
+            // Select all bars for both Home and Settings views
+            const ids = ['wb1', 'wb2', 'wb3', 'wb4', 'wb1s', 'wb2s', 'wb3s', 'wb4s'];
+
+            // 1. Reset all bars to grey first
+            ids.forEach(id => {
+                const b = document.getElementById(id);
+                if (b) b.classList.remove('wifi-active', 'wifi-weak', 'wifi-dead');
+            });
+
+            // 2. If no data, stop here (bars stay grey)
+            if (rssi === undefined || rssi <= -100 || rssi === 0) return;
+
+            // 3. Determine how many bars to light up based on signal strength
+            let activeCount = 0;
+            if (rssi > -65) activeCount = 4;      // Excellent
+            else if (rssi > -75) activeCount = 3; // Good
+            else if (rssi > -85) activeCount = 2; // Fair
+            else activeCount = 1;                // Weak
+
+            // 4. Determine the color
+            let colorClass = 'wifi-active'; // Green
+            if (rssi < -88) colorClass = 'wifi-dead'; // Red
+            else if (rssi < -78) colorClass = 'wifi-weak'; // Yellow
+
+            // 5. Apply the color to the correct number of bars
+            for (let i = 1; i <= activeCount; i++) {
+                const bHome = document.getElementById('wb' + i);
+                const bSett = document.getElementById('wb' + i + 's');
+                if (bHome) bHome.classList.add(colorClass);
+                if (bSett) bSett.classList.add(colorClass);
+            }
+        }
+
+        let localDismissedMsg = localStorage.getItem("amk_dismissed_promo") || "";
+        function dismissPromo() {
+            vibe();
+            const currentMsg = document.getElementById('promoText').innerText;
+            const activeID = deviceID || localStorage.getItem("cloudPumpID");
+            if (activeID) {
+                localStorage.setItem("amk_dismiss_promo_" + activeID, currentMsg);
+            }
+            document.getElementById('promoBanner').style.display = 'none';
+        }
+        if ('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('service-worker.js');});}
+        let BROKER = localStorage.getItem("lastBroker") || "210195b635414206adcd944325fe6f59.s1.eu.hivemq.cloud";
+        let PORT = parseInt(localStorage.getItem("lastPort")) || 8884;
+        let USER = localStorage.getItem("lastUser") || "Smart_Pump";
+        let PASS = localStorage.getItem("lastPass") || "Sm@rt_Pump_2026";
+        let sysLang = localStorage.getItem('cloudLang') ? parseInt(localStorage.getItem('cloudLang')) : 0;
+        let showEventHistory = localStorage.getItem('cloudShowEventHistory');
+        if (showEventHistory === null) showEventHistory = "1";
+
+        function applyEventHistoryVisibility() {
+            const wrap = document.getElementById('eventHistoryWrap');
+            const chk = document.getElementById('showHistoryChk');
+            const visible = showEventHistory !== "0";
+            if (wrap) wrap.style.display = visible ? 'block' : 'none';
+            if (chk) chk.checked = visible;
+        }
+        function applyEventHistoryLabels() {
+            const chk = document.getElementById('showHistoryChk');
+            const row = chk ? chk.parentElement?.parentElement : null;
+            const labels = row ? row.querySelectorAll('label') : [];
+            if (labels[0]) labels[0].innerText = (sysLang == 1 ? "📋 ဖြစ်ရပ်မှတ်တမ်း" : "📋 Event History");
+            const showLabel = document.getElementById('eventHistoryShowLabel');
+            if (showLabel) showLabel.innerText = (sysLang == 1 ? "ပြရန်" : "Show");
+        }
+        function toggleEventHistory() {
+            showEventHistory = document.getElementById('showHistoryChk').checked ? "1" : "0";
+            localStorage.setItem('cloudShowEventHistory', showEventHistory);
+            applyEventHistoryVisibility();
+        }
+
+        applyEventHistoryVisibility();
+        applyEventHistoryLabels();
+
+        const dict = {
+            "Device: Online": "စက် အွန်လိုင်း", "Device: Offline": "စက် အော့ဖ်လိုင်း", "Connecting...": "ချိတ်ဆက်နေသည်...", "NORMAL": "ပုံမှန်", "OVER": "ကျော်လွန်", "UNDER": "လျော့နည်း", "DELAY": "စောင့်ဆိုင်း", "ON": "ဖွင့်", "OFF": "ပိတ်", "DRY_RUN_ALARM!": "ရေမရှိ အချက်ပေး!", "PUMP_LOCKED!": "ပိတ်သိမ်းထားသည်!", "WAITING_RETRY!": "ပြန်စရန်စောင့်နေသည်!", "SENSOR_ERROR!": "ဆင်ဆာ ချို့ယွင်းချက်!", "SYSTEM_STANDBY!": "အသင့်အနေအထား!", "FLOW_DETECTED!": "ရေစီးဆင်းမှုရှိသည်!", "FLOW_CHECKING!": "ရေစီးဆင်းမှုစစ်နေ!", "COOLING_DOWN!": "အအေးခံနေသည်!", "VENTING_VALVE!": "လေလျှော့နေသည်!", "SETTLING_WATER!": "ရေအနည်ထိုင်ရန်စောင့်ချိန်!", "PLEASE WAIT...": "စောင့်ဆိုင်းပါ...", "PLEASE WAIT": "စောင့်ဆိုင်းပါ...", "Voltage:": "လျှပ်စစ်အား-", "Volt Status:": "ဗို့အား အခြေအနေ-", "Pump:": "ရေမော်တာ-", "System Info:": "စက် အချက်အလက်-", "Retry in:": "ပြန်လည်စတင်ရန်-", "Start Pump": "ရေမော်တာ ဖွင့်မည်", "Stop Pump": "ရေမော်တာ ပိတ်မည်", "Reset Alarm": "အချက်ပေး ပြန်ပိတ်မည်", "Cooling in:": "အအေးခံရန် ကျန်ချိန်-", "Dry-Run in:": "ရေမရှိ အချက်ပေးရန်-", "Settling in:": "ရေအနည်ထိုင်ရန်-", "LICENSE EXPIRED": "သက်တမ်းကုန်ဆုံးပြီ", "WiFi SSID": "ဝိုင်ဖိုင် အမည်", "WiFi Password": "ဝိုင်ဖိုင် စကားဝှက်", "Show WiFi Password": "ဝိုင်ဖိုင် စကားဝှက် ပြမည်", "Show PIN": "ပင်နံပါတ် ပြမည်", "Device PIN (for Cloud)": "လုံခြုံရေး ပင်နံပါတ်", "Interface Language": "ဘာသာစကား", "Operating Mode": "စက် အမျိုးအစား", "Water Sensor Hardware": "ရေဆင်ဆာ အမျိုးအစား", "Compressor Valve Delay": "အဆို့ရှင် ဖွင့်ချိန်", "Tank Height": "ရေတိုင်ကီ အမြင့်", "Low Tank Start Level": "ရေမော်တာစတင်မည့် ရေမှတ်", "High Voltage Set": "ဗို့အားလွန် သတ်မှတ်ချက်", "Low Voltage Set": "ဗို့အားလျော့ သတ်မှတ်ချက်", "Voltage Resume Gap": "ဗို့အားပြန်ဖွင့် ကွာဟချက်", "Dry-Run Delay": "ရေမရှိ အချက်ပေးချိန်", "Cool-down (After 1Hr)": "၁နာရီမောင်းပြီး အနားပေးချိန်", "Auto-Retry Wait": "ပြန်လည်စတင်ရန် စောင့်ချိန်", "Max Retry Attempts": "ပြန်စမည့် အကြိမ်ရေ ကန့်သတ်ချက်", "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)", "Start Hour": "စတင်ရန် အချိန်", "End Hour": "ပြီးဆုံးရန် အချိန်", "📍 Home Time Zone (GMT)": "📍 အချိန်ဇုန် (GMT)", "Cloud ID:": "ကလောက် အိုင်ဒီ-", "Device IP:": "စက် အိုင်ပီ-", "System Role (Pairing)": "စနစ် အဆင့်အတန်း (Role)", "Master Settling Time": "ရေအနည်ထိုင်ချိန်", "Linked Master ID": "ချိတ်ဆက်ထားသော Master ID", "High Tank Stop Level": "ရေမော်တာရပ်မည့် ရေမှတ်", "🔑 License Management": "🔑 လိုင်စင် စီမံခန့်ခွဲမှု", "🛠️ Maintenance": "🛠️ ပြုပြင်ထိန်းသိမ်းမှု", "Check for Updates": "ဗားရှင်း အသစ်စစ်ရန်", "User Guide": "အသုံးပြုနည်း လမ်းညွှန်", "Current Version:": "လက်ရှိ ဗားရှင်း-", "Upload Token File (.key)": "လိုင်စင်တိုကင်ဖိုင်တင်ရန် (.key)", "Paste Token String": "တိုကင် စာသား ထည့်ရန်", "Choose File": "ဖိုင်ရွေးမည်", "Upload File": "ဖိုင် တင်မည်", "Activate via Text": "စာသားဖြင့် သက်တမ်းတိုးမည်", "Status:": "အခြေအနေ-", "🛠️ Factory Mode": "🛠️ စက်ရုံထုတ် ဆက်တင်များ", "Cloud Server Config": "ကလောက် ဆာဗာ ဆက်တင်များ", "MQTT Server URL": "ဆာဗာ လိပ်စာ (URL)", "MQTT Port": "ပေါ့တ် (Port)", "MQTT Username": "အသုံးပြုသူ အမည်", "MQTT Password": "စကားဝှက်", "⚙️ Advanced Server Settings": "⚙️ ဆာဗာ အဆင့်မြင့် ဆက်တင်များ", "Apply Server Settings": "ဆာဗာ ပြောင်းလဲမှု အတည်ပြုမည်", "Broker URL": "ဆာဗာ လိပ်စာ (URL)", "MQTT User": "အသုံးပြုသူ အမည်", "Logout": "ထွက်မည်", "💬 Support": "💬 AI အကူအညီ", "Open in Full Screen ↗": "မျက်နှာပြင်အပြည့်ဖြင့်ကြည့်မည် ↗", "Reconnecting...": "ပြန်လည်ချိတ်ဆက်နေသည်...", "⏱️ Total Motor Life:": "⏱️ စုစုပေါင်း မောင်းနှင်ချိန်-", "⚙️ Motor Maintenance": "⚙️ မော်တာ ထိန်းသိမ်းမှု", "Service Limit (Hours)": "ဝန်ဆောင်မှု ကန့်သတ်ချက် (နာရီ)",
+            "Saved Devices:": "သိမ်းဆည်းထားသော စက်များ -", "Disabled": "ပိတ်ထားသည်", "Accumulated Run Time": "စုစုပေါင်း မောင်းနှင်ချိန်", "Reset Life Counter": "မောင်းနှင်ချိန် ပြန်စမည်", "🔄 Reset Life Counter": "🔄 မောင်းနှင်ချိန် ပြန်စမည်", "Reset this counter only after motor repair or replacement.": "မော်တာ ပြုပြင်ပြီးချိန်တွင်သာ ဤနေရာကို နှိပ်၍ ပြန်စပါ။",
+            "System Notice": "စနစ် အသိပေးချက်", "Understood": "နားလည်ပါသည်", "The Tank is already FULL.": "ရေတိုင်ကီ ရေပြည့်နေပါပြီ။", "Sensor Error! Check the ultrasonic sensor.": "ဆင်ဆာ ချို့ယွင်းနေပါသည်။ ဆင်ဆာကို စစ်ဆေးပါ။", "Waiting for ultrasonic sensor reading.": "ဆင်ဆာ တိုင်းတာနေဆဲ ဖြစ်ပါသည်။ ခဏစောင့်ပါ။", "Ultrasonic sensor is unstable. Please wait.": "ဆင်ဆာ တိုင်းတာမှု မတည်ငြိမ်သေးပါ။ ခဏစောင့်ပါ။", "Voltage stabilization in progress. Please wait.": "ဗို့အား ပြန်လည်တည်ငြိမ်ရန် စောင့်ဆိုင်းနေပါသည်။", "Pump is cooling down. Please wait.": "မော်တာ အအေးခံနေချိန် ဖြစ်ပါသည်။ ခဏစောင့်ပါ။", "Master is Pumping. Waiting for Sump.": "အဓိကစက် (အောက်တိုင်ကီ) ရေတင်နေပါသည်။ စောင့်ဆိုင်းပါ...", "Water level is LOW. Pump will continue until Tank is Full.": "ရေအမှတ် လျော့နည်းနေပါသည်။ ရေပြည့်သည်အထိ ဆက်လက်မောင်းနှင်ပါမည်။", "Venting pressure... Please wait.": "လေလျှော့နေပါသည်။ ခဏစောင့်ပါ...", "WARNING: Tank Sensor Error! Unable to measure water level.": "သတိပေးချက်: ရေတိုင်ကီ ဆင်ဆာ ချို့ယွင်းနေပါသည်။ ရေအမှတ်ကို မတိုင်းတာနိုင်ပါ။", "WARNING: Dry-Run detected! No water flow.": "သတိပေးချက်: ရေမရှိဘဲ မော်တာ လည်ပတ်နေပါသည်။",
+            "Dry-Run lockout cleared and Buzzer silenced.": "ရေမရှိ အချက်ပေးလော့ခ် ဖြုတ်ပြီးပါပြီ။ ဘာဇာအသံ ပိတ်ပြီးပါပြီ။",
+            "Cloud Disabled": "ကလောက်စနစ် ပိတ်ထားပါသည်",
+            "License Expired! Please renew to use cloud control.": "လိုင်စင်သက်တမ်းကုန်ဆုံးနေသဖြင့် ကလောက်စနစ်ဖြင့် ထိန်းချုပ်၍မရပါ။",
+            "License Expired! Cannot save settings via Cloud.": "လိုင်စင်သက်တမ်းကုန်ဆုံးနေသဖြင့် ဆက်တင်များကို မသိမ်းဆည်းနိုင်ပါ။",
+            "Unauthorized Request - Wrong PIN!": "PIN နံပါတ် မှားယွင်းနေပါသည်။",
+            "Update Found!": "အပ်ဒိတ် တွေ့ရှိပါသည်!",
+            "System Up to Date": "နောက်ဆုံးဗားရှင်း ဖြစ်ပါသည်",
+            "License Expired.": "လိုင်စင် သက်တမ်းကုန်ဆုံးပါပြီ။",
+            "System Busy. Please try again.": "စနစ် မအားသေးပါ။ နောက်တစ်ကြိမ် ပြန်ကြိုးစားပါ။",
+            "Counter Reset Successfully!": "မောင်းနှင်ချိန်ကို သုညသို့ ပြန်စပြီးပါပြီ။",
+            "Counter Reset Success": "ပြန်လည်စတင်ခြင်း အောင်မြင်သည်!",
+            // --- NEW GUI LABELS TRANSLATIONS ---
+            "Save & Reboot": "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်",
+            "⚙️ Settings": "⚙️ ဆက်တင်များ",
+            "High Volt": "ဗို့အားလွန်", "Save & Reboot": "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်",
+            "High Volt": "ဗို့အားလွန်",
+            "HIGH VOLT": "ဗို့အားလွန်",
+            "Low Volt": "ဗို့အားလျော့",
+            "LOW VOLT": "ဗို့အားလျော့",
+            "DND Mode": "ညဘက်အသံပိတ်စနစ်",
+            "📶 WiFi & Cloud Access": "📶 ဝိုင်ဖိုင်နှင့် ကလောက်စနစ်",
+            "🔀 Mode & System Role": "🔀 စနစ် အဆင့်အတန်းနှင့် အမျိုးအစား",
+            "💧 Tank Levels & Height": "💧 ရေတိုင်ကီ ရေအမှတ်နှင့် အမြင့်",
+            "⚡ Voltage & Protection Guards": "⚡ ဗို့အားနှင့် စနစ်ကာကွယ်မှုများ",
+            "🌙 Smart Scheduling (DND)": "🌙 ညဘက် အသံပိတ်စနစ် (DND)",
+            "🛠️ Maintenance & System Tools": "🛠️ စနစ် စီမံထိန်းသိမ်းမှု",
+            "⚡ AC Line": "⚡ လျှပ်စစ်ဗို့အား",
+            "⚡ AC LINE": "⚡ လျှပ်စစ်ဗို့အား",
+            "💧 Pump Motor": "💧 ရေမော်တာ",
+            "💧 PUMP MOTOR": "💧 ရေမော်တာ",
+            "🛡️ System Diagnostic": "🛡️ စနစ် စစ်ဆေးချက်",
+            "🛡️ SYSTEM DIAGNOSTIC": "🛡️ စနစ် စစ်ဆေးချက်",
+            "⏱️ Total Motor Life": "⏱️ စုစုပေါင်း မောင်းနှင်ချိန်",
+            "⏱️ TOTAL MOTOR LIFE": "⏱️ စုစုပေါင်း မောင်းနှင်ချိန်",
+            "⏱️ Safeguard": "⏱️ အကာအကွယ်",
+            "Dry-Run": "ရေမရှိ",
+            "Settling": "အနည်ထိုင်",
+            "Remaining window:": "ကျန်ရှိချိန်-"
+        };
+
+        const tr = (t) => {
+            if (sysLang != 1 || !t) return t;
+            let s = String(t);
+            if (s === "OVER_VOLTAGE!") return "ဗို့အားကျော်လွန်နေသည်!";
+            if (s === "UNDER_VOLTAGE!") return "ဗို့အားလျော့နည်းနေသည်!";
+            if (s.includes("VOLT_DELAY")) return s.replace("VOLT_DELAY", "ဗို့အားပြန်တည်ငြိမ်ရန်စောင့်ချိန်!");
+            if (s === "SETTLING_WATER!") return "ရေအနည်ထိုင်ရန်စောင့်ချိန်!";
+            if (s.includes("You are already using the latest version")) return "သင်သည် နောက်ဆုံးဗားရှင်း (" + (s.split(":").pop() || "").trim() + ") ကို အသုံးပြုနေပါသည်။";
+            if (s.includes("A new version") && s.includes("is available")) return "ဗားရှင်းအသစ် (" + (s.match(/v\d+/)?.[0] || "") + ") ရနိုင်ပါပြီ။";
+            if (s.includes("Voltage is OVER")) return "လျှပ်စစ်ဗို့အား လွန်ကဲနေပါသည် (" + (s.match(/\d+V/)?.[0] || "") + ")။";
+            if (s.includes("Voltage is UNDER")) return "လျှပ်စစ်ဗို့အား လျော့နည်းနေပါသည် (" + (s.match(/\d+V/)?.[0] || "") + ")။";
+            if (s.includes("Master Not Ready:")) return "အဓိကစက် အဆင်မပြေသေးပါ: " + tr(s.split(":").slice(1).join(":").trim());
+            if (dict[s]) return dict[s];
+            for (let key in dict) {if (s.includes(key.replace('!', ''))) return dict[key];}
+            return s;
+        };
+        const vibe = () => {try {if (window.AndroidBridge && window.AndroidBridge.triggerVibration) {window.AndroidBridge.triggerVibration(100);} else if (window.navigator && window.navigator.vibrate) {window.navigator.vibrate(100);} } catch (e) { } };
+        function setAppLang() {sysLang = parseInt(document.getElementById('appLang').value); localStorage.setItem('cloudLang', sysLang); location.reload();}
+        function toggleRole() {let r = document.getElementById('sysRole').value; document.getElementById('masterOpts').style.display = (r == "1") ? "block" : "none"; document.getElementById('slaveOpts').style.display = (r == "2") ? "block" : "none";}
+        function toggleRetryLimit() {let val = document.getElementById('rM').value; let wrap = document.getElementById('retryLimitWrap'); if (wrap) wrap.style.display = (val === "30" || val === "60") ? "block" : "none";}
+        function toggleVDly() {let op = document.getElementById('opM').value; let vW = document.getElementById('vWrap'), vD = document.getElementById('vDly'); if (op == "1") {vW.style.display = 'flex'; vD.style.display = 'block';} else {vW.style.display = 'none'; vD.style.display = 'none';} }
+        function unlockFactory() {let p = prompt("Enter Factory Admin Key:"); if (p === "AMK_ADMIN_2026") {if (document.getElementById('brokerSec')) document.getElementById('brokerSec').style.display = 'block'; if (document.getElementById('factorySec')) document.getElementById('factorySec').style.display = 'block'; vibe();} else {alert("Access Denied");} }
+        function saveLocalServer() {const b = document.getElementById('cfgBroker').value.trim(); const p = document.getElementById('cfgPort').value.trim(); const u = document.getElementById('cfgUser').value.trim(); const pw = document.getElementById('cfgPass').value.trim(); if (!b) {alert(sysLang == 1 ? "လိပ်စာ (URL) ဖြည့်ရန် လိုအပ်ပါသည်" : "URL is required"); return;} localStorage.setItem("lastBroker", b); localStorage.setItem("lastPort", p || "8884"); localStorage.setItem("lastUser", u || "Smart_Pump"); localStorage.setItem("lastPass", pw || "Sm@rt_Pump_2026"); vibe(); alert(sysLang == 1 ? "ဆာဗာ ပြောင်းလဲမှု အောင်မြင်ပါသည်။ ဆော့ဖ်ဝဲ ပြန်လည်ပွင့်လာပါမည်။" : "Server Updated for this device. App will reload."); location.reload();}
+        function getKeychain() {return JSON.parse(localStorage.getItem("pumpKeychain") || "[]");}
+        function updateKeychainUI() {const devices = getKeychain(); const section = document.getElementById('keychainSection'); const list = document.getElementById('keychainList'); const label = document.getElementById('manualLabel'); if (devices.length === 0) {section.style.display = 'none'; label.innerText = (sysLang == 1 ? "စက်အသစ်ချိတ်ဆက်ရန်" : "Connect New Device"); return;} section.style.display = 'block'; label.innerText = (sysLang == 1 ? "သို့မဟုတ် အခြားစက်ဖြင့်ချိတ်မည်" : "Or Connect Another ID"); list.innerHTML = ''; devices.forEach(dev => {let icon = "🏠", labelTxt = "Standalone", iconColor = "#888"; if (dev.role == 1) {icon = "👑"; labelTxt = "System Master"; iconColor = "#17a2b8";} if (dev.role == 2) {icon = "👷"; labelTxt = "System Worker"; iconColor = "#ffc107";} if (sysLang == 1) {if (dev.role == 0) labelTxt = "သီးသန့်စက်"; if (dev.role == 1) labelTxt = "အဓိကအမိန့်ပေးစက် (Master)"; if (dev.role == 2) labelTxt = "အလုပ်လုပ်ပေးမည့်စက် (Worker)";} const div = document.createElement('div'); div.style = "display:flex; align-items:center; background:rgba(255,255,255,0.05); padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; margin-bottom:5px;"; div.innerHTML = `<div onclick="quickConnect('${dev.id}', '${dev.pin}')" style="flex:1; text-align:left; display:flex; align-items:center; gap:15px; overflow:hidden;"><div style="font-size:1.6rem; min-width:35px; text-align:center; color:${iconColor}; text-shadow: 0 0 10px ${iconColor}44;">${icon}</div><div style="overflow:hidden;"><div style="font-weight:bold; color:white; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-size:1rem;">${dev.id}</div><div style="font-size:0.75rem; color:${iconColor}; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">${labelTxt}</div></div></div><button onclick="deleteFromKeychain('${dev.id}')" style="background:none; border:none; color:#ff6b6b; font-size:1.6rem; padding:0 10px; cursor:pointer; opacity:0.4;">&times;</button>`; list.appendChild(div);});}
+        function saveToKeychain(id, pin, role) {let devices = getKeychain(); const idx = devices.findIndex(d => d.id === id); if (idx > -1) {devices[idx].pin = pin; devices[idx].role = role;} else {devices.push({id, pin, role});} localStorage.setItem("pumpKeychain", JSON.stringify(devices)); updateKeychainUI();}
+        function quickConnect(id, pin) {vibe(); document.getElementById('devID').value = id; document.getElementById('devPin').value = pin; connect();}
+        function deleteFromKeychain(id) {vibe(); if (confirm(sysLang == 1 ? "ဤစက်ကို စာရင်းမှပယ်ဖျက်မလား?" : "Delete this saved device?")) {let devices = getKeychain().filter(d => d.id !== id); localStorage.setItem("pumpKeychain", JSON.stringify(devices)); updateKeychainUI();} }
+        document.addEventListener("DOMContentLoaded", () => {
+            if (sysLang == 1) {
+                document.body.classList.add('lang-mm');
+                document.getElementById('btnLogin').innerText = "ချိတ်ဆက်ပါ";
+                document.getElementById('tabHome').innerText = "🏠 ပင်မစာမျက်နှာ";
+                document.getElementById('tabSettings').innerText = "⚙️ ဆက်တင်များ";
+                document.getElementById('tabSupport').innerText = "💬 AI အကူအညီ";
+                const sdl = document.getElementById('savedDevicesLabel');
+                if (sdl) sdl.innerText = dict["Saved Devices:"];
+
+                document.querySelectorAll('.row span:first-child, label, h3, .show-pass, button, p, .section-title, .tile-label').forEach(el => {
+                    let txt = (el.innerText || el.textContent || "").trim().replace(/\s+/g, ' ');
+                    let rawTxt = (el.textContent || "").trim().replace(/\s+/g, ' ');
+
+                    // 1. Handle specific strings first
+                    if (txt.includes("Total Motor Life") || rawTxt.includes("Total Motor Life")) {
+                        el.innerText = tr("⏱️ Total Motor Life");
+                        return;
+                    }
+
+                    // 2. Match against dictionary (checks both innerText and raw textContent)
+                    let matchedTranslation = dict[txt] || dict[rawTxt];
+                    if (matchedTranslation) {
+                        if (el.classList.contains('show-pass')) {
+                            const cb = el.querySelector('input[type="checkbox"]');
+                            if (cb) {
+                                el.innerHTML = '';
+                                el.appendChild(cb);
+                                el.appendChild(document.createTextNode(' ' + matchedTranslation));
+                            } else {el.innerText = matchedTranslation;}
+                        } else {
+                            el.innerText = matchedTranslation;
+                        }
+                    }
+                });
+
+                document.querySelectorAll('select option').forEach(opt => {
+                    if (opt.text.includes("Standalone")) opt.text = "သီးသန့်စက်";
+                    if (opt.text.includes("Master (Sump Tank)")) opt.text = "အဓိကစက် (အောက်တိုင်ကီ)";
+                    if (opt.text.includes("Slave (Upper Tank)")) opt.text = "လက်အောက်ခံစက် (အပေါ်တိုင်ကီ)";
+                    if (opt.text.includes("Water Pump")) opt.text = "ရေမော်တာ";
+                    if (opt.text.includes("Air Compressor")) opt.text = "လေကွန်ပရက်ဆာ";
+                    if (opt.text === "Ultrasonic") opt.text = "အာထရာဆိုးနစ် ဆင်ဆာ";
+                    if (opt.text === "Hydrostatic Pressure") opt.text = "ရေဖိအားတိုင်း ဆင်ဆာ";
+                    if (opt.text === "1 Attempt") opt.text = "၁ ကြိမ်";
+                    if (opt.text === "2 Attempts") opt.text = "၂ ကြိမ်";
+                    if (opt.text.includes("3 Attempts")) opt.text = "၃ ကြိမ် (အကြံပြုချက်)";
+                    if (opt.text === "5 Attempts") opt.text = "၅ ကြိမ်";
+                    if (opt.text === "Unlimited") opt.text = "အကန့်အသတ်မရှိ";
+                });
+
+                document.getElementById('wifiPass').placeholder = "လက်ရှိအတိုင်းထားမည်";
+                document.getElementById('licText').placeholder = "တိုကင် စာသား ထည့်ပါ";
+                const h2Title = document.querySelector('h2');
+                if (h2Title) {
+                    h2Title.style.fontSize = "1.3rem";
+                    h2Title.innerHTML = h2Title.innerHTML.replace("Tank Water Level", "ရေတိုင်ကီ ရေအမှတ်");
+                }
+                const settTitle = document.getElementById('settingsTitle');
+                if (settTitle) settTitle.innerText = "⚙️ ဆက်တင်များ";
+                document.querySelectorAll('label').forEach(l => {
+                    let t = (l.innerText || l.textContent || "").trim();
+                    if (t.includes("Start Hour")) l.innerText = tr("Start Hour");
+                    if (t.includes("End Hour")) l.innerText = tr("End Hour");
+                    if (t.includes("Service Limit (Hours)")) l.innerText = tr("Service Limit (Hours)");
+                    if (t.includes("High Volt")) l.innerText = dict["High Volt"] || "ဗို့အားလွန်";
+                    if (t.includes("Low Volt")) l.innerText = dict["Low Volt"] || "ဗို့အားလျော့";
+                });
+                const factBtn = document.querySelector('button[onclick="unlockFactory()"]');
+                if (factBtn) factBtn.innerText = tr("🛠️ Factory Mode");
+                const bSave = document.getElementById('btnSave') || document.querySelector('button[onclick="sendSave()"]');
+                if (bSave) bSave.innerText = "💾 သိမ်းဆည်း၍ ပြန်ဖွင့်မည်";
+                document.querySelector('button[onclick="uploadLicenseFile()"]').innerText = "📤 ဖိုင် တင်မည်";
+                document.querySelector('button[onclick="uploadLicenseText()"]').innerText = "🔑 စာသားဖြင့် သက်တမ်းတိုးမည်";
+                document.querySelector('button[onclick="checkOTA(this)"]').innerText = "🔍 ဗားရှင်း အသစ်စစ်ရန်";
+                document.querySelector('button[onclick*="user_guide"]').innerHTML = "📖 အသုံးပြုနည်း လမ်းညွှန်";
+                const curVerLabel = document.getElementById('curVer').parentNode;
+                if (curVerLabel) curVerLabel.innerHTML = curVerLabel.innerHTML.replace("Current Version:", "လက်ရှိ ဗားရှင်း-");
+                document.getElementById('fileName').innerText = "ဖိုင်ရွေးချယ်ထားခြင်းမရှိပါ";
+                const chooseFileSpan = document.querySelector('span[style*="background:#007bff"]');
+                if (chooseFileSpan) chooseFileSpan.innerText = "📁 ဖိုင်ရွေးမည်";
+                const lastMsg = document.getElementById('lastMsg');
+                if (lastMsg) lastMsg.innerText = "ပထမဆုံး ချိတ်ဆက်မှုကို စောင့်နေပါသည်...";
+                document.querySelectorAll('.footer span').forEach(el => {
+                    if (el.innerHTML.includes("Cloud ID:")) el.innerHTML = el.innerHTML.replace("Cloud ID:", "ကလောက် အိုင်ဒီ-");
+                    if (el.innerHTML.includes("Device IP:")) el.innerHTML = el.innerHTML.replace("Device IP:", "စက် အိုင်ပီ-");
+                });
+            }
+            if (document.getElementById('appLang')) document.getElementById('appLang').value = sysLang;
+            updateKeychainUI();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && dataReceived) {
+                if (!client || !client.isConnected()) connect();
+                else requestData();
+            }
+        });
+
+        let client, deviceID, devicePin, pollInterval, watchdog;
+        let dataReceived = false; let isConnecting = false; let activeTab = 'home';
+        let localRetryCd = 0; let localCdInterval = null; let isExpired = false;
+        let lastWebAlert = "";
+        let logHistory = [], lastLogSnapshot = "", currentLogDevice = "";
+        const MAX_LOG_LINES = 1000;
+        const uH = document.getElementById('uH'); for (let i = 12; i <= 84; i += 6) {let opt = document.createElement('option'); opt.value = i; opt.innerText = (i / 12).toFixed(1) + " ft"; uH.appendChild(opt);}
+        const lowTank = document.getElementById('lowTank'); for (let i = 20; i <= 70; i += 5) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " %"; lowTank.appendChild(opt);}
+        const fullTank = document.getElementById('fullTank'); for (let i = 80; i <= 100; i += 5) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " %"; fullTank.appendChild(opt);}
+        const vH = document.getElementById('vH'); for (let i = 230; i <= 260; i++) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vH.appendChild(opt);}
+        const vL = document.getElementById('vL'); for (let i = 150; i <= 190; i++) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vL.appendChild(opt);}
+        const vG = document.getElementById('vG'); for (let i = 1; i <= 10; i++) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Volts"; vG.appendChild(opt);} vG.value = "5";
+        const dD = document.getElementById('dD'); for (let i = 30; i <= 180; i += 5) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Seconds"; dD.appendChild(opt);}
+        const vDly = document.getElementById('vDly'); for (let i = 5; i <= 15; i++) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " Seconds"; vDly.appendChild(opt);}
+        const dndS = document.getElementById('dndS'), dndE = document.getElementById('dndE');
+        for (let i = 0; i < 24; i++) {let h = (i < 10 ? '0' : '') + i + ':00';[dndS, dndE].forEach(s => {let opt = document.createElement('option'); opt.value = i; opt.innerText = h; s.appendChild(opt);});}
+        const tz = document.getElementById('tzOf'); for (let i = -12; i <= 14; i += 0.5) {let opt = document.createElement('option'); opt.value = i; opt.innerText = "GMT " + (i >= 0 ? "+" : "") + (i == 0 ? "0" : i); tz.appendChild(opt);}
+        const setBadge = (id, text, type) => {let el = document.getElementById(id); if (el) {el.innerText = text; el.className = 'badge bg-' + type;} };
+        function togglePass(id) {let x = document.getElementById(id); x.type = x.type === "password" ? "text" : "password";}
+        function showTab(t) {
+            vibe();
+            if (t === 'support' && isExpired) {
+                showModal(sysLang == 1 ? "လိုင်စင်သက်တမ်းကုန်ဆုံးနေသဖြင့် AI အကူအညီကို အသုံးပြု၍မရပါ။" : "Support Chat is disabled because your license has expired.");
+                return;
+            }
+            activeTab = t;
+            document.getElementById('homeView').style.display = t === 'home' ? 'block' : 'none';
+            document.getElementById('settingsView').style.display = t === 'settings' ? 'block' : 'none';
+            document.getElementById('supportView').style.display = t === 'support' ? 'block' : 'none';
+            document.getElementById('tabHome').className = 'tab ' + (t === 'home' ? 'tab-active' : 'tab-inactive');
+            document.getElementById('tabSettings').className = 'tab ' + (t === 'settings' ? 'tab-active' : 'tab-inactive');
+            document.getElementById('tabSupport').className = 'tab ' + (t === 'support' ? 'tab-active' : 'tab-inactive');
+        }
+        function showModal(msg) {
+            const isMM = (sysLang == 1);
+            const tEl = document.querySelector('.modal-title');
+            const bEl = document.querySelector('.modal-close');
+            if (tEl) tEl.innerHTML = '<span>🔔</span> ' + (isMM ? 'စနစ် အသိပေးချက်' : 'System Notice');
+            if (bEl) bEl.innerText = isMM ? 'နားလည်ပါသည်' : 'Understood';
+            const txt = isMM ? tr(msg) : msg;
+            document.getElementById('warnText').innerText = txt;
+            document.getElementById('warnModal').style.display = 'block';
+            vibe();
+        }
+        function closeModal() {document.getElementById('warnModal').style.display = 'none';}
+        function formatTime() {let n = new Date(); return n.getHours().toString().padStart(2, '0') + ":" + n.getMinutes().toString().padStart(2, '0');}
+
+        function updateOnlineStatus(o) {
+            [document.getElementById('statusDot'), document.getElementById('statusDotS')].forEach(d => {if (d) d.className = "conn-dot " + (o ? "" : "off");});
+            [document.getElementById('statusTxt'), document.getElementById('statusTxtS')].forEach(t => {if (t) t.innerText = o ? tr("Device: Online") : tr("Device: Offline");});
+            if (o) {
+                [document.getElementById('statusTxt'), document.getElementById('statusTxtS')].forEach(t => {if (t) t.classList.remove('pulse-text');});
+                resetWatchdog();
+            }
+        }
+        function resetWatchdog() {if (watchdog) clearTimeout(watchdog); watchdog = setTimeout(() => updateOnlineStatus(false), 90000);}
+        function resetLogHistory() {logHistory = []; lastLogSnapshot = "";}
+        function mergeLogHistory(rawLogs) {
+            const incoming = String(rawLogs || "").replace(/\r/g, "").split("\n").map(l => l.trimEnd()).filter(Boolean);
+            if (incoming.length > 1 && !incoming[0].trimStart().startsWith("[")) incoming.shift();
+            if (!incoming.length) return "";
+            const snapshot = incoming.join("\n");
+            if (snapshot === lastLogSnapshot && logHistory.length) return logHistory.join("\n");
+            if (!logHistory.length) {
+                logHistory = incoming.slice(-MAX_LOG_LINES);
+            } else {
+                let overlap = 0;
+                const maxOverlap = Math.min(logHistory.length, incoming.length);
+                for (let n = maxOverlap; n > 0; n--) {
+                    let same = true;
+                    for (let i = 0; i < n; i++) {
+                        if (logHistory[logHistory.length - n + i] !== incoming[i]) {same = false; break;}
+                    }
+                    if (same) {overlap = n; break;}
+                }
+                logHistory = logHistory.concat(incoming.slice(overlap)).slice(-MAX_LOG_LINES);
+            }
+            lastLogSnapshot = snapshot;
+            return logHistory.join("\n");
+        }
+        function renderTankRulerTicks() {const ruler = document.getElementById('tankRuler'); if (!ruler || ruler.dataset.ready === '1') return; let html = ''; for (let v = 0; v <= 100; v += 5) {const cls = (v % 25 === 0) ? 'tank-ruler-tick major' : 'tank-ruler-tick'; html += '<div class="' + cls + '" style="bottom:' + v + '%;"></div>';} ruler.innerHTML = html; ruler.dataset.ready = '1';}
+        function setTankGuides(d) {const low = parseInt(d.lowTank, 10) || 30; const full = parseInt(d.fullPoint || d.fullTank, 10) || 100; const lowMarker = document.getElementById('lowTankMarker'); const fullMarker = document.getElementById('fullTankMarker'); if (lowMarker) lowMarker.style.bottom = low + '%'; if (fullMarker) fullMarker.style.bottom = full + '%'; if (document.getElementById('lowTankMarkerLabel')) document.getElementById('lowTankMarkerLabel').innerText = (sysLang == 1 ? 'စတင် ' : 'LOW ') + low + '%'; if (document.getElementById('fullTankMarkerLabel')) document.getElementById('fullTankMarkerLabel').innerText = (sysLang == 1 ? 'ပြည့် ' : 'FULL ') + full + '%';}
+        function connect() {
+            vibe(); if (isConnecting) return; deviceID = document.getElementById('devID').value.trim().toUpperCase(); devicePin = document.getElementById('devPin').value.trim(); if (deviceID.length < 5) {alert("Invalid ID"); return;} isConnecting = true; localStorage.setItem("cloudPumpID", deviceID); localStorage.setItem("cloudPumpPin", devicePin); const btnLogin = document.getElementById('btnLogin'); btnLogin.innerText = (sysLang == 1 ? "ချိတ်ဆက်နေသည်..." : "Connecting..."); btnLogin.disabled = true; if (client) {try {client.onMessageArrived = null; client.onConnectionLost = null; client.disconnect();} catch (e) { } } client = new Paho.MQTT.Client(BROKER, PORT, "Web_" + Math.random().toString(16).substr(2, 8));
+            if (currentLogDevice !== deviceID) {resetLogHistory(); currentLogDevice = deviceID;}
+            client.onMessageArrived = (msg) => {
+                const topic = msg.destinationName, raw = msg.payloadString; if (topic.endsWith("/online")) {updateOnlineStatus(raw === "1"); return;} [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.remove('spinning')); document.getElementById('lastMsg').innerText = (sysLang == 1 ? "နောက်ဆုံးချိတ်ဆက်မှု- " : "Last sync: ") + formatTime();
+                try {
+                    const data = JSON.parse(raw);
+                    if (data.alert) {if (data.alert === "Access Denied" && !dataReceived) {const err = document.getElementById('loginError'); err.innerText = data.reason; err.style.display = 'block'; btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect"); btnLogin.disabled = false; isConnecting = false; client.disconnect();} else {showModal(data.reason || data.alert); if (data.alert === "Access Denied") setTimeout(() => location.reload(), 3000);} return;}
+                    if (!dataReceived) {dataReceived = true; saveToKeychain(deviceID, devicePin, data.sysRole); document.getElementById('loginScreen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; if (pollInterval) {clearInterval(pollInterval); pollInterval = null;} } updateUI(data); resetWatchdog();
+                } catch (e) {console.error("Parse error", e);}
+            };
+            client.onConnectionLost = (e) => {
+                updateOnlineStatus(false); isConnecting = false;
+                [document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.remove('spinning'));
+                if (e.errorCode !== 0) {
+                    [document.getElementById('statusTxt'), document.getElementById('statusTxtS')].forEach(t => {
+                        if (t) {t.innerText = sysLang == 1 ? "ပြန်လည်ချိတ်ဆက်နေသည်..." : "Reconnecting..."; t.classList.add('pulse-text');}
+                    });
+                    if (dataReceived) setTimeout(connect, 5000);
+                    else {btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect"); btnLogin.disabled = false;}
+                }
+            };
+            client.connect({
+                useSSL: true,
+                userName: USER,
+                password: PASS,
+                timeout: 10,
+                onSuccess: () => {
+                    isConnecting = false;
+                    btnLogin.innerText = (sysLang == 1 ? "စင့်ခ်လုပ်နေသည်..." : "Syncing...");
+                    client.subscribe(`smartpump/${deviceID}/status`);
+                    client.subscribe(`smartpump/${deviceID}/online`);
+                    setTimeout(requestData, 500);
+                },
+                onFailure: (e) => {
+                    isConnecting = false;
+                    const err = document.getElementById('loginError');
+                    let userMsg = sysLang == 1
+                        ? "ဆာဗာသို့ ချိတ်ဆက်၍မရပါ။ အင်တာနက်လိုင်းကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။"
+                        : "Unable to connect to cloud server. Please check your internet connection.";
+                    if (e.errorCode === 4 || e.errorCode === 5) {
+                        userMsg = sysLang == 1 ? "ဆာဗာ အသုံးပြုခွင့် မှားယွင်းနေပါသည်။" : "Server authentication failed.";
+                    }
+                    err.innerText = userMsg;
+                    err.style.display = 'block';
+                    btnLogin.innerText = (sysLang == 1 ? "ပြန်ချိတ်မည်" : "Connect");
+                    btnLogin.disabled = false;
+                    console.warn("MQTT Connection Error:", e.errorMessage, "Code:", e.errorCode);
+                }
+            });
+        }
+        function requestData() {vibe();[document.getElementById('refreshBtn'), document.getElementById('refreshBtnS')].forEach(b => b && b.classList.add('spinning')); if (client && client.isConnected()) {sendCmd({get: 1});} else {connect();} }
+        function logout() {
+            vibe();
+            if (confirm(sysLang == 1 ? "စက်ပြောင်းမည်လား?" : "Switch Device?")) {
+                if (client) {try {client.onMessageArrived = null; client.onConnectionLost = null; client.disconnect();} catch (e) { } client = null;}
+                localStorage.removeItem("cloudPumpID"); localStorage.removeItem("cloudPumpPin");
+                document.getElementById('dashboard').style.display = 'none'; document.getElementById('loginScreen').style.display = 'block';
+                location.reload();
+            }
+        }
+        function sendReset() {vibe(); sendCmd({reset: 1});}
+        function sendToggle() {vibe(); sendCmd({toggle: 1});}
+        function sendCmd(p) {if (!client || !client.isConnected()) return; p.pin = devicePin; let msg = new Paho.MQTT.Message(JSON.stringify(p)); msg.destinationName = `smartpump/${deviceID}/set`; client.send(msg);}
+        function startOTA() {vibe(); if (confirm(sysLang == 1 ? "စက်ကို အဆင့်မြှင့်တင်မလား?" : "Start OTA?")) sendCmd({otaStart: 1});}
+        function checkOTA(btn) {vibe(); sendCmd({otaCheck: 1});}
+        function sendSave() {
+            vibe(); if (isExpired) {showModal(sysLang == 1 ? "လိုင်စင် သက်တမ်းကုန်ဆုံးပါပြီ။" : "License Expired."); return;} const ssid = document.getElementById('ssid').value.trim();
+            if (!ssid) {
+                alert(sysLang == 1 ? "ဝိုင်ဖိုင်အမည် (SSID) ထည့်သွင်းပေးပါ" : "SSID empty!");
+                return;
+            }
+            const confirmMsg = sysLang == 1 ? "သိမ်းဆည်းပြီး စက်ကိုပြန်ဖွင့်မည်လား?" : "Save and reboot?";
+            if (!confirm(confirmMsg)) return; activeTab = 'saving'; sendCmd({
+                save: 1, ssid: ssid, pass: document.getElementById('wifiPass').value, newPin: document.getElementById('newPin').value || devicePin, sType: parseInt(document.getElementById('sType').value), sysRole: parseInt(document.getElementById('sysRole').value), linkID: document.getElementById('linkID').value.trim().toUpperCase(), setM: parseInt(document.getElementById('setM').value), opM: parseInt(document.getElementById('opM').value), vDly: parseInt(document.getElementById('vDly').value), uH: parseFloat(document.getElementById('uH').value), lowTank: parseInt(document.getElementById('lowTank').value), fullTank: parseInt(document.getElementById('fullTank').value), vH: parseInt(document.getElementById('vH').value), vL: parseInt(document.getElementById('vL').value), vG: parseInt(document.getElementById('vG').value), dD: parseInt(document.getElementById('dD').value), rstM: parseInt(document.getElementById('rstM').value), rM: parseInt(document.getElementById('rM').value), maxRet: parseInt(document.getElementById('maxRet').value), dndEn: parseInt(document.getElementById('dndEn').value), dndS: parseInt(document.getElementById('dndS').value), dndE: parseInt(document.getElementById('dndE').value), tzOf: parseFloat(document.getElementById('tzOf').value),
+                motLim: parseInt(document.getElementById('mSl').value), mqSrv: document.getElementById('mqSrv_s') ? document.getElementById('mqSrv_s').value : undefined, mqPort: document.getElementById('mqPort_s') ? parseInt(document.getElementById('mqPort_s').value) : undefined, mqUser: document.getElementById('mqUser_s') ? document.getElementById('mqUser_s').value : undefined, mqPass: document.getElementById('mqPass_s') ? document.getElementById('mqPass_s').value : undefined
+            }); document.body.innerHTML = '<h2 style="color:white;text-align:center;margin-top:50px;">Settings Saved!<br><span style="font-size:1rem;color:#888;">Rebooting device...</span></h2>'; setTimeout(() => location.reload(), 20000);
+        }
+        function uploadLicenseFile() {vibe(); const fileInput = document.getElementById('licFile'); if (fileInput.files.length === 0) {alert(sysLang == 1 ? "ကျေးဇူးပြု၍ .key ဖိုင်ကို ဦးစွာ ရွေးချယ်ပါ" : "Please select a .key file first."); return;} const file = fileInput.files[0]; const reader = new FileReader(); reader.onload = function (e) {sendLicense(e.target.result.trim());}; reader.readAsText(file);}
+        function uploadLicenseText() {vibe(); const val = document.getElementById('licText').value.trim(); if (val.length < 10) {alert(sysLang == 1 ? "တိုကင် စာသား မှားယွင်းနေပါသည်။" : "Invalid token string."); return;} sendLicense(val);}
+        function sendLicense(token) {if (token.length > 10) {sendCmd({lic: token}); alert(sysLang == 1 ? "လိုင်စင် တိုကင် ပေးပို့ပြီးပါပြီ!" : "License Token Sent!");} }
+        function formatRuntime(totalSeconds) {
+            if (!totalSeconds) return "0h 0m";
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            return h + "h " + m + "m";
+        }
+        function resetMotorLife() {
+            vibe();
+            const confirmMsg = sysLang == 1 ? "မောင်းနှင်ချိန်ကို သုညသို့ ပြန်စရန် သေချာပါသလား?" : "Are you sure you want to RESET the Motor Life counter to zero?";
+            if (confirm(confirmMsg)) {
+                sendCmd({resetRun: 1});
+                const successMsg = sysLang == 1 ? "ပြန်လည်စတင်ရန် အမိန့်ပေးပို့ပြီးပါပြီ" : "Reset command sent to device!";
+                alert(successMsg);
+            }
+        }
+        const dirtyFields = new Set();
+        function markDirty(id) {dirtyFields.add(id);}
+        function safeUpdate(id, val, suffix) {const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return; if (el.tagName === 'SELECT') {let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) {let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt);} el.value = val;} else {el.value = val;} }
+
+        function updateUI(d) {
+            latestTelemetry = d;
+            renderTankRulerTicks(); if (sysLang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm'); if (document.getElementById('dndBadgeC')) {document.getElementById('dndBadgeC').style.display = (d.dndAct == 1) ? 'block' : 'none';}
+            let rb = document.getElementById('roleBadgeC'); if (rb) {if (d.sysRole == 1) {rb.innerText = sysLang == 1 ? "👑 အောက်တိုင်ကီ (MASTER)" : "👑 MASTER (SUMP)"; rb.className = "badge bg-info"; rb.style.display = "block"; rb.style.color = "#17a2b8";} else if (d.sysRole == 2) {rb.innerText = sysLang == 1 ? "👷 အပေါ်တိုင်ကီ (SLAVE)" : "👷 SLAVE (ROOF)"; rb.className = "badge bg-warning"; rb.style.display = "block"; rb.style.color = "#ffc107";} else {rb.style.display = "none";} }
+            isExpired = d.expired ? true : false;
+            if (d.rssi !== undefined) updateWifiIcon(d.rssi);
+
+            const frame = document.getElementById('supportFrame');
+            if (frame) {
+                const status = d.expired ? 'True' : 'False';
+                if (!frame.src.includes("expired=" + status)) {
+                    frame.src = `https://amk-pump-support.streamlit.app/?expired=${status}&id=${d.id}&embed=true&theme=dark`;
+                }
+            }
+
+            const pBanner = document.getElementById('promoBanner');
+            const pText = document.getElementById('promoText');
+            const activeID = d.id || deviceID || localStorage.getItem("cloudPumpID");
+            const deviceDismissedMsg = activeID ? (localStorage.getItem("amk_dismiss_promo_" + activeID) || "") : "";
+
+            if (d.promo && d.promo.trim() !== "" && d.promo !== deviceDismissedMsg) {
+                pBanner.style.display = 'block';
+                pText.innerText = d.promo;
+            } else if (!d.promo || d.promo.trim() === "") {
+                pBanner.style.display = 'none';
+                if (activeID) localStorage.removeItem("amk_dismiss_promo_" + activeID);
+            } else {
+                pBanner.style.display = 'none';
+            }
+            const expBanner = document.getElementById('expiryBanner'), warnBanner = document.getElementById('warnBanner'), licStat = document.getElementById('licStat'); if (isExpired) {expBanner.style.display = 'block'; warnBanner.style.display = 'none'; licStat.innerHTML = '<span style="color:#ff6b6b">' + (sysLang == 1 ? "သက်တမ်းကုန်ပြီ" : "EXPIRED") + '</span>';} else {expBanner.style.display = 'none'; if (d.daysLeft <= 7 && d.daysLeft >= 0) {warnBanner.style.display = 'block'; document.getElementById('warnMsg').innerText = sysLang == 1 ? d.daysLeft + " ရက် ကျန်ပါသေးသည်။" : d.daysLeft + " days remaining.";} else warnBanner.style.display = 'none'; licStat.innerHTML = sysLang == 1 ? `<span style="color:#28a745">အသက်ဝင်သည် (${d.daysLeft} ရက် ကျန်သည်)</span>` : `<span style="color:#28a745">Active (${d.daysLeft} days left)</span>`;}
+            const rawInfo = d.info || "";
+            let displayInfo = rawInfo;
+            if (displayInfo.startsWith("SETTLING_WATER")) displayInfo = "SETTLING_WATER!";
+            let vS = d.vStat || "--", iF = displayInfo, pS = d.pStat || "--", tS = d.tStr || (d.tank !== undefined ? d.tank + '%' : "-- %");
+            if (sysLang == 1) {
+                vS = tr(vS); pS = tr(pS); iF = tr(displayInfo);
+                if (d.tStr == "FULL") tS = "ပြည့်"; else if (d.tStr == "LOW") tS = "နည်း"; else if (d.tStr == "ERR") tS = "ချို့ယွင်း";
+            }
+            document.getElementById('tankVal').innerText = tS; document.getElementById('dispIp').innerText = d.ip || "---"; document.getElementById('dispCid').innerText = d.id || "---"; document.getElementById('volt').innerText = (d.volt || "--") + " V";
+            if (d.logs) {
+                const logBox = document.getElementById('logBox');
+                const mergedLogs = mergeLogHistory(d.logs);
+                if (logBox.innerText !== mergedLogs) {
+                    const isAtBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 30;
+                    logBox.innerText = mergedLogs;
+                    if (isAtBottom) logBox.scrollTop = logBox.scrollHeight;
+                }
+            }
+            // Symmetrical Bento Pill Updates
+            let vEl = document.getElementById('vstat');
+            if (vEl) {
+                let vCls = 'pill-grey';
+                if (d.vStat === "NORMAL") vCls = 'pill-green';
+                else if (d.vStat === "DELAY") vCls = 'pill-yellow';
+                else if (d.vStat === "OVER" || d.vStat === "UNDER") vCls = 'pill-red';
+                vEl.className = 'status-pill ' + vCls;
+                vEl.innerHTML = `<span class="dot-indicator"></span> <span>${vS}</span>`;
+            }
+
+            let pEl = document.getElementById('pstate');
+            let pHero = document.getElementById('pstateVal');
+            if (pEl && pHero) {
+                let isRunning = (d.pStat === "ON");
+                pHero.innerText = isRunning ? (sysLang == 1 ? "ဖွင့်" : "ON") : (sysLang == 1 ? "ပိတ်" : "OFF");
+                pHero.style.color = isRunning ? "#03ef62" : "#adb5bd";
+                pEl.className = 'status-pill ' + (isRunning ? 'pill-green' : 'pill-grey');
+                pEl.innerHTML = `<span class="dot-indicator"></span> <span>${isRunning ? (sysLang == 1 ? "မောင်းနေသည်" : "Running") : (sysLang == 1 ? "အသင့်" : "Standby")}</span>`;
+            }
+
+            let iEl = document.getElementById('info');
+            if (iEl) {
+                iEl.innerText = iF;
+                let dotColor = '#03ef62';
+                let diagCls = 'diag-green';
+
+                if (rawInfo.includes("OVER_VOLTAGE") || rawInfo.includes("UNDER_VOLTAGE") || rawInfo.includes("ALARM") || rawInfo.includes("ERROR")) {
+                    dotColor = '#ff1744';
+                    diagCls = 'diag-red';
+                } else if (rawInfo.includes("VOLT_DELAY") || rawInfo.includes("WAITING") || rawInfo.includes("LOCKED") || rawInfo.includes("COOLING") || rawInfo.includes("VENTING") || rawInfo.includes("SETTLING")) {
+                    dotColor = '#ffab00';
+                    diagCls = 'diag-yellow';
+                } else if (rawInfo.includes("FLOW_CHECKING")) {
+                    dotColor = '#00b4ff';
+                    diagCls = 'diag-blue';
+                }
+
+                if (iEl.parentElement) {
+                    iEl.parentElement.className = 'diagnostic-banner ' + diagCls;
+                }
+                if (iEl.previousElementSibling) {
+                    iEl.previousElementSibling.style.background = dotColor;
+                }
+            }
+            const tankFill = document.getElementById('tankFill'); if (tankFill && activeTab !== 'saving') {setTankGuides(d); tankFill.style.height = (d.tank || 0) + '%'; if (d.tank <= (d.lowTank || 30)) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water'); if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');}
+            if (activeTab !== 'saving') {
+                if (d.sType !== undefined) safeUpdate('sType', d.sType); if (d.sysRole !== undefined) {safeUpdate('sysRole', d.sysRole); toggleRole();} if (d.setM !== undefined) safeUpdate('setM', d.setM); if (d.linkID !== undefined) safeUpdate('linkID', d.linkID); if (d.opM !== undefined) {safeUpdate('opM', d.opM); toggleVDly();} if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds"); if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.lowTank !== undefined) safeUpdate('lowTank', d.lowTank); if (d.fullTank !== undefined) safeUpdate('fullTank', d.fullTank); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts"); if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds"); if (d.rstM !== undefined) safeUpdate('rstM', d.rstM); if (d.rM !== undefined) {safeUpdate('rM', d.rM); toggleRetryLimit();} if (d.maxRet !== undefined) safeUpdate('maxRet', d.maxRet); if (d.ssid !== undefined) safeUpdate('ssid', d.ssid); if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn); if (d.dndS !== undefined) safeUpdate('dndS', d.dndS); if (d.dndE !== undefined) safeUpdate('dndE', d.dndE); if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
+                if (d.motLim !== undefined) safeUpdate('mSl', d.motLim); if (d.mSl !== undefined) safeUpdate('mSl', d.mSl); if (d.mqSrv !== undefined) safeUpdate('mqSrv_s', d.mqSrv); if (d.mqPort !== undefined) safeUpdate('mqPort_s', d.mqPort); if (d.mqUser !== undefined) safeUpdate('mqUser_s', d.mqUser); if (d.mqPass !== undefined) safeUpdate('mqPass_s', d.mqPass); if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
+                if (d.runtime !== undefined) {
+                    const formattedTime = formatRuntime(d.runtime);
+                    document.getElementById('dispRunHome').innerText = formattedTime;
+                    document.getElementById('dispRunSett').innerText = formattedTime;
+                }
+                const otaHome = document.getElementById('otaHub'), otaSett = document.getElementById('otaHubS');
+                if (d.ota == 1 && d.nVer > d.ver) {
+                    if (otaHome) otaHome.style.display = 'block'; if (otaSett) otaSett.style.display = 'block';
+                    const msgTxt = sysLang == 1 ? `ဗားရှင်းအသစ် v${d.nVer} ရနိုင်ပါပြီ!` : `New Version v${d.nVer} Available!`;
+                    if (document.getElementById('otaMsg')) document.getElementById('otaMsg').innerText = msgTxt;
+                    if (document.getElementById('otaMsgS')) document.getElementById('otaMsgS').innerText = msgTxt;
+                    document.querySelectorAll('button[onclick="startOTA()"]').forEach(btn => {btn.innerText = sysLang == 1 ? "🚀 အခုပဲ မြှင့်တင်မည်" : "🚀 Update Now";});
+                } else {
+                    if (otaHome) otaHome.style.display = 'none'; if (otaSett) otaSett.style.display = 'none';
+                }
+            }
+            if (d.alertMsg && d.alertMsg !== lastWebAlert) {showModal(d.alertMsg); lastWebAlert = d.alertMsg;} else if (!d.alertMsg) {lastWebAlert = "";}
+            updateOnlineStatus(true); const btn = document.getElementById('btnToggle'), rst = document.getElementById('btnReset'); if (d.err) {btn.style.display = 'none'; rst.style.display = 'block'; rst.innerText = (sysLang == 1 ? "အချက်ပေး ပြန်ပိတ်မည်" : "Reset Alarm");} else if (d.sErr && !d.ack) {btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = (sysLang == 1 ? "အချက်ပေး ပြန်ပိတ်မည်" : "Reset Alarm"); btn.className = "btn btn-red"; btn.disabled = false;} else if (rawInfo.includes("VENTING_VALVE") || rawInfo.includes("VENTING") || rawInfo.includes("လေလျှော့နေသည်")) {btn.style.display = 'block'; rst.style.display = 'none'; btn.innerText = tr("PLEASE WAIT..."); btn.className = "btn btn-grey"; btn.disabled = true;} else {btn.style.display = 'block'; rst.style.display = 'none'; if (isExpired) {btn.innerText = tr("LICENSE EXPIRED"); btn.className = "btn btn-grey"; btn.disabled = true;} else {btn.disabled = false; let btnTxt = (d.pStat == "ON" ? 'Stop Pump' : 'Start Pump'); btn.innerText = tr(btnTxt); btn.className = "btn " + (d.pStat == "ON" ? "btn-red" : "btn-green");} }
+            const cdRow = document.getElementById('cdRow');
+            const cdText = document.getElementById('cdText');
+            if (cdRow && cdText) {
+                if (d.err == 2 && d.rM > 0 && d.rCd > 0) {
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Auto-Retry") + " • " + Math.max(0, Math.ceil(d.rCd / 60)) + "m";
+                } else if (rawInfo.includes("COOLING") || rawInfo.includes("အအေးခံနေသည်")) {
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Cooldown") + " • " + Math.max(0, Math.ceil(d.rstCd / 60)) + "m";
+                } else if (d.isDR) {
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Dry-Run") + " • " + d.cd + "s";
+                } else if (rawInfo.includes("SETTLING_WATER") || (d.setCd !== undefined && d.setCd > 0)) {
+                    cdRow.style.display = 'flex';
+                    cdText.innerText = tr("Settling") + " • " + Math.max(0, Math.ceil(d.setCd / 60)) + "m";
+                } else {
+                    cdRow.style.display = 'none';
+                }
+            }
+        }
+
+        // ============================================================================
+        // FAST STANDALONE VOICE ENGINE (NO EXTERNAL API KEY REQUIRED)
+        // ============================================================================
+        let recognition = null;
+        let isListening = false;
+        let latestTelemetry = {};
+        let mobileTranscriptBuffer = '';
+        let commandDispatched = false;
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return null;
+
+            const rec = new SpeechRecognition();
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.maxAlternatives = 1;
+            rec.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+
+            rec.onstart = function () {
+                isListening = true;
+                mobileTranscriptBuffer = '';
+                commandDispatched = false;
+                document.getElementById('voiceFab').classList.add('listening');
+                document.getElementById('voiceOverlay').style.display = 'flex';
+                document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak now";
+                document.getElementById('voiceTranscript').innerText = "...";
+                document.getElementById('voiceFeedback').innerText = "";
+                vibe();
+            };
+
+            rec.onresult = function (event) {
+                let current = event.resultIndex;
+                let transcript = event.results[current][0].transcript.trim();
+                mobileTranscriptBuffer = transcript;
+                document.getElementById('voiceTranscript').innerText = `"${transcript}"`;
+
+                if (event.results[current].isFinal && !commandDispatched) {
+                    commandDispatched = true;
+                    processVoiceCommand(transcript);
+                }
+            };
+
+            rec.onerror = function (event) {
+                console.warn("[Voice] Speech event:", event.error);
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    document.getElementById('voiceFeedback').innerText = "";
+                    stopVoiceAssistant();
+                    return;
+                }
+                let errText = (sysLang === 1) ? "အသံဖမ်းယူမှု မအောင်မြင်ပါ" : "Didn't catch that.";
+                document.getElementById('voiceFeedback').style.color = '#ff1744';
+                document.getElementById('voiceFeedback').innerText = `${errText} (${event.error})`;
+                speakText(errText);
+                setTimeout(stopVoiceAssistant, 2200);
+            };
+
+            rec.onend = function () {
+                isListening = false;
+                document.getElementById('voiceFab').classList.remove('listening');
+                if (mobileTranscriptBuffer && !commandDispatched) {
+                    commandDispatched = true;
+                    processVoiceCommand(mobileTranscriptBuffer);
+                }
+            };
+
+            return rec;
+        }
+
+        function toggleVoiceAssistant() {
+            vibe();
+
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            const aPlayer = document.getElementById('myanmarAudio');
+            if (aPlayer) {
+                aPlayer.pause();
+                aPlayer.currentTime = 0;
+                aPlayer.src = "";
+            }
+
+            if (!recognition) recognition = initSpeechRecognition();
+
+            if (!recognition) {
+                alert(sysLang === 1 ? "ဤဘရောက်ဇာတွင် အသံစနစ် အသုံးပြု၍မရပါ" : "Voice commands not supported in this browser.");
+                return;
+            }
+
+            if (isListening) {
+                stopVoiceAssistant();
+            } else {
+                recognition.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                mobileTranscriptBuffer = '';
+                commandDispatched = false;
+                try {
+                    recognition.start();
+                } catch (e) {
+                    try {
+                        recognition.abort();
+                        setTimeout(() => {try {recognition.start();} catch (err) { } }, 120);
+                    } catch (err) { }
+                }
+            }
+        }
+
+        function stopVoiceAssistant() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+            isListening = false;
+            document.getElementById('voiceFab').classList.remove('listening');
+            document.getElementById('voiceOverlay').style.display = 'none';
+        }
+
+        function speakText(text) {
+            if (!text) return;
+
+            const aPlayer = document.getElementById('myanmarAudio');
+            if (aPlayer) {
+                aPlayer.pause();
+                aPlayer.currentTime = 0;
+            }
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+
+            const langCode = (sysLang === 1) ? 'my' : 'en';
+
+            // High-Fidelity Audio Streaming (Works in both Myanmar and English across APK and PWA)
+            if (aPlayer) {
+                const cleanText = encodeURIComponent(text.substring(0, 130));
+                const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
+                aPlayer.src = streamUrl;
+                aPlayer.play().catch(e => {
+                    console.warn("[Voice] Audio stream fallback:", e);
+                    if (window.speechSynthesis) {
+                        const utter = new SpeechSynthesisUtterance(text);
+                        utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                        utter.rate = 1.0;
+                        utter.pitch = 1.0;
+                        window.speechSynthesis.speak(utter);
+                    }
+                });
+                return;
+            }
+
+            if (window.speechSynthesis) {
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
+                utter.rate = 1.0;
+                utter.pitch = 1.0;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        function processVoiceCommand(rawText) {
+            const text = rawText.toLowerCase();
+            const feedbackEl = document.getElementById('voiceFeedback');
+            feedbackEl.style.color = '#03ef62';
+
+            const isRunning = (latestTelemetry.pStat === "ON");
+            const tankLevel = latestTelemetry.tank !== undefined ? latestTelemetry.tank : "--";
+            const voltage = latestTelemetry.volt !== undefined ? latestTelemetry.volt : "--";
+
+            // 1. START PUMP
+            const startPhrases = ["start", "on", "pump on", "turn on", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်"];
+            if (startPhrases.some(p => text.includes(p))) {
+                if (isRunning) {
+                    const msg = (sysLang === 1) ? "မော်တာ လည်ပတ်နေပြီး ဖြစ်ပါသည်" : "Pump is already running.";
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
+                } else if (latestTelemetry.tank >= (latestTelemetry.fullTank || 100)) {
+                    const msg = (sysLang === 1) ? "ရေတိုင်ကီ ပြည့်နေသဖြင့် ဖွင့်၍မရပါ" : "Tank is already full. Cannot start.";
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
+                } else {
+                    const msg = (sysLang === 1) ? "ရေမော်တာကို ဖွင့်လိုက်ပါပြီ" : "Starting pump now.";
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
+                    sendToggle();
+                }
+                setTimeout(stopVoiceAssistant, 1800);
+                return;
+            }
+
+            // 2. STOP PUMP
+            const stopPhrases = ["stop", "off", "pump off", "turn off", "ပိတ်", "မော်တာပိတ်", "ရပ်", "ရပ်တန့်"];
+            if (stopPhrases.some(p => text.includes(p))) {
+                if (!isRunning) {
+                    const msg = (sysLang === 1) ? "မော်တာ ပိတ်ထားပြီး ဖြစ်ပါသည်" : "Pump is already stopped.";
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
+                } else {
+                    const msg = (sysLang === 1) ? "ရေမော်တာကို ပိတ်လိုက်ပါပြီ" : "Stopping pump now.";
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
+                    sendToggle();
+                }
+                setTimeout(stopVoiceAssistant, 1800);
+                return;
+            }
+
+            // 3. RESET ALARM
+            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်"];
+            if (resetPhrases.some(p => text.includes(p))) {
+                feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
+                speakText(feedbackEl.innerText);
+                sendReset();
+                setTimeout(stopVoiceAssistant, 1500);
+                return;
+            }
+
+            // 4. STATUS CHECK
+            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား"];
+            if (statusPhrases.some(p => text.includes(p))) {
+                const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားပြီး" : "Stopped");
+                const resp = (sysLang === 1)
+                    ? `ရေအမှတ် ${tankLevel} ရာခိုင်နှုန်း၊ ဗို့အား ${voltage} ဗို့၊ မော်တာ ${pText} ဖြစ်ပါသည်။`
+                    : `Water level is ${tankLevel} percent. Voltage is ${voltage} Volts. Pump is ${pText}.`;
+                feedbackEl.innerText = resp;
+                speakText(resp);
+                setTimeout(stopVoiceAssistant, 3500);
+                return;
+            }
+
+            // 5. UNRECOGNIZED COMMAND
+            const unknownMsg = (sysLang === 1) ? "နားမလည်ပါ: " + rawText : "Command not recognized: " + rawText;
+            feedbackEl.style.color = '#ffab00';
+            feedbackEl.innerText = unknownMsg;
+            speakText(unknownMsg);
+            setTimeout(stopVoiceAssistant, 2000);
+        }
+    </script>
+</body>
+
+</html>
