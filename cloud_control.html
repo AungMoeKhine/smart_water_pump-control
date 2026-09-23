@@ -24,19 +24,24 @@
             background-image: radial-gradient(circle at 50% 0%, #1a2332 0%, #0b0e14 75%);
             color: #f0f6fc;
             text-align: center;
+            /* MODIFIED: Centering body content vertically and horizontally using Flexbox */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            /* END MODIFICATION */
             padding: 10px;
+            /* Reduced top/bottom padding as flex handles centering */
             margin: 0;
             min-height: 100vh;
             letter-spacing: -0.2px;
         }
 
+        /* ADDED: Ensure dashboard content maintains vertical centering and correct width within flex body */
         #dashboard {
             width: 100%;
             max-width: 400px;
+            /* Matches card constraints */
             margin-top: auto;
             margin-bottom: auto;
         }
@@ -152,6 +157,21 @@
             transition: transform 0.3s, color 0.2s;
             margin: 0;
             padding: 0;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #00d2ff;
+            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
         }
 
         .btn {
@@ -322,12 +342,14 @@
             top: -15px;
         }
 
+        /* Wave 1: Soft Matching Surface Reflection */
         .tank-fill::before {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2366e5ff' opacity='0.45'/%3E%3C/svg%3E");
             animation: wave 4s linear infinite;
             z-index: 1;
         }
 
+        /* Wave 2: Primary Wave (Matches Water Surface 1:1) */
         .tank-fill::after {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2300d2ff'/%3E%3C/svg%3E");
             animation: wave 3s linear infinite reverse;
@@ -335,11 +357,13 @@
             margin-top: 1px;
         }
 
+        /* Low Water Theme */
         .tank-fill.low-water {
             background: linear-gradient(180deg, #ffab00 0%, #ff5722 65%, #b71c1c 100%) !important;
             box-shadow: 0 0 25px rgba(255, 171, 0, 0.4) !important;
         }
 
+        /* Low Water Waves: Harmonious Matching Amber */
         .tank-fill.low-water::before {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ffd54f' opacity='0.45'/%3E%3C/svg%3E");
         }
@@ -348,6 +372,7 @@
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ffab00'/%3E%3C/svg%3E");
         }
 
+        /* Show Waves ONLY When Pump is Running */
         .tank-fill.pumping::before,
         .tank-fill.pumping::after {
             opacity: 1;
@@ -525,6 +550,7 @@
             gap: 6px;
         }
 
+        /* Center the labels ONLY inside the top 3 bento tiles */
         .bento-tile .tile-label {
             justify-content: center;
             width: 100%;
@@ -546,6 +572,7 @@
             line-height: 1.25;
         }
 
+        /* Myanmar Language Adjustment: Prevents tall ascenders/descenders from clipping */
         .lang-mm .hero-value {
             font-size: 1.35rem;
             line-height: 1.35;
@@ -648,6 +675,7 @@
             color: #00b4ff;
         }
 
+        /* Restores Total Motor Life to left-and-right balanced layout */
         .motor-life-tile {
             display: flex;
             align-items: center;
@@ -676,6 +704,7 @@
             flex-shrink: 0;
         }
 
+        /* --- FLUSH-LEFT LOG CONSOLE --- */
         #logBox {
             background: #05070a;
             color: #03ef62;
@@ -692,6 +721,7 @@
             white-space: pre-wrap;
         }
 
+        /* --- SETTINGS CARDS & FORM ELEMENTS --- */
         .settings-section {
             background: rgba(255, 255, 255, 0.035);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -752,6 +782,7 @@
             box-shadow: 0 0 10px rgba(0, 210, 255, 0.25);
         }
 
+        /* Center-align text & placeholder for Device ID and PIN */
         #loginScreen input {
             text-align: center !important;
             margin-bottom: 14px;
@@ -858,19 +889,19 @@
             text-align: center;
         }
 
-        /* --- VOICE ASSISTANT MIC BUTTON & WAKE-WORD PILL --- */
+        /* --- VOICE ASSISTANT MIC BUTTON (MINI & DISCREET) --- */
         .voice-fab {
             position: absolute;
             right: -42px;
             bottom: 4px;
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: linear-gradient(135deg, rgba(0, 210, 255, 0.9), rgba(0, 102, 255, 0.9));
-            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.35);
-            border: 1.5px solid rgba(255, 255, 255, 0.35);
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.85), rgba(0, 102, 255, 0.85));
+            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             color: #ffffff;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -879,51 +910,23 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            opacity: 0.9;
+            opacity: 0.85;
         }
 
         .voice-fab:hover {
             transform: scale(1.12);
             opacity: 1;
-            box-shadow: 0 4px 16px rgba(0, 210, 255, 0.6);
+            box-shadow: 0 4px 14px rgba(0, 210, 255, 0.55);
         }
 
         .voice-fab:active {
             transform: scale(0.92);
         }
 
-        /* Ambient neon wake-beacon showing "OK Pump" is listening */
-        .voice-fab.wake-active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00e676;
-            box-shadow: 0 0 8px #00e676;
-            animation: wake-beacon 2s infinite ease-in-out;
-        }
-
-        @keyframes wake-beacon {
-
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.35);
-                opacity: 0.55;
-            }
-        }
-
         .voice-fab.listening {
             opacity: 1 !important;
             background: linear-gradient(135deg, #ff1744, #d50000) !important;
-            box-shadow: 0 0 18px rgba(255, 23, 68, 0.9) !important;
+            box-shadow: 0 0 16px rgba(255, 23, 68, 0.85) !important;
             animation: pulse-ring 1.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
         }
 
@@ -935,7 +938,7 @@
 
             70% {
                 transform: scale(1.08);
-                box-shadow: 0 0 0 16px rgba(255, 23, 68, 0);
+                box-shadow: 0 0 0 18px rgba(255, 23, 68, 0);
             }
 
             100% {
@@ -944,210 +947,62 @@
             }
         }
 
-        .voice-wake-pill {
-            position: absolute;
-            right: -62px;
-            bottom: -22px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: #8b949e;
-            background: rgba(18, 24, 34, 0.9);
-            padding: 3px 8px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            white-space: nowrap;
-            user-select: none;
-            transition: all 0.2s ease;
-        }
-
-        .voice-wake-pill.active {
-            color: #00e676;
-            border-color: rgba(0, 230, 118, 0.35);
-        }
-
-        .wake-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #00e676;
-            box-shadow: 0 0 6px #00e676;
-        }
-
-        .wake-dot.paused {
-            background: #8b949e;
-            box-shadow: none;
-        }
-
-        /* --- GOOGLE ASSISTANT STYLE VOICE OVERLAY --- */
+        /* Voice Overlay Modal */
         .voice-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(11, 14, 20, 0.88);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+            background: rgba(11, 14, 20, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             z-index: 1001;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 20px;
             text-align: center;
-            animation: overlay-fade-in 0.25s ease-out;
-        }
-
-        @keyframes overlay-fade-in {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
         }
 
         .voice-card {
-            background: rgba(22, 27, 34, 0.96);
-            border: 1px solid rgba(66, 133, 244, 0.35);
-            border-radius: 24px;
-            padding: 26px 20px 22px 20px;
-            max-width: 350px;
-            width: 92%;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(66, 133, 244, 0.15);
-            animation: card-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes card-pop {
-            from {
-                transform: scale(0.9);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        /* Google Assistant 4-Color Wave Indicator */
-        .google-wave {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .google-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            animation: g-bounce 1.1s infinite ease-in-out;
-        }
-
-        .google-dot.g-blue {
-            background: #4285F4;
-            animation-delay: 0s;
-            box-shadow: 0 0 10px #4285F4;
-        }
-
-        .google-dot.g-red {
-            background: #EA4335;
-            animation-delay: 0.14s;
-            box-shadow: 0 0 10px #EA4335;
-        }
-
-        .google-dot.g-yellow {
-            background: #FBBC05;
-            animation-delay: 0.28s;
-            box-shadow: 0 0 10px #FBBC05;
-        }
-
-        .google-dot.g-green {
-            background: #34A853;
-            animation-delay: 0.42s;
-            box-shadow: 0 0 10px #34A853;
-        }
-
-        @keyframes g-bounce {
-
-            0%,
-            80%,
-            100% {
-                transform: scale(0.7) translateY(0);
-            }
-
-            40% {
-                transform: scale(1.35) translateY(-8px);
-            }
+            background: rgba(22, 27, 34, 0.95);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 340px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
         }
 
         .mic-wave-container {
-            width: 66px;
-            height: 66px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            background: rgba(66, 133, 244, 0.12);
-            border: 2px solid #4285F4;
+            background: rgba(0, 210, 255, 0.15);
+            border: 2px solid #00d2ff;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 12px auto;
+            margin: 0 auto 16px auto;
             font-size: 2rem;
             animation: pulse-ring 1.8s infinite;
         }
 
         .voice-transcript {
-            font-size: 1.12rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: #ffffff;
-            margin: 10px 0;
-            min-height: 2.2em;
+            margin: 12px 0;
+            min-height: 2.4em;
             display: flex;
             align-items: center;
             justify-content: center;
-            word-break: break-word;
         }
 
         .voice-feedback {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: #03ef62;
-            min-height: 1.4em;
+            min-height: 1.5em;
             font-weight: 600;
-        }
-
-        .voice-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-            margin-top: 14px;
-        }
-
-        .voice-chip {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #e6edf3;
-            border-radius: 20px;
-            padding: 5px 12px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
-        }
-
-        .voice-chip:hover {
-            background: rgba(66, 133, 244, 0.25);
-            border-color: #4285F4;
-            color: #ffffff;
-            transform: translateY(-1px);
-        }
-
-        .voice-chip:active {
-            transform: scale(0.95);
         }
     </style>
 </head>
@@ -1223,7 +1078,7 @@
 
         <div id="homeView">
             <div class="card">
-                <!-- TOP STATUS BAR -->
+                <!-- TOP STATUS BAR (LEFT: STATUS, CENTER: WIFI, RIGHT: REFRESH) -->
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%;">
                     <div style="flex: 1; text-align: left; display: flex; align-items: center; white-space: nowrap;">
@@ -1279,13 +1134,8 @@
                     <div id="tankVal" class="tank-text tabular-nums">-- %</div>
 
                     <!-- COMPACT MIC BUTTON PLACED BESIDE TANK -->
-                    <div id="voiceFab" class="voice-fab wake-active" onclick="toggleVoiceAssistant()"
-                        title="Voice Command (Tap or say 'OK Pump')">
+                    <div id="voiceFab" class="voice-fab" onclick="toggleVoiceAssistant()" title="Voice Command">
                         🎙️
-                    </div>
-                    <div id="voiceWakePill" class="voice-wake-pill active" onclick="toggleVoiceAssistant()"
-                        title="Voice Wake Word Active ('OK Pump')">
-                        <span class="wake-dot"></span> "OK Pump"
                     </div>
                 </div>
 
@@ -1322,7 +1172,7 @@
                         </div>
                     </div>
 
-                    <!-- TILE 4: Active Protection Countdown -->
+                    <!-- TILE 4: Active Protection Countdown (Hidden by default) -->
                     <div class="motor-life-tile" id="cdRow"
                         style="display:none; background:rgba(255,171,0,0.04); border-color:rgba(255,171,0,0.25);">
                         <div class="tile-label" style="color:#ffab00;">⏱️ Safeguard</div>
@@ -1338,7 +1188,7 @@
                     </div>
                 </div>
 
-                <!-- EVENT HISTORY -->
+                <!-- EVENT HISTORY (FLUSH-LEFT MONOSPACE) -->
                 <div style="margin-top: 16px;">
                     <div
                         style="display:flex; align-items:center; justify-content:space-between; padding:0 4px; gap:8px;">
@@ -1371,7 +1221,7 @@
 
         <div id="settingsView" style="display:none;">
             <div class="card">
-                <!-- SETTINGS HEADER -->
+                <!-- SETTINGS HEADER (LEFT: STATUS, CENTER: WIFI, RIGHT: REFRESH) -->
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%;">
                     <div style="flex: 1; text-align: left; display: flex; align-items: center; white-space: nowrap;">
@@ -1550,7 +1400,8 @@
                         style="display:flex; align-items:center; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); cursor:pointer; color:#8b949e; border-radius:10px; margin-bottom:5px; width:100%; box-sizing:border-box;">
                         <span
                             style="background:#007bff; color:white; padding:5px 8px; border-radius:6px; margin-right:6px; font-size:0.75rem;">📁
-                            Choose File</span>
+                            Choose
+                            File</span>
                         <span id="fileName"
                             style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.72rem; flex:1;">No
                             file chosen</span>
@@ -1640,36 +1491,13 @@
     <!-- VOICE LISTENING OVERLAY -->
     <div id="voiceOverlay" class="voice-overlay" onclick="stopVoiceAssistant()">
         <div class="voice-card" onclick="event.stopPropagation()">
-            <!-- Google Assistant 4-color animated indicator -->
-            <div class="google-wave" id="googleWave">
-                <span class="google-dot g-blue"></span>
-                <span class="google-dot g-red"></span>
-                <span class="google-dot g-yellow"></span>
-                <span class="google-dot g-green"></span>
-            </div>
-
             <div class="mic-wave-container" id="micWave">🎙️</div>
-
-            <div style="font-size:0.85rem; color:#8b949e; text-transform:uppercase; letter-spacing:0.8px; font-weight:700;"
+            <div style="font-size:0.85rem; color:#8b949e; text-transform:uppercase; letter-spacing:0.6px;"
                 id="voiceStatusLabel">
                 Listening...
             </div>
-
             <div id="voiceTranscript" class="voice-transcript">"..."</div>
             <div id="voiceFeedback" class="voice-feedback"></div>
-
-            <!-- Quick Action Suggestion Chips -->
-            <div class="voice-chips" id="voiceChips">
-                <button class="voice-chip" onclick="quickVoiceCmd('start')">⚡ Start Pump</button>
-                <button class="voice-chip" onclick="quickVoiceCmd('stop')">🛑 Stop Pump</button>
-                <button class="voice-chip" onclick="quickVoiceCmd('status')">📊 Status</button>
-                <button class="voice-chip" onclick="quickVoiceCmd('reset')">🔄 Reset Alarm</button>
-            </div>
-
-            <div style="font-size:0.75rem; color:#6e7681; margin-top:14px;" id="voiceWakeHintText">
-                💡 Tip: Say <b>"OK Pump"</b> or tap button anytime
-            </div>
-
             <button class="btn btn-red" style="margin-top: 15px; padding: 10px; font-size: 0.9rem;"
                 onclick="stopVoiceAssistant()">
                 Cancel
@@ -1681,27 +1509,32 @@
     <audio id="myanmarAudio" referrerpolicy="no-referrer" preload="auto"></audio>
 
     <script>
-        var latestTelemetry = {};
         function updateWifiIcon(rssi) {
+            // Select all bars for both Home and Settings views
             const ids = ['wb1', 'wb2', 'wb3', 'wb4', 'wb1s', 'wb2s', 'wb3s', 'wb4s'];
 
+            // 1. Reset all bars to grey first
             ids.forEach(id => {
                 const b = document.getElementById(id);
                 if (b) b.classList.remove('wifi-active', 'wifi-weak', 'wifi-dead');
             });
 
+            // 2. If no data, stop here (bars stay grey)
             if (rssi === undefined || rssi <= -100 || rssi === 0) return;
 
+            // 3. Determine how many bars to light up based on signal strength
             let activeCount = 0;
-            if (rssi > -65) activeCount = 4;
-            else if (rssi > -75) activeCount = 3;
-            else if (rssi > -85) activeCount = 2;
-            else activeCount = 1;
+            if (rssi > -65) activeCount = 4;      // Excellent
+            else if (rssi > -75) activeCount = 3; // Good
+            else if (rssi > -85) activeCount = 2; // Fair
+            else activeCount = 1;                // Weak
 
-            let colorClass = 'wifi-active';
-            if (rssi < -88) colorClass = 'wifi-dead';
-            else if (rssi < -78) colorClass = 'wifi-weak';
+            // 4. Determine the color
+            let colorClass = 'wifi-active'; // Green
+            if (rssi < -88) colorClass = 'wifi-dead'; // Red
+            else if (rssi < -78) colorClass = 'wifi-weak'; // Yellow
 
+            // 5. Apply the color to the correct number of bars
             for (let i = 1; i <= activeCount; i++) {
                 const bHome = document.getElementById('wb' + i);
                 const bSett = document.getElementById('wb' + i + 's');
@@ -1768,8 +1601,10 @@
             "System Busy. Please try again.": "စနစ် မအားသေးပါ။ နောက်တစ်ကြိမ် ပြန်ကြိုးစားပါ။",
             "Counter Reset Successfully!": "မောင်းနှင်ချိန်ကို သုညသို့ ပြန်စပြီးပါပြီ။",
             "Counter Reset Success": "ပြန်လည်စတင်ခြင်း အောင်မြင်သည်!",
+            // --- NEW GUI LABELS TRANSLATIONS ---
             "Save & Reboot": "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်",
             "⚙️ Settings": "⚙️ ဆက်တင်များ",
+            "High Volt": "ဗို့အားလွန်", "Save & Reboot": "သိမ်းဆည်း၍ ပြန်ဖွင့်မည်",
             "High Volt": "ဗို့အားလွန်",
             "HIGH VOLT": "ဗို့အားလွန်",
             "Low Volt": "ဗို့အားလျော့",
@@ -1837,11 +1672,13 @@
                     let txt = (el.innerText || el.textContent || "").trim().replace(/\s+/g, ' ');
                     let rawTxt = (el.textContent || "").trim().replace(/\s+/g, ' ');
 
+                    // 1. Handle specific strings first
                     if (txt.includes("Total Motor Life") || rawTxt.includes("Total Motor Life")) {
                         el.innerText = tr("⏱️ Total Motor Life");
                         return;
                     }
 
+                    // 2. Match against dictionary (checks both innerText and raw textContent)
                     let matchedTranslation = dict[txt] || dict[rawTxt];
                     if (matchedTranslation) {
                         if (el.classList.contains('show-pass')) {
@@ -2150,7 +1987,7 @@
                     if (isAtBottom) logBox.scrollTop = logBox.scrollHeight;
                 }
             }
-
+            // Symmetrical Bento Pill Updates
             let vEl = document.getElementById('vstat');
             if (vEl) {
                 let vCls = 'pill-grey';
@@ -2239,626 +2076,222 @@
         }
 
         // ============================================================================
-        // GOOGLE ASSISTANT STYLE VOICE ENGINE ("OK PUMP" WAKE-WORD + TAP TO TALK)
+        // CAPACITOR NATIVE ANDROID HANDS-FREE VOICE RECEIVER (MYANMAR + ENGLISH)
         // ============================================================================
-        var recognition = null;
-        var wakeWordRec = null;
-        var isListening = false;
-        var isWakeListening = false;
-        var isSpeaking = false;
-        var speechGeneration = 0;
-        var wakeWordEnabled = true;
-        var commandDispatched = false;
-        var mobileTranscriptBuffer = '';
-        var wakeRestartTimer = null;
-        var activeCommandTimeout = null;
+        let speechGeneration = 0;
 
-        // --- 1. Authentic Web Audio API Google Assistant Chime Synthesizer ---
-        function playGoogleChime(type) {
+        function playChime() {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (!AudioCtx) return;
                 const ctx = new AudioCtx();
                 const now = ctx.currentTime;
+                const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+                o1.type = 'sine'; o1.frequency.setValueAtTime(587.33, now);
+                g1.gain.setValueAtTime(0.2, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                o1.connect(g1); g1.connect(ctx.destination);
+                o1.start(now); o1.stop(now + 0.12);
 
-                if (type === 'wake') {
-                    // Google Assistant rising dual-tone chime: D5 (587.33 Hz) -> A5 (880.00 Hz)
-                    const o1 = ctx.createOscillator();
-                    const g1 = ctx.createGain();
-                    o1.type = 'sine';
-                    o1.frequency.setValueAtTime(587.33, now);
-                    g1.gain.setValueAtTime(0.2, now);
-                    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-                    o1.connect(g1);
-                    g1.connect(ctx.destination);
-                    o1.start(now);
-                    o1.stop(now + 0.12);
-
-                    const o2 = ctx.createOscillator();
-                    const g2 = ctx.createGain();
-                    o2.type = 'sine';
-                    o2.frequency.setValueAtTime(880.00, now + 0.09);
-                    g2.gain.setValueAtTime(0.25, now + 0.09);
-                    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-                    o2.connect(g2);
-                    g2.connect(ctx.destination);
-                    o2.start(now + 0.09);
-                    o2.stop(now + 0.28);
-                } else if (type === 'success') {
-                    // Success confirmation tone: G5 (783.99 Hz) -> C6 (1046.50 Hz)
-                    const o1 = ctx.createOscillator();
-                    const g1 = ctx.createGain();
-                    o1.type = 'sine';
-                    o1.frequency.setValueAtTime(783.99, now);
-                    g1.gain.setValueAtTime(0.18, now);
-                    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
-                    o1.connect(g1);
-                    g1.connect(ctx.destination);
-                    o1.start(now);
-                    o1.stop(now + 0.13);
-
-                    const o2 = ctx.createOscillator();
-                    const g2 = ctx.createGain();
-                    o2.type = 'sine';
-                    o2.frequency.setValueAtTime(1046.50, now + 0.10);
-                    g2.gain.setValueAtTime(0.22, now + 0.10);
-                    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
-                    o2.connect(g2);
-                    g2.connect(ctx.destination);
-                    o2.start(now + 0.10);
-                    o2.stop(now + 0.32);
-                }
-            } catch (e) {
-                console.warn("[Voice] WebAudio chime note:", e);
-            }
+                const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+                o2.type = 'sine'; o2.frequency.setValueAtTime(880.00, now + 0.09);
+                g2.gain.setValueAtTime(0.25, now + 0.09); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                o2.connect(g2); g2.connect(ctx.destination);
+                o2.start(now + 0.09); o2.stop(now + 0.28);
+            } catch (e) { }
         }
 
-        // --- 2. Wake-word and transcript normalisation ---
-        // SpeechRecognition may return "okay pump" or "OK pamp" for the requested phrase.
-        const WAKE_WORD_REGEX = /(?:\b(?:ok|okay)\s*(?:pump|pamp|pam|pan)\b|အိုကေ\s*(?:ပန့်|မော်တာ))/i;
-
-        function normalizeVoiceText(raw) {
-            return String(raw || '')
-                .normalize('NFKC')
-                .replace(/[’'`]/g, '')
-                .replace(/[.,!?;:]+/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        function extractWakeAndCommand(raw) {
-            const normalized = normalizeVoiceText(raw);
-            if (!normalized) return {hasWake: false, command: ''};
-            const match = normalized.match(WAKE_WORD_REGEX);
-            if (!match) return {hasWake: false, command: normalized};
-            const idx = match.index;
-            const endIdx = idx + match[0].length;
-            const afterWake = normalized.substring(endIdx).trim();
-            return {hasWake: true, wakeMatched: match[0], command: afterWake};
-        }
-
-        // --- 3. Unified Continuous Voice Engine ---
-        var voiceEngine = null;
-        var voiceState = 'idle'; // 'idle' = listening for "OK Pump", 'active' = listening for command
-        var voiceEngineRunning = false;
-        var lastWakeTranscript = '';
-
-        function startWakeWordListener() {
-            if (!wakeWordEnabled || isSpeaking) return;
-            if (!voiceEngine) {
-                initVoiceEngine();
-                return;
-            }
-            if (!voiceEngineRunning) {
-                try {voiceEngine.start();} catch (e) { /* already starting */}
+        // Sync native Android recognizer language whenever page loads or language toggles
+        function syncNativeVoiceLanguage() {
+            if (window.AndroidBridge && window.AndroidBridge.setLanguage) {
+                window.AndroidBridge.setLanguage(sysLang === 1 ? "my-MM" : "en-US");
             }
         }
+        syncNativeVoiceLanguage();
 
-        function stopWakeWordListener() {
-            clearTimeout(wakeRestartTimer);
-            if (voiceEngine && voiceEngineRunning) {
-                try {voiceEngine.abort();} catch (e) { }
-            }
-        }
-
-        // SpeechRecognition.lang is fixed when a session starts. Recreate it when
-        // switching from the English wake phrase to Myanmar command recognition.
-        function restartVoiceEngineForCurrentState() {
-            if (isSpeaking) return;
-            clearTimeout(wakeRestartTimer);
-            if (voiceEngine) {
-                try {
-                    voiceEngine.onstart = null;
-                    voiceEngine.onresult = null;
-                    voiceEngine.onerror = null;
-                    voiceEngine.onend = null;
-                    voiceEngine.abort();
-                } catch (e) { }
-            }
-            voiceEngine = null;
-            voiceEngineRunning = false;
-            setTimeout(() => {
-                if (!isSpeaking && wakeWordEnabled) initVoiceEngine();
-            }, 80);
-        }
-
-        function recognitionAlternatives(event) {
-            const texts = [];
-            let hasFinal = false;
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const result = event.results[i];
-                if (result.isFinal) hasFinal = true;
-                for (let j = 0; j < result.length; j++) {
-                    const transcript = normalizeVoiceText(result[j].transcript);
-                    if (transcript && !texts.includes(transcript)) texts.push(transcript);
-                }
-            }
-            return {texts, hasFinal};
-        }
-
-        function initVoiceEngine() {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRec) {
-                const badge = document.getElementById('voiceWakePill');
-                if (badge) badge.style.display = 'none';
-                return;
-            }
-
-            if (voiceEngine) {
-                try {
-                    voiceEngine.onstart = null;
-                    voiceEngine.onresult = null;
-                    voiceEngine.onerror = null;
-                    voiceEngine.onend = null;
-                    voiceEngine.abort();
-                } catch (e) { }
-                voiceEngine = null;
-            }
-
-            try {
-                voiceEngine = new SpeechRec();
-                voiceEngine.continuous = true;
-                voiceEngine.interimResults = true;
-                // Use alternatives: the first hypothesis is not always the best wake-word match.
-                voiceEngine.maxAlternatives = 3;
-                // 'en-US' provides reliable acoustic matching for "OK Pump" across mobile and PC
-                voiceEngine.lang = (sysLang === 1 && voiceState === 'active') ? 'my-MM' : 'en-US';
-
-                voiceEngine.onstart = function () {
-                    voiceEngineRunning = true;
-                    const fab = document.getElementById('voiceFab');
-                    const pill = document.getElementById('voiceWakePill');
-                    if (fab) fab.classList.add('wake-active');
-                    if (pill) {
-                        pill.classList.add('active');
-                        pill.innerHTML = `<span class="wake-dot"></span> "OK Pump"`;
-                    }
-                };
-
-                voiceEngine.onresult = function (event) {
-                    if (isSpeaking) return;
-
-                    const recognitionResult = recognitionAlternatives(event);
-                    if (!recognitionResult.texts.length) return;
-
-                    // STATE 1: WAITING FOR WAKE-WORD ("OK Pump")
-                    if (voiceState === 'idle') {
-                        const candidate = recognitionResult.texts.find(t => extractWakeAndCommand(t).hasWake);
-                        if (!candidate) return;
-                        const res = extractWakeAndCommand(candidate);
-                        if (res.hasWake) {
-                            console.log("[Voice Engine] Woke up with:", res.wakeMatched, "Inline command:", res.command);
-                            lastWakeTranscript = normalizeVoiceText(candidate);
-                            activateVoiceOverlay();
-
-                            // If user spoke compound phrase (e.g. "OK Pump, start pump")
-                            if (recognitionResult.hasFinal && res.command && isActionableCommand(res.command)) {
-                                commandDispatched = true;
-                                clearTimeout(activeCommandTimeout);
-                                processVoiceCommand(res.command);
-                            }
-                        }
-                    }
-                    // STATE 2: LISTENING FOR COMMAND AFTER ACTIVATION
-                    else if (voiceState === 'active') {
-                        // A final wake phrase commonly arrives just after its interim result.
-                        // It is not a command, so do not close the command window for it.
-                        const parsedTexts = recognitionResult.texts.map(t => {
-                            const parsed = extractWakeAndCommand(t);
-                            return parsed.hasWake && parsed.command ? parsed.command : t;
-                        });
-                        const text = parsedTexts.find(isActionableCommand) || parsedTexts[0];
-                        const isWakeOnly = recognitionResult.texts.some(t => {
-                            const parsed = extractWakeAndCommand(t);
-                            return parsed.hasWake && !parsed.command;
-                        });
-                        const tEl = document.getElementById('voiceTranscript');
-                        if (tEl && !isWakeOnly) tEl.innerText = `"${text}"`;
-
-                        if (isWakeOnly || normalizeVoiceText(text) === lastWakeTranscript) {
-                            return;
-                        }
-
-                        // Wait for the final result. This prevents an interim word such as "on"
-                        // from operating the pump before the user has finished speaking.
-                        if (recognitionResult.hasFinal && isActionableCommand(text)) {
-                            if (!commandDispatched) {
-                                commandDispatched = true;
-                                clearTimeout(activeCommandTimeout);
-                                processVoiceCommand(text);
-                            }
-                        } else if (recognitionResult.hasFinal) {
-                            // Background speech/noise is not a reason to exit. Keep listening
-                            // until the command timeout or a supported command is heard.
-                            const fb = document.getElementById('voiceFeedback');
-                            if (fb) {
-                                fb.style.color = '#ffab00';
-                                fb.innerText = (sysLang === 1)
-                                    ? 'အမိန့်ကို ထပ်ပြောပါ: ဖွင့်၊ ပိတ်၊ အခြေအနေ၊ သို့မဟုတ် ပြန်စ'
-                                    : 'Please say: start, stop, status, or reset.';
-                            }
-                        }
-                    }
-                };
-
-                voiceEngine.onerror = function (event) {
-                    if (event.error === 'no-speech' || event.error === 'aborted') return;
-                    console.warn("[Voice Engine Notice]:", event.error);
-                    if (event.error === 'not-allowed') {
-                        wakeWordEnabled = false;
-                        const pill = document.getElementById('voiceWakePill');
-                        if (pill) {
-                            pill.classList.remove('active');
-                            pill.innerHTML = `<span class="wake-dot paused"></span> Tap mic`;
-                        }
-                    }
-                };
-
-                voiceEngine.onend = function () {
-                    voiceEngineRunning = false;
-                    // Automatically restart continuous listening if not speaking
-                    if (wakeWordEnabled && !isSpeaking) {
-                        clearTimeout(wakeRestartTimer);
-                        wakeRestartTimer = setTimeout(() => {
-                            if (wakeWordEnabled && !isSpeaking) {
-                                startWakeWordListener();
-                            }
-                        }, 250);
-                    }
-                };
-
-                voiceEngine.start();
-            } catch (err) {
-                console.warn("[Voice Engine] Start error, retrying:", err);
-                clearTimeout(wakeRestartTimer);
-                wakeRestartTimer = setTimeout(initVoiceEngine, 1000);
-            }
-        }
-
-        // --- 4. Activation, Overlay & Modal Control ---
-        function activateVoiceOverlay() {
-            voiceState = 'active';
-            commandDispatched = false;
-            playGoogleChime('wake');
+        // ENTRY POINT: Called directly from native Android Studio Java when voice is heard
+        window.onNativeVoiceCommand = function (rawText) {
             vibe();
+            playChime();
 
             const overlay = document.getElementById('voiceOverlay');
             if (overlay) overlay.style.display = 'flex';
             const fab = document.getElementById('voiceFab');
             if (fab) fab.classList.add('listening');
 
-            document.getElementById('voiceTranscript').innerText = '...';
-            document.getElementById('voiceFeedback').innerText = '';
-            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak command";
+            document.getElementById('voiceTranscript').innerText = `"${rawText}"`;
+            document.getElementById('voiceFeedback').innerText = "";
+            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "အမိန့်ကို ဆောင်ရွက်နေသည်..." : "Processing Command...";
 
-            updateVoiceChipsUI();
+            processVoiceCommand(rawText);
+        };
 
-            // The wake phrase stays English; Myanmar mode switches only the
-            // following command-listening session to Burmese recognition.
-            if (sysLang === 1) restartVoiceEngineForCurrentState();
-
-            clearTimeout(activeCommandTimeout);
-            // Keep manual and wake-word command sessions open until the user cancels
-            // them or a valid command is completed. This avoids losing a Myanmar
-            // command while the browser is still switching recognition languages.
-            activeCommandTimeout = null;
-        }
-
-        function isActionableCommand(raw) {
-            const t = raw.toLowerCase();
-            const actionWords = [
-                "start", "stop", "reset", "clear", "status", "water", "level", "volt",
-                "ဖွင့်", "ပိတ်", "ရပ်", "စတင်", "ရေတင်", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား", "ပြန်စ", "ရီဆက်"
-            ];
-            return actionWords.some(w => t.includes(w)) || /\bon\b/i.test(t) || /\boff\b/i.test(t);
-        }
-
+        // Manual tap on mic icon: Prompts the user instead of hardcoded status
         function toggleVoiceAssistant() {
             vibe();
-            // Invalidate completion handlers from a previous spoken response.
-            // Without this, cancelling speech here can invoke its old delayed
-            // stop callback and close the newly opened listening panel.
-            speechGeneration++;
-            isSpeaking = false;
-            if (window.speechSynthesis) window.speechSynthesis.cancel();
-            const aPlayer = document.getElementById('myanmarAudio');
-            if (aPlayer) {
-                aPlayer.onended = null;
-                aPlayer.onerror = null;
-                aPlayer.pause();
-                aPlayer.currentTime = 0;
-                aPlayer.src = "";
-            }
+            playChime();
+            const overlay = document.getElementById('voiceOverlay');
+            if (overlay) overlay.style.display = 'flex';
+            const fab = document.getElementById('voiceFab');
+            if (fab) fab.classList.add('listening');
 
-            if (voiceState === 'active') {
-                // The microphone button must never act as a hidden Cancel button.
-                // Clear any stale recognition result and continue listening instead.
-                commandDispatched = false;
-                lastWakeTranscript = '';
-                const transcript = document.getElementById('voiceTranscript');
-                const feedback = document.getElementById('voiceFeedback');
-                const status = document.getElementById('voiceStatusLabel');
-                if (transcript) transcript.innerText = '...';
-                if (feedback) feedback.innerText = '';
-                if (status) status.innerText = (sysLang === 1)
-                    ? 'နားထောင်နေသည်... စကားပြောပါ'
-                    : 'Listening... Speak command';
-                restartVoiceEngineForCurrentState();
-            } else {
-                activateVoiceOverlay();
+            document.getElementById('voiceTranscript').innerText = "...";
+            document.getElementById('voiceFeedback').innerText = "";
+            document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak command";
+
+            // Ensure native recognizer is ready
+            if (window.AndroidBridge && window.AndroidBridge.resumeWakeListening) {
+                window.AndroidBridge.resumeWakeListening();
             }
         }
 
         function stopVoiceAssistant() {
-            clearTimeout(activeCommandTimeout);
-            voiceState = 'idle';
-            commandDispatched = false;
-            lastWakeTranscript = '';
-
             const fab = document.getElementById('voiceFab');
             if (fab) fab.classList.remove('listening');
-            const overlay = document.getElementById('voiceOverlay');
-            if (overlay) overlay.style.display = 'none';
+            document.getElementById('voiceOverlay').style.display = 'none';
 
-            // Return to English recognition for the "OK Pump" wake phrase.
-            if (sysLang === 1 && wakeWordEnabled && !isSpeaking) {
-                restartVoiceEngineForCurrentState();
-            } else if (voiceEngine && wakeWordEnabled && !isSpeaking) {
-                startWakeWordListener();
+            // Resumes background wake listening in native Android so mic stays ready
+            if (window.AndroidBridge && window.AndroidBridge.resumeWakeListening) {
+                window.AndroidBridge.resumeWakeListening();
             }
         }
 
-        function quickVoiceCmd(cmdType) {
-            vibe();
-            if (cmdType === 'start') processVoiceCommand('start');
-            else if (cmdType === 'stop') processVoiceCommand('stop');
-            else if (cmdType === 'status') processVoiceCommand('status');
-            else if (cmdType === 'reset') processVoiceCommand('reset');
-        }
+        function speakText(text) {
+            if (!text) {stopVoiceAssistant(); return;}
 
-        function updateVoiceChipsUI() {
-            const container = document.getElementById('voiceChips');
-            if (!container) return;
-            if (sysLang === 1) {
-                container.innerHTML = `
-                    <button class="voice-chip" onclick="quickVoiceCmd('start')">⚡ မော်တာဖွင့်</button>
-                    <button class="voice-chip" onclick="quickVoiceCmd('stop')">🛑 မော်တာပိတ်</button>
-                    <button class="voice-chip" onclick="quickVoiceCmd('status')">📊 အခြေအနေ</button>
-                    <button class="voice-chip" onclick="quickVoiceCmd('reset')">🔄 အချက်ပေးပိတ်</button>
-                `;
-            } else {
-                container.innerHTML = `
-                    <button class="voice-chip" onclick="quickVoiceCmd('start')">⚡ Start Pump</button>
-                    <button class="voice-chip" onclick="quickVoiceCmd('stop')">🛑 Stop Pump</button>
-                    <button class="voice-chip" onclick="quickVoiceCmd('status')">📊 Status</button>
-                    <button class="voice-chip" onclick="quickVoiceCmd('reset')">🔄 Reset Alarm</button>
-                `;
-            }
-            const hintEl = document.getElementById('voiceWakeHintText');
-            if (hintEl) {
-                hintEl.innerHTML = (sysLang === 1)
-                    ? `💡 အကြံပြုချက်: <b>"အိုကေပန့်"</b> ဟု ပြောပြီး အသံဖြင့် အသုံးပြုနိုင်ပါသည်`
-                    : `💡 Tip: Say <b>"OK Pump"</b> or tap button anytime`;
-            }
-        }
-
-        // --- 7. Speech Synthesis with Self-Trigger Loop Prevention ---
-        function speakText(text, onComplete) {
-            if (!text) {
-                if (onComplete) onComplete();
-                return;
+            // Pause native mic so speaker voice doesn't trigger the microphone
+            if (window.AndroidBridge && window.AndroidBridge.pauseWakeListening) {
+                window.AndroidBridge.pauseWakeListening();
             }
 
-            const speechToken = ++speechGeneration;
-            isSpeaking = true;
-            stopWakeWordListener();
-
+            const currentToken = ++speechGeneration;
             const aPlayer = document.getElementById('myanmarAudio');
             if (aPlayer) {
                 aPlayer.pause();
                 aPlayer.currentTime = 0;
             }
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-            }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
 
             const langCode = (sysLang === 1) ? 'my' : 'en';
 
-            function finishSpeaking() {
-                // This response was cancelled/replaced by a newer mic session.
-                if (speechToken !== speechGeneration) return;
-                isSpeaking = false;
-                if (onComplete) onComplete();
-                if (wakeWordEnabled && !isListening) {
-                    setTimeout(startWakeWordListener, 500);
-                }
+            function finishSpeech() {
+                if (currentToken !== speechGeneration) return;
+                setTimeout(() => {
+                    stopVoiceAssistant();
+                }, 800);
             }
 
             if (aPlayer) {
                 const cleanText = encodeURIComponent(text.substring(0, 130));
-                const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
-                aPlayer.src = streamUrl;
-
-                aPlayer.onended = finishSpeaking;
+                aPlayer.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${cleanText}`;
+                aPlayer.onended = finishSpeech;
                 aPlayer.onerror = function () {
                     if (window.speechSynthesis) {
                         const utter = new SpeechSynthesisUtterance(text);
                         utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                        utter.onend = finishSpeaking;
-                        utter.onerror = finishSpeaking;
+                        utter.onend = finishSpeech;
+                        utter.onerror = finishSpeech;
                         window.speechSynthesis.speak(utter);
                     } else {
-                        finishSpeaking();
+                        finishSpeech();
                     }
                 };
-
-                aPlayer.play().catch(e => {
-                    console.warn("[Voice] Audio play error, using fallback:", e);
-                    if (window.speechSynthesis) {
-                        const utter = new SpeechSynthesisUtterance(text);
-                        utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                        utter.onend = finishSpeaking;
-                        utter.onerror = finishSpeaking;
-                        window.speechSynthesis.speak(utter);
-                    } else {
-                        finishSpeaking();
-                    }
-                });
+                aPlayer.play().catch(() => finishSpeech());
                 return;
             }
 
             if (window.speechSynthesis) {
                 const utter = new SpeechSynthesisUtterance(text);
                 utter.lang = (sysLang === 1) ? 'my-MM' : 'en-US';
-                utter.onend = finishSpeaking;
-                utter.onerror = finishSpeaking;
+                utter.onend = finishSpeech;
+                utter.onerror = finishSpeech;
                 window.speechSynthesis.speak(utter);
             } else {
-                finishSpeaking();
+                finishSpeech();
             }
         }
 
-        // --- 8. Process Voice Command ---
         function processVoiceCommand(rawText) {
-            if (!rawText) return;
-
-            const extracted = extractWakeAndCommand(rawText);
-            const text = (extracted.hasWake && extracted.command ? extracted.command : rawText).toLowerCase().trim();
-
+            // Cleans all Myanmar & English wake word variations (with or without spaces: အိုကေ, အိုကေပန့်, အိုကေမော်တာ, OK Pump)
+            const text = rawText.toLowerCase().replace(/(?:\b(?:ok|okay)\s*(?:pump|pamp|pam|pan)\b|အိုကေ\s*(?:ပန့်|မော်တာ)?|အိုခေ\s*(?:ပန့်|မော်တာ)?|\bပန့်\b)/ig, '').trim();
             const feedbackEl = document.getElementById('voiceFeedback');
-            const transcriptEl = document.getElementById('voiceTranscript');
-            if (transcriptEl) transcriptEl.innerText = `"${rawText}"`;
-            if (feedbackEl) feedbackEl.style.color = '#03ef62';
+            feedbackEl.style.color = '#03ef62';
 
             const telem = (typeof latestTelemetry !== 'undefined' && latestTelemetry) ? latestTelemetry : {};
             const isRunning = (telem.pStat === "ON");
             const tankLevel = telem.tank !== undefined ? telem.tank : "--";
             const voltage = telem.volt !== undefined ? telem.volt : "--";
 
+            // If user said only the wake word ("အိုကေ", "အိုကေပန့်", or "OK Pump"), prompt for the command
+            if (!text || text === "") {
+                const promptMsg = (sysLang === 1) ? "ဟုတ်ကဲ့၊ အမိန့်ပေးပါ" : "Yes, listening...";
+                feedbackEl.innerText = promptMsg;
+                speakText(promptMsg);
+                return;
+            }
+
             // 1. START PUMP
-            const startRegex = /\b(?:start|turn on|switch on|run|power on|pump on)\b|\bon\b|ဖွင့်|မော်တာဖွင့်|ရေတင်|စတင်|ရေမော်တာဖွင့်|ဖွင့်ပါ/i;
-            if (startRegex.test(text)) {
+            const startPhrases = ["start", "on", "pump on", "turn on", "run", "ဖွင့်", "မော်တာဖွင့်", "ရေတင်", "စတင်", "ရေမော်တာဖွင့်"];
+            if (startPhrases.some(p => text.includes(p))) {
                 if (isRunning) {
                     const msg = (sysLang === 1) ? "မော်တာ လည်ပတ်နေပြီး ဖြစ်ပါသည်" : "Pump is already running.";
-                    if (feedbackEl) feedbackEl.innerText = msg;
-                    speakText(msg, () => setTimeout(stopVoiceAssistant, 1200));
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
                 } else if (telem.tank >= (telem.fullTank || 100)) {
                     const msg = (sysLang === 1) ? "ရေတိုင်ကီ ပြည့်နေသဖြင့် ဖွင့်၍မရပါ" : "Tank is already full. Cannot start.";
-                    if (feedbackEl) feedbackEl.innerText = msg;
-                    speakText(msg, () => setTimeout(stopVoiceAssistant, 1200));
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
                 } else {
-                    playGoogleChime('success');
                     const msg = (sysLang === 1) ? "ရေမော်တာကို ဖွင့်လိုက်ပါပြီ" : "Starting pump now.";
-                    if (feedbackEl) feedbackEl.innerText = msg;
+                    feedbackEl.innerText = msg;
                     sendToggle();
-                    speakText(msg, () => setTimeout(stopVoiceAssistant, 1200));
+                    speakText(msg);
                 }
                 return;
             }
 
             // 2. STOP PUMP
-            const stopRegex = /\b(?:stop|turn off|switch off|shut down|pump off)\b|\boff\b|ပိတ်|မော်တာပိတ်|ရပ်|ရပ်တန့်|ရေမော်တာပိတ်|ပိတ်ပါ/i;
-            if (stopRegex.test(text)) {
+            const stopPhrases = ["stop", "off", "pump off", "turn off", "ရပ်", "ရပ်တန့်", "ပိတ်", "မော်တာပိတ်", "ရေမော်တာပိတ်"];
+            if (stopPhrases.some(p => text.includes(p))) {
                 if (!isRunning) {
                     const msg = (sysLang === 1) ? "မော်တာ ပိတ်ထားပြီး ဖြစ်ပါသည်" : "Pump is already stopped.";
-                    if (feedbackEl) feedbackEl.innerText = msg;
-                    speakText(msg, () => setTimeout(stopVoiceAssistant, 1200));
+                    feedbackEl.innerText = msg;
+                    speakText(msg);
                 } else {
-                    playGoogleChime('success');
                     const msg = (sysLang === 1) ? "ရေမော်တာကို ပိတ်လိုက်ပါပြီ" : "Stopping pump now.";
-                    if (feedbackEl) feedbackEl.innerText = msg;
+                    feedbackEl.innerText = msg;
                     sendToggle();
-                    speakText(msg, () => setTimeout(stopVoiceAssistant, 1200));
+                    speakText(msg);
                 }
                 return;
             }
 
             // 3. RESET ALARM
-            const resetRegex = /\b(?:reset|clear|clear alarm|reset alarm)\b|အချက်ပေးပိတ်|ပြန်စ|ရီဆက်|အချက်ပေးရပ်/i;
-            if (resetRegex.test(text)) {
-                playGoogleChime('success');
-                const msg = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
-                if (feedbackEl) feedbackEl.innerText = msg;
+            const resetPhrases = ["reset", "clear", "အချက်ပေးပိတ်", "ပြန်စ", "ရီဆက်", "အချက်ပေးရပ်"];
+            if (resetPhrases.some(p => text.includes(p))) {
+                feedbackEl.innerText = (sysLang === 1) ? "အချက်ပေးစနစ်ကို ပြန်စနေပါသည်..." : "Resetting alarm...";
                 sendReset();
-                speakText(msg, () => setTimeout(stopVoiceAssistant, 1200));
+                speakText(feedbackEl.innerText);
                 return;
             }
 
             // 4. STATUS CHECK
-            const statusRegex = /\b(?:status|how much water|water level|voltage|level)\b|အခြေအနေ|ရေအမှတ်|ဗို့အား|ရေဘယ်လောက်/i;
-            if (statusRegex.test(text)) {
-                playGoogleChime('success');
+            const statusPhrases = ["status", "how much water", "water level", "voltage", "level", "အခြေအနေ", "ရေအမှတ်", "ဗို့အား", "ရေဘယ်လောက်"];
+            if (statusPhrases.some(p => text.includes(p))) {
                 const pText = isRunning ? (sysLang === 1 ? "မောင်းနေသည်" : "Running") : (sysLang === 1 ? "ပိတ်ထားသည်" : "Stopped");
                 const resp = (sysLang === 1)
                     ? `ရေအမှတ် ${tankLevel} ရာခိုင်နှုန်း၊ ဗို့အား ${voltage} ဗို့၊ မော်တာ ${pText} ဖြစ်ပါသည်။`
                     : `Water level is ${tankLevel} percent. Voltage is ${voltage} Volts. Pump is ${pText}.`;
-                if (feedbackEl) feedbackEl.innerText = resp;
-                speakText(resp, () => setTimeout(stopVoiceAssistant, 2000));
+                feedbackEl.innerText = resp;
+                speakText(resp);
                 return;
             }
 
-            // 5. UNRECOGNIZED COMMAND
+            // 5. UNRECOGNIZED
             const unknownMsg = (sysLang === 1) ? "နားမလည်ပါ: " + rawText : "Command not recognized: " + rawText;
-            if (feedbackEl) {
-                feedbackEl.style.color = '#ffab00';
-                feedbackEl.innerText = unknownMsg;
-            }
-            speakText(unknownMsg, () => setTimeout(stopVoiceAssistant, 1800));
+            feedbackEl.style.color = '#ffab00';
+            feedbackEl.innerText = unknownMsg;
+            speakText(unknownMsg);
         }
-
-        // --- 9. Start Wake Word Engine On Page Interaction ---
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                initVoiceEngine();
-            }, 800);
-        });
-
-        window.addEventListener('click', function unlockAudioContextOnce() {
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') ctx.resume();
-                }
-            } catch (e) { }
-
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-                    stream.getTracks().forEach(track => track.stop());
-                    if (wakeWordEnabled && !voiceEngine) {
-                        initVoiceEngine();
-                    }
-                }).catch(() => {
-                    if (wakeWordEnabled && !voiceEngine) {
-                        initVoiceEngine();
-                    }
-                });
-            } else if (wakeWordEnabled && !voiceEngine) {
-                initVoiceEngine();
-            }
-
-            window.removeEventListener('click', unlockAudioContextOnce);
-        }, {once: true});
     </script>
 </body>
 
