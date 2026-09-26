@@ -567,7 +567,7 @@
             transition: opacity 0.3s;
         }
 
-        /* 1. ROBOEYES IDLE MODE: Natural Blink + Wandering Glance (Look Left, Center, Look Down at Water) */
+        /* 1. ROBOEYES IDLE MODE: Natural Blink + Wandering Glance */
         @keyframes roboIdleGaze {
 
             0%,
@@ -638,7 +638,6 @@
 
         .roboeyes-screen.cooldown .robo-eye {
             height: 11px;
-            /* Tired half-closed eyelids */
             background: #00d2ff;
             box-shadow: 0 0 8px #00d2ff;
             border-radius: 4px;
@@ -767,96 +766,24 @@
             }
         }
 
-        .emo-face.alarm .emo-brow.left {
-            transform: rotate(24deg);
-        }
-
-        .emo-face.alarm .emo-brow.right {
-            transform: rotate(-24deg);
-        }
-
-        .emo-face.alarm .emo-eye {
-            background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ff1744 50%, #8b0000 100%);
-            box-shadow: 0 0 16px #ff1744, 0 0 28px rgba(255, 23, 68, 0.8);
-            border-radius: 4px;
-            animation: emoAlarmShake 0.18s infinite ease-in-out;
-        }
-
-        @keyframes emoAlarmShake {
-            0% {
-                transform: translate(0, 0);
-            }
-
-            25% {
-                transform: translate(-2px, 1px);
-            }
-
-            50% {
-                transform: translate(2px, -1px);
-            }
-
-            75% {
-                transform: translate(-1px, -1px);
-            }
-
-            100% {
-                transform: translate(1px, 1px);
-            }
-        }
-
-        .emo-face.alarm .emo-mouth {
-            border-bottom: 2px solid #ff1744;
-            border-radius: 0;
-            height: 0;
-            width: 14px;
-            bottom: 6px;
-            box-shadow: 0 0 6px #ff1744;
-        }
-
-        /* 6. SLEEPY (DND Night Mode) -> Hidden Mouth & Brows, Soft Lavender Eye Slits & Zzz */
-        .emo-face.sleepy .emo-brow {
-            opacity: 0;
-        }
-
-        .emo-face.sleepy .emo-mouth {
-            opacity: 0;
-        }
-
-        .emo-face.sleepy .emo-eye {
-            height: 4px;
-            background: #d8b4fe;
-            box-shadow: 0 0 8px #d8b4fe;
-            border-radius: 2px;
+        /* 7. VOICE LISTENING MODE: Attentive Curiosity Gaze (Looking Up at User) */
+        .roboeyes-screen.listening .robo-eye-pair {
             animation: none;
+            transform: translateY(-4px);
+            /* Looks upward listening to your voice */
         }
 
-        .emo-face.sleepy .emo-eye.left {
-            transform: rotate(-8deg);
+        .roboeyes-screen.listening .robo-eye {
+            background: #00f0ff;
+            box-shadow: 0 0 16px #00f0ff, 0 0 24px rgba(0, 210, 255, 0.7);
+            height: 24px;
+            /* Eyes open wide with attention */
         }
 
-        .emo-face.sleepy .emo-eye.right {
-            transform: rotate(8deg);
-        }
-
-        .emo-face.sleepy .emo-zzz {
-            opacity: 1;
-            animation: emoFloatZzz 2.2s infinite ease-in-out;
-        }
-
-        @keyframes emoFloatZzz {
-            0% {
-                transform: translateY(0);
-                opacity: 0.2;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(-9px);
-                opacity: 0;
-            }
+        /* 8. VOICE COMMAND ACKNOWLEDGED: RoboEyes Signature Wink ("Understood!") */
+        .roboeyes-screen.wink .robo-eye.right {
+            transform: scaleY(0.08);
+            /* Right eye winks */
         }
 
         /* --- BALANCED BENTO TILES --- */
@@ -1305,62 +1232,127 @@
             }
         }
 
-        /* Voice Overlay Modal */
-        .voice-overlay {
+        /* --- ROBOT SPEECH BUBBLE (TALK CLOUD) --- */
+        .voice-bubble {
             display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(11, 14, 20, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            z-index: 1001;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .voice-card {
-            background: rgba(22, 27, 34, 0.95);
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            border-radius: 20px;
-            padding: 28px 24px;
-            max-width: 340px;
+            position: relative;
+            background: rgba(12, 18, 28, 0.94);
+            border: 1px solid rgba(0, 210, 255, 0.45);
+            border-radius: 14px;
+            padding: 10px 14px;
+            margin: 0 auto 14px auto;
+            max-width: 280px;
             width: 90%;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 210, 255, 0.2);
+            text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            animation: bubblePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
         }
 
-        .mic-wave-container {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: rgba(0, 210, 255, 0.15);
-            border: 2px solid #00d2ff;
+        /* Downward Triangle Pointer to the Robot Eyes */
+        .voice-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -7px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 7px 7px 0 7px;
+            border-style: solid;
+            border-color: rgba(12, 18, 28, 0.94) transparent transparent transparent;
+        }
+
+        .voice-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 9px 9px 0 9px;
+            border-style: solid;
+            border-color: rgba(0, 210, 255, 0.45) transparent transparent transparent;
+        }
+
+        @keyframes bubblePop {
+            0% {
+                transform: scale(0.85);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .voice-bubble-close {
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 2px 6px;
+            line-height: 1;
+        }
+
+        .voice-bubble-close:hover {
+            color: #ff1744;
+        }
+
+        .voice-bubble-status {
+            font-size: 0.72rem;
+            color: #00d2ff;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 16px auto;
-            font-size: 2rem;
-            animation: pulse-ring 1.8s infinite;
+            gap: 6px;
         }
 
-        .voice-transcript {
-            font-size: 1.15rem;
+        .voice-bubble-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ff1744;
+            box-shadow: 0 0 6px #ff1744;
+            animation: pulse-dot 1s infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.3;
+                transform: scale(0.7);
+            }
+        }
+
+        .voice-bubble-transcript {
+            font-size: 0.95rem;
             font-weight: 700;
             color: #ffffff;
-            margin: 12px 0;
-            min-height: 2.4em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            margin: 6px 0 3px 0;
+            min-height: 1.2em;
+            word-break: break-word;
         }
 
-        .voice-feedback {
-            font-size: 0.85rem;
+        .voice-bubble-feedback {
+            font-size: 0.8rem;
             color: #03ef62;
-            min-height: 1.5em;
             font-weight: 600;
+            min-height: 1.1em;
         }
     </style>
 </head>
@@ -1468,6 +1460,14 @@
                     <div id="dndBadgeC" class="status-pill pill-purple"
                         style="display:none; margin: 6px auto 0 auto; background:rgba(111,66,193,0.2); color:#d8b4fe; border:1px solid rgba(111,66,193,0.4);">
                         🌙 DND Active</div>
+                </div>
+
+                <!-- ROBOT SPEECH BUBBLE (TALK CLOUD) -->
+                <div id="voiceBubble" class="voice-bubble">
+                    <button class="voice-bubble-close" onclick="stopVoiceAssistant()" title="Close">&times;</button>
+                    <div id="voiceStatusLabel" class="voice-bubble-status">Listening...</div>
+                    <div id="voiceTranscript" class="voice-bubble-transcript">"..."</div>
+                    <div id="voiceFeedback" class="voice-bubble-feedback"></div>
                 </div>
 
                 <!-- PRECISION TANK GAUGE -->
@@ -1856,22 +1856,7 @@
         </div>
     </div>
 
-    <!-- VOICE LISTENING OVERLAY -->
-    <div id="voiceOverlay" class="voice-overlay" onclick="stopVoiceAssistant()">
-        <div class="voice-card" onclick="event.stopPropagation()">
-            <div class="mic-wave-container" id="micWave">🎙️</div>
-            <div style="font-size:0.85rem; color:#8b949e; text-transform:uppercase; letter-spacing:0.6px;"
-                id="voiceStatusLabel">
-                Listening...
-            </div>
-            <div id="voiceTranscript" class="voice-transcript">"..."</div>
-            <div id="voiceFeedback" class="voice-feedback"></div>
-            <button class="btn btn-red" style="margin-top: 15px; padding: 10px; font-size: 0.9rem;"
-                onclick="stopVoiceAssistant()">
-                Cancel
-            </button>
-        </div>
-    </div>
+    <!-- (Old fullscreen voice overlay removed) -->
 
     <!-- DEDICATED AUDIO PLAYER FOR MYANMAR VOICE -->
     <audio id="myanmarAudio" referrerpolicy="no-referrer" preload="auto"></audio>
@@ -2497,7 +2482,10 @@
                 mobileTranscriptBuffer = '';
                 commandDispatched = false;
                 document.getElementById('voiceFab').classList.add('listening');
-                document.getElementById('voiceOverlay').style.display = 'flex';
+                const eyeScreen = document.getElementById('roboEyes');
+                if (eyeScreen) eyeScreen.classList.add('listening');
+                const bubble = document.getElementById('voiceBubble');
+                if (bubble) bubble.style.display = 'block';
                 document.getElementById('voiceStatusLabel').innerText = (sysLang === 1) ? "နားထောင်နေသည်... စကားပြောပါ" : "Listening... Speak now";
                 document.getElementById('voiceTranscript').innerText = "...";
                 document.getElementById('voiceFeedback').innerText = "";
@@ -2583,7 +2571,10 @@
             }
             isListening = false;
             document.getElementById('voiceFab').classList.remove('listening');
-            document.getElementById('voiceOverlay').style.display = 'none';
+            const eyeScreen = document.getElementById('roboEyes');
+            if (eyeScreen) eyeScreen.classList.remove('listening');
+            const bubble = document.getElementById('voiceBubble');
+            if (bubble) bubble.style.display = 'none';
         }
 
         function speakText(text) {
@@ -2631,6 +2622,14 @@
             const text = rawText.toLowerCase();
             const feedbackEl = document.getElementById('voiceFeedback');
             feedbackEl.style.color = '#03ef62';
+
+            // RoboEyes Wink Acknowledgment ("Understood!")
+            const eyeScreen = document.getElementById('roboEyes');
+            if (eyeScreen) {
+                eyeScreen.classList.remove('listening');
+                eyeScreen.classList.add('wink');
+                setTimeout(() => eyeScreen.classList.remove('wink'), 450);
+            }
 
             const isRunning = (latestTelemetry.pStat === "ON");
             const tankLevel = latestTelemetry.tank !== undefined ? latestTelemetry.tank : "--";
