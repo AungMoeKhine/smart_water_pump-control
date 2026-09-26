@@ -530,7 +530,7 @@
             gap: 13px;
             align-items: center;
             justify-content: center;
-            animation: roboIdleGaze 8s infinite ease-in-out;
+            animation: roboIdleGaze 12s infinite ease-in-out;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -567,42 +567,62 @@
             transition: opacity 0.3s;
         }
 
-        /* 1. ROBOEYES IDLE MODE: Natural Blink + Wandering Glance */
+        /* 1. ROBOEYES IDLE MODE: Full 360° Wander + Double-Blink + Water Scan */
         @keyframes roboIdleGaze {
 
             0%,
-            45%,
+            25%,
             100% {
                 transform: translate(0, 0) scaleY(1);
             }
 
-            48% {
+            /* First Blink */
+            27% {
                 transform: translate(0, 0) scaleY(0.08);
-                /* Fast RoboEyes Blink */
             }
 
-            51% {
+            29% {
                 transform: translate(0, 0) scaleY(1);
             }
 
-            60%,
-            70% {
-                transform: translate(-3px, 0);
-                /* Glances Left */
+            /* Natural Quick Double-Blink */
+            31% {
+                transform: translate(0, 0) scaleY(0.08);
             }
 
-            75% {
+            33% {
+                transform: translate(0, 0) scaleY(1);
+            }
+
+            /* Glances Right (Looking toward WiFi meter) */
+            42%,
+            52% {
+                transform: translate(4px, 0);
+            }
+
+            56% {
                 transform: translate(0, 0);
                 /* Centers */
             }
 
-            80%,
-            90% {
+            /* Glances Down (Checking the water level) */
+            65%,
+            75% {
                 transform: translate(0, 3px);
-                /* Glances Down at the Water Level */
             }
 
-            95% {
+            79% {
+                transform: translate(0, 0);
+                /* Centers */
+            }
+
+            /* Glances Left */
+            85%,
+            93% {
+                transform: translate(-4px, 0);
+            }
+
+            97% {
                 transform: translate(0, 0);
                 /* Returns Forward */
             }
