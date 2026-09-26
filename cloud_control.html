@@ -2490,6 +2490,14 @@
                 document.getElementById('voiceTranscript').innerText = "...";
                 document.getElementById('voiceFeedback').innerText = "";
                 vibe();
+
+                // Auto-close bubble if 6 seconds pass with no speech!
+                clearTimeout(window.voiceTimeoutTimer);
+                window.voiceTimeoutTimer = setTimeout(() => {
+                    if (isListening && !commandDispatched) {
+                        stopVoiceAssistant();
+                    }
+                }, 6000);
             };
 
             rec.onresult = function (event) {
@@ -2520,10 +2528,13 @@
 
             rec.onend = function () {
                 isListening = false;
-                document.getElementById('voiceFab').classList.remove('listening');
+                clearTimeout(window.voiceTimeoutTimer);
                 if (mobileTranscriptBuffer && !commandDispatched) {
                     commandDispatched = true;
                     processVoiceCommand(mobileTranscriptBuffer);
+                } else if (!commandDispatched) {
+                    // Mic timed out with no speech -> close bubble immediately!
+                    stopVoiceAssistant();
                 }
             };
 
