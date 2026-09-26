@@ -489,6 +489,7 @@
             color: #03ef62;
         }
 
+        /* --- RESTORED ORIGINAL PERCENTAGE TEXT STYLE --- */
         .tank-text {
             position: absolute;
             top: 50%;
@@ -499,6 +500,363 @@
             color: #ffffff;
             z-index: 8;
             text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95);
+        }
+
+        /* --- FLUXGARAGE ROBOEYES OLED SCREEN & ENGINE --- */
+        .roboeyes-screen {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 82px;
+            height: 38px;
+            background: rgba(10, 16, 24, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 14px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        /* RoboEyes Eye Pair Container (Allows Smooth Idle Wandering) */
+        .robo-eye-pair {
+            display: flex;
+            gap: 13px;
+            align-items: center;
+            justify-content: center;
+            animation: roboIdleGaze 8s infinite ease-in-out;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Default RoboEyes: Iconic Rounded OLED Blocks */
+        .robo-eye {
+            width: 20px;
+            height: 22px;
+            background: #00f0ff;
+            border-radius: 6px;
+            box-shadow: 0 0 10px #00f0ff, 0 0 18px rgba(0, 240, 255, 0.45);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* RoboEyes Sweat Drop (for Cooldown) */
+        .robo-sweat {
+            position: absolute;
+            top: -6px;
+            left: 2px;
+            font-size: 0.85rem;
+            opacity: 0;
+            transform: translateY(0);
+            transition: opacity 0.3s;
+        }
+
+        .robo-zzz {
+            position: absolute;
+            top: -12px;
+            right: -6px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #d8b4fe;
+            text-shadow: 0 0 8px rgba(216, 180, 254, 0.8);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* 1. ROBOEYES IDLE MODE: Natural Blink + Wandering Glance (Look Left, Center, Look Down at Water) */
+        @keyframes roboIdleGaze {
+
+            0%,
+            45%,
+            100% {
+                transform: translate(0, 0) scaleY(1);
+            }
+
+            48% {
+                transform: translate(0, 0) scaleY(0.08);
+                /* Fast RoboEyes Blink */
+            }
+
+            51% {
+                transform: translate(0, 0) scaleY(1);
+            }
+
+            60%,
+            70% {
+                transform: translate(-3px, 0);
+                /* Glances Left */
+            }
+
+            75% {
+                transform: translate(0, 0);
+                /* Centers */
+            }
+
+            80%,
+            90% {
+                transform: translate(0, 3px);
+                /* Glances Down at the Water Level */
+            }
+
+            95% {
+                transform: translate(0, 0);
+                /* Returns Forward */
+            }
+        }
+
+        /* 2. HAPPY MOOD (Pump Running) -> RoboEyes Bottom-Eyelid Push-Up Arch (^ ^) */
+        .roboeyes-screen.happy .robo-eye-pair {
+            animation: roboHappyBounce 0.5s infinite alternate ease-in-out;
+        }
+
+        .roboeyes-screen.happy .robo-eye {
+            background: #03ef62;
+            box-shadow: 0 0 12px #03ef62, 0 0 20px rgba(3, 239, 98, 0.6);
+            height: 14px;
+            border-radius: 12px 12px 2px 2px;
+            /* RoboEyes signature happy arch ^ ^ */
+        }
+
+        @keyframes roboHappyBounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* 3. COOLDOWN (Motor Resting after 1Hr) -> RoboEyes Sweating & Tired Eyelids */
+        .roboeyes-screen.cooldown .robo-eye-pair {
+            animation: none;
+        }
+
+        .roboeyes-screen.cooldown .robo-eye {
+            height: 11px;
+            /* Tired half-closed eyelids */
+            background: #00d2ff;
+            box-shadow: 0 0 8px #00d2ff;
+            border-radius: 4px;
+        }
+
+        .roboeyes-screen.cooldown .robo-sweat {
+            opacity: 1;
+            animation: roboSweatDrip 1.5s infinite ease-in;
+        }
+
+        @keyframes roboSweatDrip {
+            0% {
+                transform: translateY(0);
+                opacity: 0.2;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(8px);
+                opacity: 0;
+            }
+        }
+
+        /* 4. WORRIED (Low Water) -> RoboEyes Tired/Pleading Slant */
+        .roboeyes-screen.worried .robo-eye-pair {
+            animation: none;
+        }
+
+        .roboeyes-screen.worried .robo-eye {
+            background: #ffab00;
+            box-shadow: 0 0 10px #ffab00, 0 0 18px rgba(255, 171, 0, 0.5);
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .roboeyes-screen.worried .robo-eye.left {
+            clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .roboeyes-screen.worried .robo-eye.right {
+            clip-path: polygon(0 0, 100% 20%, 100% 100%, 0 100%);
+        }
+
+        /* 5. ALARM (Dry Run / Voltage Fault) -> RoboEyes Angry Shutter & High-Frequency Shiver */
+        .roboeyes-screen.alarm .robo-eye-pair {
+            animation: roboFlicker 0.15s infinite ease-in-out;
+        }
+
+        .roboeyes-screen.alarm .robo-eye {
+            background: #ff1744;
+            box-shadow: 0 0 14px #ff1744, 0 0 24px rgba(255, 23, 68, 0.8);
+            border-radius: 3px;
+        }
+
+        .roboeyes-screen.alarm .robo-eye.left {
+            clip-path: polygon(0 0, 100% 30%, 100% 100%, 0 100%);
+        }
+
+        .roboeyes-screen.alarm .robo-eye.right {
+            clip-path: polygon(0 30%, 100% 0, 100% 100%, 0 100%);
+        }
+
+        @keyframes roboFlicker {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(-2px, 1px);
+            }
+
+            50% {
+                transform: translate(2px, -1px);
+            }
+
+            75% {
+                transform: translate(-1px, -1px);
+            }
+
+            100% {
+                transform: translate(1px, 1px);
+            }
+        }
+
+        /* 6. SLEEPY (DND Night Mode) -> Slanted Curved Closed Eye Slits & Zzz */
+        .roboeyes-screen.sleepy .robo-eye-pair {
+            animation: none;
+        }
+
+        .roboeyes-screen.sleepy .robo-eye {
+            height: 3px;
+            background: #d8b4fe;
+            box-shadow: 0 0 8px #d8b4fe;
+            border-radius: 2px;
+        }
+
+        .roboeyes-screen.sleepy .robo-eye.left {
+            transform: rotate(-8deg);
+        }
+
+        .roboeyes-screen.sleepy .robo-eye.right {
+            transform: rotate(8deg);
+        }
+
+        .roboeyes-screen.sleepy .robo-zzz {
+            opacity: 1;
+            animation: roboFloatZzz 2.2s infinite ease-in-out;
+        }
+
+        @keyframes roboFloatZzz {
+            0% {
+                transform: translateY(0);
+                opacity: 0.2;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-9px);
+                opacity: 0;
+            }
+        }
+
+        .emo-face.alarm .emo-brow.left {
+            transform: rotate(24deg);
+        }
+
+        .emo-face.alarm .emo-brow.right {
+            transform: rotate(-24deg);
+        }
+
+        .emo-face.alarm .emo-eye {
+            background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ff1744 50%, #8b0000 100%);
+            box-shadow: 0 0 16px #ff1744, 0 0 28px rgba(255, 23, 68, 0.8);
+            border-radius: 4px;
+            animation: emoAlarmShake 0.18s infinite ease-in-out;
+        }
+
+        @keyframes emoAlarmShake {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(-2px, 1px);
+            }
+
+            50% {
+                transform: translate(2px, -1px);
+            }
+
+            75% {
+                transform: translate(-1px, -1px);
+            }
+
+            100% {
+                transform: translate(1px, 1px);
+            }
+        }
+
+        .emo-face.alarm .emo-mouth {
+            border-bottom: 2px solid #ff1744;
+            border-radius: 0;
+            height: 0;
+            width: 14px;
+            bottom: 6px;
+            box-shadow: 0 0 6px #ff1744;
+        }
+
+        /* 6. SLEEPY (DND Night Mode) -> Hidden Mouth & Brows, Soft Lavender Eye Slits & Zzz */
+        .emo-face.sleepy .emo-brow {
+            opacity: 0;
+        }
+
+        .emo-face.sleepy .emo-mouth {
+            opacity: 0;
+        }
+
+        .emo-face.sleepy .emo-eye {
+            height: 4px;
+            background: #d8b4fe;
+            box-shadow: 0 0 8px #d8b4fe;
+            border-radius: 2px;
+            animation: none;
+        }
+
+        .emo-face.sleepy .emo-eye.left {
+            transform: rotate(-8deg);
+        }
+
+        .emo-face.sleepy .emo-eye.right {
+            transform: rotate(8deg);
+        }
+
+        .emo-face.sleepy .emo-zzz {
+            opacity: 1;
+            animation: emoFloatZzz 2.2s infinite ease-in-out;
+        }
+
+        @keyframes emoFloatZzz {
+            0% {
+                transform: translateY(0);
+                opacity: 0.2;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-9px);
+                opacity: 0;
+            }
         }
 
         /* --- BALANCED BENTO TILES --- */
@@ -1114,6 +1472,16 @@
 
                 <!-- PRECISION TANK GAUGE -->
                 <div class="tank-wrap">
+                    <!-- FLUXGARAGE ROBOEYES OLED SCREEN -->
+                    <div class="roboeyes-screen" id="roboEyes">
+                        <div class="robo-sweat">💦</div>
+                        <div class="robo-eye-pair" id="roboEyePair">
+                            <div class="robo-eye left"></div>
+                            <div class="robo-eye right"></div>
+                        </div>
+                        <div class="robo-zzz">z Z Z</div>
+                    </div>
+
                     <div class="tank-ruler" id="tankRuler" aria-hidden="true"></div>
                     <div class="tank-inner">
                         <div id="tankFill" class="tank-fill"></div>
@@ -1939,8 +2307,38 @@
         function markDirty(id) {dirtyFields.add(id);}
         function safeUpdate(id, val, suffix) {const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return; if (el.tagName === 'SELECT') {let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) {let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt);} el.value = val;} else {el.value = val;} }
 
+        function updateRoboEyes(d) {
+            const screen = document.getElementById('roboEyes');
+            if (!screen) return;
+
+            screen.className = 'roboeyes-screen';
+
+            // 1. RoboEyes Alarm Mood (Dry Run / Voltage Fault / Sensor Error)
+            if (d.err > 0 || d.sErr > 0 || (d.info && (d.info.includes("ALARM") || d.info.includes("ERROR")))) {
+                screen.classList.add('alarm');
+            }
+            // 2. RoboEyes Cooldown Mood (Motor Resting with Animated Sweat Drop)
+            else if (d.info && (d.info.includes("COOLING") || d.info.includes("အအေးခံ"))) {
+                screen.classList.add('cooldown');
+            }
+            // 3. RoboEyes Sleepy Mood (DND Night Mode with Slanted Slits & Zzz)
+            else if (d.dndAct == 1) {
+                screen.classList.add('sleepy');
+            }
+            // 4. RoboEyes Happy Mood (Pump Running -> Lower Eyelid Push-Up Arch ^ ^)
+            else if (d.pStat === "ON") {
+                screen.classList.add('happy');
+            }
+            // 5. RoboEyes Worried Mood (Low Water Level < lowTank)
+            else if (d.tank <= (d.lowTank || 30)) {
+                screen.classList.add('worried');
+            }
+            // 6. RoboEyes Default Idle Mode: Natural Blink & Wandering Gaze
+        }
+
         function updateUI(d) {
             latestTelemetry = d;
+            updateRoboEyes(d);
             renderTankRulerTicks(); if (sysLang == 1) document.body.classList.add('lang-mm'); else document.body.classList.remove('lang-mm'); if (document.getElementById('dndBadgeC')) {document.getElementById('dndBadgeC').style.display = (d.dndAct == 1) ? 'block' : 'none';}
             let rb = document.getElementById('roleBadgeC'); if (rb) {if (d.sysRole == 1) {rb.innerText = sysLang == 1 ? "👑 အောက်တိုင်ကီ (MASTER)" : "👑 MASTER (SUMP)"; rb.className = "badge bg-info"; rb.style.display = "block"; rb.style.color = "#17a2b8";} else if (d.sysRole == 2) {rb.innerText = sysLang == 1 ? "👷 အပေါ်တိုင်ကီ (SLAVE)" : "👷 SLAVE (ROOF)"; rb.className = "badge bg-warning"; rb.style.display = "block"; rb.style.color = "#ffc107";} else {rb.style.display = "none";} }
             isExpired = d.expired ? true : false;
