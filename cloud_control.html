@@ -806,6 +806,165 @@
             /* Right eye winks */
         }
 
+        /* 9. INTERACTIVE: POKED / SURPRISED (Wide rounded eyes with pop bounce) */
+        .roboeyes-screen.poked .robo-eye-pair {
+            animation: roboPokeBounce 0.3s ease-out;
+        }
+
+        .roboeyes-screen.poked .robo-eye {
+            width: 24px;
+            height: 24px;
+            background: #ffffff;
+            box-shadow: 0 0 16px #ffffff, 0 0 24px rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+
+        @keyframes roboPokeBounce {
+            0% {
+                transform: scale(0.85);
+            }
+
+            50% {
+                transform: scale(1.15) translateY(-3px);
+            }
+
+            100% {
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* 10. INTERACTIVE: PETTED / AFFECTION (Happy arches + Glowing Blush Cheeks) */
+        .roboeyes-screen.petted .robo-eye-pair {
+            animation: roboPetSway 0.8s infinite alternate ease-in-out;
+        }
+
+        .roboeyes-screen.petted .robo-eye {
+            height: 12px;
+            background: #ff66cc;
+            box-shadow: 0 0 14px #ff66cc, 0 0 22px rgba(255, 102, 204, 0.7);
+            border-radius: 12px 12px 2px 2px;
+        }
+
+        .robo-blush {
+            position: absolute;
+            bottom: 4px;
+            width: 8px;
+            height: 4px;
+            background: #ff4081;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ff4081, 0 0 14px rgba(255, 64, 129, 0.8);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .robo-blush.left {
+            left: 9px;
+        }
+
+        .robo-blush.right {
+            right: 9px;
+        }
+
+        .roboeyes-screen.petted .robo-blush {
+            opacity: 1;
+        }
+
+        @keyframes roboPetSway {
+            from {
+                transform: translateY(0) rotate(-3deg);
+            }
+
+            to {
+                transform: translateY(-2px) rotate(3deg);
+            }
+        }
+
+        /* 11. INTERACTIVE: ANNOYED (>4 rapid pokes trigger dizzy/grumpy eyes) */
+        .roboeyes-screen.annoyed .robo-eye-pair {
+            animation: roboFlicker 0.12s infinite ease-in-out;
+        }
+
+        .roboeyes-screen.annoyed .robo-eye {
+            background: #ff1744;
+            box-shadow: 0 0 14px #ff1744, 0 0 22px rgba(255, 23, 68, 0.8);
+            height: 15px;
+            border-radius: 3px;
+        }
+
+        .roboeyes-screen.annoyed .robo-eye.left {
+            clip-path: polygon(0 0, 100% 40%, 100% 100%, 0 100%);
+        }
+
+        .roboeyes-screen.annoyed .robo-eye.right {
+            clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 100%);
+        }
+
+        /* Tank Physical Reaction */
+        .tank-wrap {
+            cursor: pointer;
+            user-select: none;
+            touch-action: pan-y;
+            transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .tank-wrap.tank-poked {
+            transform: scale(0.96) translateY(2px);
+        }
+
+        .tank-wrap.tank-petted {
+            transform: scale(1.02);
+        }
+
+        /* 12. INTERACTIVE: DIZZY (Phone Shaken -> Swirling Spiral @ @ Eyes) */
+        .roboeyes-screen.dizzy .robo-eye-pair {
+            animation: roboDizzyWobble 0.7s infinite linear;
+        }
+
+        .roboeyes-screen.dizzy .robo-eye {
+            width: 22px;
+            height: 22px;
+            background: transparent !important;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.4) !important;
+            border-radius: 50% !important;
+            border: 3.5px dashed #00f0ff !important;
+            animation: roboSpiralRotate 0.6s infinite linear;
+        }
+
+        @keyframes roboDizzyWobble {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateY(-3px) rotate(-8deg);
+            }
+
+            50% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            75% {
+                transform: translateY(3px) rotate(8deg);
+            }
+
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
+
+        @keyframes roboSpiralRotate {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 13. INTERACTIVE: CURSOR & FINGER GAZE TRACKING */
+        .roboeyes-screen.tracking-gaze .robo-eye-pair {
+            animation: none !important;
+            transform: translate3d(var(--gaze-x, 0px), var(--gaze-y, 0px), 0) !important;
+            transition: transform 0.08s ease-out !important;
+        }
+
         /* --- BALANCED BENTO TILES --- */
         .bento-grid {
             display: grid;
@@ -1491,14 +1650,16 @@
                 </div>
 
                 <!-- PRECISION TANK GAUGE -->
-                <div class="tank-wrap">
+                <div class="tank-wrap" id="tankWrap">
                     <!-- FLUXGARAGE ROBOEYES OLED SCREEN -->
                     <div class="roboeyes-screen" id="roboEyes">
                         <div class="robo-sweat">💦</div>
+                        <div class="robo-blush left"></div>
                         <div class="robo-eye-pair" id="roboEyePair">
                             <div class="robo-eye left"></div>
                             <div class="robo-eye right"></div>
                         </div>
+                        <div class="robo-blush right"></div>
                         <div class="robo-zzz">z Z Z</div>
                     </div>
 
@@ -2316,15 +2477,19 @@
             const screen = document.getElementById('roboEyes');
             if (!screen) return;
 
-            // Preserve listening gaze or wink acknowledgment during active voice interaction
-            if (isListening || screen.classList.contains('wink')) {
+            // Preserve listening gaze, wink acknowledgment, or physical pet/poke interaction
+            if (isListening || isInteracting || screen.classList.contains('wink')) {
                 return;
             }
 
             screen.className = 'roboeyes-screen';
 
+            const rawInfo = d.info || "";
+            const isVoltFault = (d.vStat === "OVER" || d.vStat === "UNDER" || rawInfo.includes("OVER_VOLTAGE") || rawInfo.includes("UNDER_VOLTAGE"));
+            const isSystemAlarm = (d.err > 0 || d.sErr > 0 || rawInfo.includes("ALARM") || rawInfo.includes("ERROR") || isVoltFault);
+
             // 1. RoboEyes Alarm Mood (Dry Run / Voltage Fault / Sensor Error)
-            if (d.err > 0 || d.sErr > 0 || (d.info && (d.info.includes("ALARM") || d.info.includes("ERROR")))) {
+            if (isSystemAlarm) {
                 screen.classList.add('alarm');
             }
             // 2. RoboEyes Cooldown Mood (Motor Resting with Animated Sweat Drop)
@@ -2410,6 +2575,14 @@
             let pHero = document.getElementById('pstateVal');
             if (pEl && pHero) {
                 let isRunning = (d.pStat === "ON");
+
+                // Play Activation / Deactivation Chime on State Transition
+                if (window.lastPumpMotorState !== undefined && window.lastPumpMotorState !== d.pStat) {
+                    if (d.pStat === "ON") playChime('start');
+                    else if (d.pStat === "OFF") playChime('stop');
+                }
+                window.lastPumpMotorState = d.pStat;
+
                 pHero.innerText = isRunning ? (sysLang == 1 ? "ဖွင့်" : "ON") : (sysLang == 1 ? "ပိတ်" : "OFF");
                 pHero.style.color = isRunning ? "#03ef62" : "#adb5bd";
                 pEl.className = 'status-pill ' + (isRunning ? 'pill-green' : 'pill-grey');
@@ -2738,6 +2911,304 @@
             feedbackEl.innerText = unknownMsg;
             speakText(unknownMsg);
             setTimeout(stopVoiceAssistant, 2000);
+        }
+
+        // ============================================================================
+        // TANK & ROBOEYES PHYSICAL INTERACTION (POKE, PET, ANNOYED)
+        // ============================================================================
+        let isInteracting = false;
+        let petInteractTimer = null;
+        let pokeTimestamps = [];
+        let pointerStartX = 0;
+        let pointerStartY = 0;
+        let totalPetDistance = 0;
+        let isPetDragging = false;
+
+        function setRoboMood(moodClass, durationMs = 1800) {
+            const screen = document.getElementById('roboEyes');
+            if (!screen) return;
+
+            isInteracting = true;
+            clearTimeout(petInteractTimer);
+
+            screen.className = 'roboeyes-screen ' + moodClass;
+
+            petInteractTimer = setTimeout(() => {
+                isInteracting = false;
+                const wrap = document.getElementById('tankWrap');
+                if (wrap) wrap.classList.remove('tank-poked', 'tank-petted');
+                updateRoboEyes(latestTelemetry);
+            }, durationMs);
+        }
+
+        function triggerPokeReaction() {
+            const now = Date.now();
+            const screen = document.getElementById('roboEyes');
+
+            // 1. Guard check: Ignore trailing finger lift-off within 700ms of petting
+            if (now - lastPetTimestamp < 700) return;
+
+            // 2. Guard check: If currently in Pet or Dizzy mood, don't interrupt with Poke
+            if (screen && (screen.classList.contains('petted') || screen.classList.contains('dizzy'))) {
+                return;
+            }
+
+            const wrap = document.getElementById('tankWrap');
+            if (wrap) {
+                wrap.classList.remove('tank-poked');
+                void wrap.offsetWidth;
+                wrap.classList.add('tank-poked');
+                setTimeout(() => wrap.classList.remove('tank-poked'), 150);
+            }
+
+            // 3. Guard check: If robot is ALREADY in angry mode, any extra tap keeps it angry
+            if (screen && screen.classList.contains('annoyed')) {
+                vibe();
+                setRoboMood('annoyed', 2800);
+                return;
+            }
+
+            pokeTimestamps.push(now);
+            pokeTimestamps = pokeTimestamps.filter(t => now - t <= 2200);
+
+            // Activated when quick taps reach 4 or more times within 2.2 seconds
+            if (pokeTimestamps.length >= 4) {
+                pokeTimestamps = [];
+                vibe();
+                if (navigator && navigator.vibrate) {
+                    try {navigator.vibrate([40, 60, 40, 60, 80]);} catch (e) { }
+                }
+                setRoboMood('annoyed', 3000);
+                return;
+            }
+
+            vibe();
+            setRoboMood('poked', 400);
+        }
+
+        let lastPetTimestamp = 0;
+        function triggerPetReaction() {
+            lastPetTimestamp = Date.now();
+            const wrap = document.getElementById('tankWrap');
+            if (wrap) wrap.classList.add('tank-petted');
+
+            // Gentle rhythmic purr pulse
+            if (navigator && navigator.vibrate) {
+                try {navigator.vibrate([20, 40, 20]);} catch (e) { }
+            }
+            setRoboMood('petted', 2400);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const tank = document.getElementById('tankWrap');
+            if (!tank) return;
+
+            let touchOriginX = 0;
+            let touchOriginY = 0;
+            let hasPettedInGesture = false;
+
+            tank.addEventListener('pointerdown', (e) => {
+                if (e.target.closest('#voiceFab')) return; // Allow mic button to work freely
+                isPetDragging = true;
+                hasPettedInGesture = false;
+                touchOriginX = e.clientX;
+                touchOriginY = e.clientY;
+                pointerStartX = e.clientX;
+                pointerStartY = e.clientY;
+                totalPetDistance = 0;
+            });
+
+            tank.addEventListener('pointermove', (e) => {
+                if (!isPetDragging) return;
+                const dx = Math.abs(e.clientX - pointerStartX);
+                const dy = Math.abs(e.clientY - pointerStartY);
+
+                // Horizontal stroke across the tank indicates petting
+                if (dx > 6 && dx > dy) {
+                    totalPetDistance += dx;
+                    pointerStartX = e.clientX;
+                    pointerStartY = e.clientY;
+
+                    if (totalPetDistance > 35) {
+                        hasPettedInGesture = true;
+                        triggerPetReaction();
+                        totalPetDistance = 0;
+                    }
+                }
+            });
+
+            const endPointer = (e) => {
+                if (!isPetDragging) return;
+                isPetDragging = false;
+                const wrap = document.getElementById('tankWrap');
+                if (wrap) wrap.classList.remove('tank-petted');
+
+                // Calculate total movement from original press location
+                const totalMoveX = Math.abs(e.clientX - touchOriginX);
+                const totalMoveY = Math.abs(e.clientY - touchOriginY);
+
+                // If pet occurred OR finger moved significantly, NEVER trigger poke
+                if (hasPettedInGesture || (Date.now() - lastPetTimestamp < 1200)) return;
+                if (totalMoveX > 15 || totalMoveY > 15) return;
+
+                triggerPokeReaction();
+            };
+
+            tank.addEventListener('pointerup', endPointer);
+            tank.addEventListener('pointercancel', endPointer);
+        });
+
+        // ============================================================================
+        // PROCEDURAL AUDIO SYNTHESIZER (WEB AUDIO API - ZERO EXTERNAL FILES)
+        // ============================================================================
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playChime(type) {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'start') {
+                    // Ascending Futuramic Triad (C5 -> E5 -> G5 -> C6)
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+                    osc.start(now);
+                    osc.stop(now + 0.65);
+                } else if (type === 'stop') {
+                    // Descending Soft Triad (G5 -> E5 -> C5)
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(783.99, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.12);
+                    osc.frequency.setValueAtTime(523.25, now + 0.24);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+                    osc.start(now);
+                    osc.stop(now + 0.55);
+                } else if (type === 'dizzy') {
+                    // Cartoon Dizzy Descending Wobble
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(680, now);
+                    osc.frequency.linearRampToValueAtTime(260, now + 0.45);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                }
+            } catch (e) {
+                console.warn("[Audio] WebAudio synthesis note:", e);
+            }
+        }
+
+        // ============================================================================
+        // CURSOR & TOUCH GAZE TRACKING (PUPILS LOOK AT FINGER / MOUSE)
+        // ============================================================================
+        let gazeTimeout = null;
+        document.addEventListener('pointermove', (e) => {
+            const screen = document.getElementById('roboEyes');
+            if (!screen || isInteracting || isListening) return;
+
+            // Only track gaze when robot is in normal idle mode (not in alarm, cooldown, sleepy, etc.)
+            const isIdle = (screen.classList.length === 1 && screen.classList.contains('roboeyes-screen')) ||
+                (screen.classList.length === 2 && screen.classList.contains('tracking-gaze'));
+            if (!isIdle) return;
+
+            const rect = screen.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const eyeCenterX = rect.left + (rect.width / 2);
+            const eyeCenterY = rect.top + (rect.height / 2);
+
+            const dx = e.clientX - eyeCenterX;
+            const dy = e.clientY - eyeCenterY;
+
+            const dist = Math.hypot(dx, dy);
+            if (dist < 2) return;
+
+            // Calculate directional angle with proportional range
+            const angle = Math.atan2(dy, dx);
+            const intensity = Math.min(dist / 220, 1.0);
+
+            const shiftX = (Math.cos(angle) * 7.5 * intensity).toFixed(1);
+            const shiftY = (Math.sin(angle) * 5.0 * intensity).toFixed(1);
+
+            screen.style.setProperty('--gaze-x', `${shiftX}px`);
+            screen.style.setProperty('--gaze-y', `${shiftY}px`);
+            screen.classList.add('tracking-gaze');
+
+            // Revert smoothly to natural wandering double-blink when pointer rests
+            clearTimeout(gazeTimeout);
+            gazeTimeout = setTimeout(() => {
+                screen.classList.remove('tracking-gaze');
+                screen.style.removeProperty('--gaze-x');
+                screen.style.removeProperty('--gaze-y');
+            }, 2000);
+        }, {passive: true});
+
+        // ============================================================================
+        // SHAKE DETECTION (PHYSICAL MOTION TRIGGERS DIZZY "@ @" EYES)
+        // ============================================================================
+        let lastAccX = 0, lastAccY = 0, lastAccZ = 0;
+        let lastShakeDetected = 0;
+        let shakeReversals = 0;
+        let shakeWindowStart = 0;
+
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', (e) => {
+                const acc = e.accelerationIncludingGravity;
+                if (!acc) return;
+
+                const deltaX = Math.abs(acc.x - lastAccX);
+                const deltaY = Math.abs(acc.y - lastAccY);
+                const deltaZ = Math.abs(acc.z - lastAccZ);
+
+                lastAccX = acc.x;
+                lastAccY = acc.y;
+                lastAccZ = acc.z;
+
+                const now = Date.now();
+
+                // Guard: Strictly block shake detection during active interaction or cooldown lockout
+                if (isInteracting || (now - lastShakeDetected < 4000)) return;
+
+                const totalDelta = deltaX + deltaY + deltaZ;
+
+                // Detect deliberate, firm back-and-forth shake gesture
+                if (totalDelta > 24) {
+                    if (now - shakeWindowStart > 900) {
+                        shakeReversals = 1;
+                        shakeWindowStart = now;
+                    } else {
+                        shakeReversals++;
+                    }
+
+                    // Requires at least 3 distinct rapid direction changes within 900ms
+                    if (shakeReversals >= 3) {
+                        shakeReversals = 0;
+                        lastShakeDetected = now;
+                        playChime('dizzy');
+                        vibe();
+                        setRoboMood('dizzy', 3000);
+                    }
+                }
+            });
         }
     </script>
 </body>
