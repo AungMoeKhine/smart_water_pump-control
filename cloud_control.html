@@ -2316,6 +2316,11 @@
             const screen = document.getElementById('roboEyes');
             if (!screen) return;
 
+            // Preserve listening gaze or wink acknowledgment during active voice interaction
+            if (isListening || screen.classList.contains('wink')) {
+                return;
+            }
+
             screen.className = 'roboeyes-screen';
 
             // 1. RoboEyes Alarm Mood (Dry Run / Voltage Fault / Sensor Error)
@@ -2326,13 +2331,13 @@
             else if (d.info && (d.info.includes("COOLING") || d.info.includes("အအေးခံ"))) {
                 screen.classList.add('cooldown');
             }
-            // 3. RoboEyes Sleepy Mood (DND Night Mode with Slanted Slits & Zzz)
-            else if (d.dndAct == 1) {
-                screen.classList.add('sleepy');
-            }
-            // 4. RoboEyes Happy Mood (Pump Running -> Lower Eyelid Push-Up Arch ^ ^)
+            // 3. RoboEyes Happy Mood (WAKES UP when motor runs, even during DND schedule)
             else if (d.pStat === "ON") {
                 screen.classList.add('happy');
+            }
+            // 4. RoboEyes Sleepy Mood (Goes back to sleep when motor stops during DND)
+            else if (d.dndAct == 1) {
+                screen.classList.add('sleepy');
             }
             // 5. RoboEyes Worried Mood (Low Water Level < lowTank)
             else if (d.tank <= (d.lowTank || 30)) {
