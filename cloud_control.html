@@ -2488,9 +2488,9 @@
             const isVoltFault = (d.vStat === "OVER" || d.vStat === "UNDER" || rawInfo.includes("OVER_VOLTAGE") || rawInfo.includes("UNDER_VOLTAGE"));
             const isSystemAlarm = (d.err > 0 || d.sErr > 0 || rawInfo.includes("ALARM") || rawInfo.includes("ERROR") || isVoltFault);
 
-            // 1. RoboEyes Alarm Mood (Dry Run / Voltage Fault / Sensor Error)
+            // 1. RoboEyes Worried Mood (Dry Run / Voltage Fault / Sensor Error)
             if (isSystemAlarm) {
-                screen.classList.add('alarm');
+                screen.classList.add('worried');
             }
             // 2. RoboEyes Cooldown Mood (Motor Resting with Animated Sweat Drop)
             else if (d.info && (d.info.includes("COOLING") || d.info.includes("အအေးခံ"))) {
