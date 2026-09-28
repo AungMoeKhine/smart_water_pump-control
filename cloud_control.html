@@ -3008,6 +3008,7 @@
             let hasPettedInGesture = false;
 
             tank.addEventListener('pointerdown', (e) => {
+                if (!dataReceived) return;
                 if (e.target.closest('#voiceFab')) return; // Allow mic button to work freely
                 isPetDragging = true;
                 hasPettedInGesture = false;
@@ -3122,6 +3123,7 @@
         // ============================================================================
         let gazeTimeout = null;
         document.addEventListener('pointermove', (e) => {
+            if (!dataReceived) return;
             const screen = document.getElementById('roboEyes');
             if (!screen || isInteracting || isListening) return;
 
@@ -3172,6 +3174,7 @@
 
         if (window.DeviceMotionEvent) {
             window.addEventListener('devicemotion', (e) => {
+                if (!dataReceived) return;
                 const acc = e.accelerationIncludingGravity;
                 if (!acc) return;
 
