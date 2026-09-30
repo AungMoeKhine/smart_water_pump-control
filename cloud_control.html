@@ -324,7 +324,20 @@
             box-shadow: 0 0 25px rgba(0, 210, 255, 0.35);
             transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
             height: 0%;
-            overflow: visible;
+            overflow: hidden;
+        }
+
+        /* --- SMART RANDOM WANDERING FISH --- */
+        .tank-fish {
+            position: absolute;
+            width: 24px;
+            height: 15px;
+            left: 0px;
+            bottom: 0px;
+            z-index: 3;
+            will-change: transform;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+            transition: transform 0.2s ease-out;
         }
 
         /* Dual SVG Wave Layers */
@@ -1665,7 +1678,17 @@
 
                     <div class="tank-ruler" id="tankRuler" aria-hidden="true"></div>
                     <div class="tank-inner">
-                        <div id="tankFill" class="tank-fill"></div>
+                        <div id="tankFill" class="tank-fill">
+                            <!-- Random Wandering Fish SVG -->
+                            <svg id="tankFish" class="tank-fish" viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="38,15 48,5 45,15 48,25" fill="#ffb703" />
+                                <ellipse cx="22" cy="15" rx="16" ry="10" fill="#fb8500" />
+                                <polygon points="20,5 25,1 28,6" fill="#ffb703" />
+                                <polygon points="20,25 24,29 27,24" fill="#ffb703" />
+                                <circle cx="12" cy="12" r="2" fill="#fff" />
+                                <circle cx="12" cy="12" r="1" fill="#000" />
+                            </svg>
+                        </div>
                         <div class="tank-glaze"></div>
                     </div>
                     <div class="tank-grid-lines">
@@ -2043,6 +2066,7 @@
     <audio id="myanmarAudio" referrerpolicy="no-referrer" preload="auto"></audio>
 
     <script>
+
         function updateWifiIcon(rssi) {
             // Select all bars for both Home and Settings views
             const ids = ['wb1', 'wb2', 'wb3', 'wb4', 'wb1s', 'wb2s', 'wb3s', 'wb4s'];
@@ -3213,6 +3237,39 @@
                 }
             });
         }
+
+        // --- RANDOM ORGANIC FISH MOVEMENT ENGINE ---
+        let fishX = 50, fishY = 40;
+        let targetX = 50, targetY = 40;
+        let facingRight = true;
+
+        function pickNewTarget() {
+            targetX = 10 + Math.random() * 100;
+            const currentTankLevel = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+            let waterPx = (currentTankLevel / 100) * 195;
+            let maxH = Math.max(20, waterPx - 25);
+            targetY = 10 + Math.random() * maxH;
+            setTimeout(pickNewTarget, 3000 + Math.random() * 4000);
+        }
+        pickNewTarget();
+
+        function animateFish() {
+            const fish = document.getElementById('tankFish');
+            if (fish) {
+                fishX += (targetX - fishX) * 0.03;
+                fishY += (targetY - fishY) * 0.03;
+
+                if (targetX > fishX + 1) facingRight = true;
+                else if (targetX < fishX - 1) facingRight = false;
+
+                const flip = facingRight ? "scaleX(-1)" : "scaleX(1)";
+                fish.style.left = fishX + 'px';
+                fish.style.bottom = fishY + 'px';
+                fish.style.transform = `${flip} translateY(${Math.sin(Date.now() / 200) * 3}px)`;
+            }
+            requestAnimationFrame(animateFish);
+        }
+        requestAnimationFrame(animateFish);
     </script>
 </body>
 
