@@ -1705,7 +1705,7 @@
             if (isNaN(days) || days === 0) return showToast("Error", "Enter a valid number of days.", "error");
 
             const ts = Math.floor(Date.now() / 1000);
-            const payload = ts + "|" + days + "|ACER123|" + devID;
+            const payload = ts + "|" + days + "|AMK_SECURE_TOKEN_SALT_9841|" + devID;
             const sig = CryptoJS.MD5(payload).toString();
             const tokenB64 = btoa(ts + "|" + days + "|" + sig);
 
