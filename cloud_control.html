@@ -340,7 +340,31 @@
             transition: transform 0.2s ease-out;
         }
 
-        /* Dual SVG Wave Layers */
+        .tank-bubble {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3;
+            animation: floatBubble 1.2s ease-out forwards;
+        }
+
+        @keyframes floatBubble {
+            0% {
+                transform: translateY(0) scale(0.6);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translateY(-35px) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* Dual SVG Wave Layers (Hidden When Pump is OFF) */
         .tank-fill::before,
         .tank-fill::after {
             content: '';
@@ -349,20 +373,20 @@
             width: 200%;
             height: 25px;
             opacity: 0;
-            transition: opacity 0.5s, background-image 0.5s;
+            transition: opacity 0.5s ease;
             background-repeat: repeat-x;
             background-size: 50% 100%;
-            top: -15px;
+            top: -14px;
         }
 
         /* Wave 1: Soft Matching Surface Reflection */
         .tank-fill::before {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2366e5ff' opacity='0.45'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2366e5ff' opacity='0.6'/%3E%3C/svg%3E");
             animation: wave 4s linear infinite;
             z-index: 1;
         }
 
-        /* Wave 2: Primary Wave (Matches Water Surface 1:1) */
+        /* Wave 2: Primary Wave */
         .tank-fill::after {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2300d2ff'/%3E%3C/svg%3E");
             animation: wave 3s linear infinite reverse;
@@ -3237,37 +3261,124 @@
             });
         }
 
-        // --- RANDOM ORGANIC FISH MOVEMENT ENGINE ---
+        // --- SAFE BOUNDED AUTONOMOUS FISH ENGINE WITH BUBBLES & TAP-TO-DART ---
         let fishX = 50, fishY = 40;
         let targetX = 50, targetY = 40;
         let facingRight = true;
+        let fishSpeed = 0.03;
+        let fishTilt = 0;
+        let pauseFrames = 0;
+        let frameCounter = 0;
+        let lastBubbleTime = 0;
 
-        function pickNewTarget() {
-            targetX = 10 + Math.random() * 100;
-            const currentTankLevel = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+        function getNewFishTarget() {
+            targetX = 15 + Math.random() * 100;
+            const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+            const currentTankLevel = !isNaN(parseFloat(rawTank)) ? parseFloat(rawTank) : 50;
+
             let waterPx = (currentTankLevel / 100) * 195;
-            let maxH = Math.max(20, waterPx - 25);
-            targetY = 10 + Math.random() * maxH;
-            setTimeout(pickNewTarget, 3000 + Math.random() * 4000);
+            let maxH = Math.max(20, Math.min(waterPx - 30, 140));
+            targetY = 15 + Math.random() * maxH;
+
+            if (Math.random() < 0.25) {
+                fishSpeed = 0.1; // Fast dart
+            } else {
+                fishSpeed = 0.015 + Math.random() * 0.025; // Normal swim
+            }
         }
-        pickNewTarget();
+
+        function spawnBubble(x, y) {
+            const tankInner = document.querySelector('.tank-inner');
+            if (!tankInner) return;
+            const bubble = document.createElement('div');
+            bubble.className = 'tank-bubble';
+            bubble.style.left = (x + 12) + 'px';
+            bubble.style.bottom = (y + 5) + 'px';
+            tankInner.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 1200);
+        }
 
         function animateFish() {
             const fish = document.getElementById('tankFish');
             if (fish) {
-                fishX += (targetX - fishX) * 0.03;
-                fishY += (targetY - fishY) * 0.03;
+                if (isNaN(fishX) || !isFinite(fishX)) fishX = 50;
+                if (isNaN(fishY) || !isFinite(fishY)) fishY = 40;
+                if (isNaN(targetX) || !isFinite(targetX)) targetX = 50;
+                if (isNaN(targetY) || !isFinite(targetY)) targetY = 40;
 
-                if (targetX > fishX + 1) facingRight = true;
-                else if (targetX < fishX - 1) facingRight = false;
+                if (pauseFrames > 0) {
+                    pauseFrames--;
+                } else {
+                    const dx = targetX - fishX;
+                    const dy = targetY - fishY;
+                    const dist = Math.hypot(dx, dy);
+
+                    frameCounter++;
+                    if (dist < 4 || frameCounter > 400) {
+                        frameCounter = 0;
+                        if (Math.random() < 0.2) {
+                            pauseFrames = 60 + Math.floor(Math.random() * 120);
+                        } else {
+                            getNewFishTarget();
+                        }
+                    } else {
+                        fishX += dx * fishSpeed;
+                        fishY += dy * fishSpeed;
+
+                        if (dx > 0.5) facingRight = true;
+                        else if (dx < -0.5) facingRight = false;
+
+                        let targetTilt = Math.max(-25, Math.min(25, dy * 0.6));
+                        fishTilt += (targetTilt - fishTilt) * 0.15;
+                    }
+                }
+
+                // Spawn bubbles behind the fish when active
+                if (!pauseFrames && (Date.now() - lastBubbleTime > (fishSpeed > 0.07 ? 150 : 400))) {
+                    spawnBubble(fishX, fishY);
+                    lastBubbleTime = Date.now();
+                }
 
                 const flip = facingRight ? "scaleX(-1)" : "scaleX(1)";
+                const finalRotation = facingRight ? -fishTilt : fishTilt;
+
+                // Fixed correct size transform without multiplier distortion bugs
+                const transformStyle = `rotate(${finalRotation}deg) ${flip}`;
+                const bounceHeight = fishSpeed > 0.07 ? 2.5 : 1;
+
                 fish.style.left = fishX + 'px';
                 fish.style.bottom = fishY + 'px';
-                fish.style.transform = `${flip} translateY(${Math.sin(Date.now() / 200) * 3}px)`;
+                fish.style.transform = `${transformStyle} translateY(${Math.sin(Date.now() / 180) * bounceHeight}px)`;
             }
             requestAnimationFrame(animateFish);
         }
+
+        // Bind Tap-to-Dart interactivity directly on the fish SVG element
+        document.addEventListener("DOMContentLoaded", () => {
+            const fish = document.getElementById('tankFish');
+            if (fish) {
+                fish.style.cursor = 'pointer';
+                fish.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+
+                    fishSpeed = 0.16;
+                    pauseFrames = 0;
+
+                    targetX = facingRight ? 20 : 100;
+                    const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+                    targetY = Math.max(20, (rawTank / 100) * 140);
+
+                    if (typeof setRoboMood === 'function') {
+                        setRoboMood('poked', 600);
+                    }
+                    if (typeof vibe === 'function') {
+                        vibe([30, 50, 30]);
+                    }
+                });
+            }
+        });
+
+        getNewFishTarget();
         requestAnimationFrame(animateFish);
     </script>
 </body>
