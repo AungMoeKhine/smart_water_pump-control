@@ -394,19 +394,13 @@
             margin-top: 1px;
         }
 
-        /* Low Water Theme */
-        .tank-fill.low-water {
-            background: linear-gradient(180deg, #ffab00 0%, #ff5722 65%, #b71c1c 100%) !important;
-            box-shadow: 0 0 25px rgba(255, 171, 0, 0.4) !important;
-        }
-
-        /* Low Water Waves: Harmonious Matching Amber */
+        /* Low Water Waves: Harmonious Aqua Waves */
         .tank-fill.low-water::before {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ffd54f' opacity='0.45'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,5 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2366e5ff' opacity='0.6'/%3E%3C/svg%3E");
         }
 
         .tank-fill.low-water::after {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%23ffab00'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 50'%3E%3Cpath d='M0,25 Q100,45 200,25 T400,25 T600,25 T800,25 v35 h-800 z' fill='%2300d2ff'/%3E%3C/svg%3E");
         }
 
         /* Show Waves ONLY When Pump is Running */
@@ -2520,6 +2514,18 @@
         function markDirty(id) {dirtyFields.add(id);}
         function safeUpdate(id, val, suffix) {const el = document.getElementById(id); if (!el || document.activeElement === el || val === undefined || val === null || dirtyFields.has(id)) return; if (el.tagName === 'SELECT') {let exists = Array.from(el.options).some(opt => opt.value == val); if (!exists) {let opt = document.createElement('option'); opt.value = val; opt.innerText = val + (suffix ? " " + suffix : ""); el.appendChild(opt);} el.value = val;} else {el.value = val;} }
 
+        // Helper function to blend between two hex colors based on percentage (p from 0 to 1)
+        function interpolateColor(color1, color2, p) {
+            const c1 = parseInt(color1.slice(1), 16);
+            const c2 = parseInt(color2.slice(1), 16);
+            const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
+            const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
+            const r = Math.round(r1 + p * (r2 - r1));
+            const g = Math.round(g1 + p * (g2 - g1));
+            const b = Math.round(b1 + p * (b2 - b1));
+            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        }
+
         function updateRoboEyes(d) {
             const screen = document.getElementById('roboEyes');
             if (!screen) return;
@@ -2660,7 +2666,27 @@
                     iEl.previousElementSibling.style.background = dotColor;
                 }
             }
-            const tankFill = document.getElementById('tankFill'); if (tankFill && activeTab !== 'saving') {setTankGuides(d); tankFill.style.height = (d.tank || 0) + '%'; if (d.tank <= (d.lowTank || 30)) tankFill.classList.add('low-water'); else tankFill.classList.remove('low-water'); if (d.pStat == "ON") tankFill.classList.add('pumping'); else tankFill.classList.remove('pumping');}
+            const tankFill = document.getElementById('tankFill'); if (tankFill && activeTab !== 'saving') {
+                setTankGuides(d);
+                const currentLevel = d.tank || 0;
+                tankFill.style.height = currentLevel + '%';
+
+                // --- DYNAMIC HEIGHT-BASED WATER COLOR TRANSITION ---
+                const p = Math.max(0, Math.min(1, currentLevel / 100));
+                const topColor = interpolateColor('#67e8f9', '#00d2ff', p);
+                const midColor = interpolateColor('#0ea5e9', '#0066ff', p);
+                const botColor = interpolateColor('#0284c7', '#002b80', p);
+
+                tankFill.style.background = `linear-gradient(180deg, ${topColor} 0%, ${midColor} 60%, ${botColor} 100%)`;
+                tankFill.style.boxShadow = `0 0 25px ${topColor}55`;
+                // ---------------------------------------------------
+
+                if (currentLevel <= (d.lowTank || 30)) tankFill.classList.add('low-water');
+                else tankFill.classList.remove('low-water');
+
+                if (d.pStat == "ON") tankFill.classList.add('pumping');
+                else tankFill.classList.remove('pumping');
+            }
             if (activeTab !== 'saving') {
                 if (d.sType !== undefined) safeUpdate('sType', d.sType); if (d.sysRole !== undefined) {safeUpdate('sysRole', d.sysRole); toggleRole();} if (d.setM !== undefined) safeUpdate('setM', d.setM); if (d.linkID !== undefined) safeUpdate('linkID', d.linkID); if (d.opM !== undefined) {safeUpdate('opM', d.opM); toggleVDly();} if (d.vDly !== undefined) safeUpdate('vDly', d.vDly, "Seconds"); if (d.uH !== undefined) safeUpdate('uH', d.uH); if (d.lowTank !== undefined) safeUpdate('lowTank', d.lowTank); if (d.fullTank !== undefined) safeUpdate('fullTank', d.fullTank); if (d.vH !== undefined) safeUpdate('vH', d.vH, "Volts"); if (d.vL !== undefined) safeUpdate('vL', d.vL, "Volts"); if (d.vG !== undefined) safeUpdate('vG', d.vG, "Volts"); if (d.dD !== undefined) safeUpdate('dD', d.dD, "Seconds"); if (d.rstM !== undefined) safeUpdate('rstM', d.rstM); if (d.rM !== undefined) {safeUpdate('rM', d.rM); toggleRetryLimit();} if (d.maxRet !== undefined) safeUpdate('maxRet', d.maxRet); if (d.ssid !== undefined) safeUpdate('ssid', d.ssid); if (d.dndEn !== undefined) safeUpdate('dndEn', d.dndEn); if (d.dndS !== undefined) safeUpdate('dndS', d.dndS); if (d.dndE !== undefined) safeUpdate('dndE', d.dndE); if (d.tzOf !== undefined) safeUpdate('tzOf', d.tzOf);
                 if (d.motLim !== undefined) safeUpdate('mSl', d.motLim); if (d.mSl !== undefined) safeUpdate('mSl', d.mSl); if (d.mqSrv !== undefined) safeUpdate('mqSrv_s', d.mqSrv); if (d.mqPort !== undefined) safeUpdate('mqPort_s', d.mqPort); if (d.mqUser !== undefined) safeUpdate('mqUser_s', d.mqUser); if (d.mqPass !== undefined) safeUpdate('mqPass_s', d.mqPass); if (d.ver) document.getElementById('curVer').innerText = 'v' + d.ver;
