@@ -340,6 +340,18 @@
             transition: transform 0.2s ease-out;
         }
 
+        .tank-angelfish {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            left: 0px;
+            bottom: 0px;
+            z-index: 3;
+            will-change: transform;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+            transition: transform 0.25s ease-out;
+        }
+
         .tank-bubble {
             position: absolute;
             width: 4px;
@@ -1692,6 +1704,67 @@
                             <polygon points="20,25 24,29 27,24" fill="#ffb703" />
                             <circle cx="12" cy="12" r="2" fill="#fff" />
                             <circle cx="12" cy="12" r="1" fill="#000" />
+                        </svg>
+                        <!-- Graceful Organic Angelfish SVG (Blue Body + Yellow Fins Edition) -->
+                        <svg id="tankAngelFish" class="tank-angelfish" viewBox="0 0 120 120"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <!-- Caudal (Tail) Fin: Radiant Golden Yellow -->
+                            <path
+                                d="M 66 52 C 77 42 89 38 97 42 C 89 48 84 53 85 60 C 84 67 89 72 97 78 C 87 82 77 78 66 68 Z"
+                                fill="#facc15" stroke="#eab308" stroke-width="0.7" />
+                            <path d="M 68 55 Q 80 53 91 46" stroke="#ca8a04" stroke-width="0.8" fill="none"
+                                opacity="0.7" />
+                            <path d="M 68 60 Q 80 60 88 60" stroke="#ca8a04" stroke-width="0.8" fill="none"
+                                opacity="0.7" />
+                            <path d="M 68 65 Q 80 67 91 74" stroke="#ca8a04" stroke-width="0.8" fill="none"
+                                opacity="0.7" />
+
+                            <!-- Tall Dorsal Fin (Top): Golden Yellow with Amber Leading Edge -->
+                            <path d="M 32 35 C 44 26 62 18 92 12 C 78 20 68 32 64 45 C 52 42 42 38 32 35 Z"
+                                fill="#fde047" stroke="#eab308" stroke-width="0.7" />
+                            <path d="M 36 33 C 48 24 64 17 92 12" stroke="#ca8a04" stroke-width="1.8"
+                                stroke-linecap="round" fill="none" />
+                            <!-- Warm Highlight Fin Rays -->
+                            <path d="M 48 34 Q 65 24 78 20" stroke="#fef08a" stroke-width="0.9" fill="none" />
+                            <path d="M 56 38 Q 68 30 76 25" stroke="#fef08a" stroke-width="0.9" fill="none" />
+
+                            <!-- Bottom Anal Fin: Golden Yellow sweeping downward -->
+                            <path d="M 40 65 C 45 78 55 95 72 114 C 65 98 62 82 66 71 C 56 68 48 66 40 65 Z"
+                                fill="#fde047" stroke="#eab308" stroke-width="0.7" />
+                            <path d="M 42 67 C 48 81 57 98 72 114" stroke="#ca8a04" stroke-width="1.8"
+                                stroke-linecap="round" fill="none" />
+                            <!-- Warm Highlight Fin Rays -->
+                            <path d="M 48 68 Q 57 84 64 96" stroke="#fef08a" stroke-width="0.9" fill="none" />
+
+                            <!-- Two Long Slender Ventral Feelers / Whiskers under throat -->
+                            <path d="M 33 60 C 34 78 42 98 52 112" stroke="#facc15" stroke-width="1.8"
+                                stroke-linecap="round" fill="none" />
+                            <path d="M 36 61 C 38 76 43 92 48 106" stroke="#fef08a" stroke-width="1.3"
+                                stroke-linecap="round" fill="none" />
+
+                            <!-- Main Diamond Body: Vivid Cyan Blue with Subtle Outer Edge Glow -->
+                            <path
+                                d="M 18 36 C 24 33 32 35 44 38 C 58 42 68 49 68 60 C 68 71 58 78 44 76 C 32 74 24 64 18 36 Z"
+                                fill="#ffffff" stroke="#38bdf8" stroke-width="0.8" />
+
+                            <!-- Four Vertical Bold Dark Stripes across body & fins -->
+                            <!-- Stripe 1: Through Snout and Eye -->
+                            <path d="M 24 34 C 23 42 24 50 25 58" stroke="#0f172a" stroke-width="2.6"
+                                stroke-linecap="round" fill="none" />
+                            <!-- Stripe 2: Forward Body Band -->
+                            <path d="M 37 30 C 38 45 39 61 44 77" stroke="#0f172a" stroke-width="3.5"
+                                stroke-linecap="round" fill="none" />
+                            <!-- Stripe 3: Broad Mid-Body Band -->
+                            <path d="M 47 22 C 48 42 50 63 56 88" stroke="#0f172a" stroke-width="4.2"
+                                stroke-linecap="round" fill="none" />
+                            <!-- Stripe 4: Rear Body leading to Dorsal Fin base -->
+                            <path d="M 58 17 C 60 35 62 54 67 71" stroke="#0f172a" stroke-width="3.6"
+                                stroke-linecap="round" fill="none" />
+
+                            <!-- Eye with dark outer ring and bright specular glint -->
+                            <circle cx="26" cy="38" r="3.4" fill="#ffffff" />
+                            <circle cx="26" cy="38" r="2.0" fill="#0f172a" />
+                            <circle cx="25.2" cy="37.2" r="0.8" fill="#ffffff" />
                         </svg>
                         <div class="tank-glaze"></div>
                     </div>
@@ -3274,7 +3347,8 @@
             });
         }
 
-        // --- SAFE BOUNDED AUTONOMOUS FISH ENGINE WITH BUBBLES & TAP-TO-DART ---
+        // --- SAFE BOUNDED AUTONOMOUS DUAL-FISH ENGINE (GOLDFISH + ANGELFISH) ---
+        // Classic Goldfish State
         let fishX = 50, fishY = 40;
         let targetX = 50, targetY = 40;
         let facingRight = true;
@@ -3283,6 +3357,16 @@
         let pauseFrames = 0;
         let frameCounter = 0;
         let lastBubbleTime = 0;
+
+        // Organic Angelfish State (Different swimming depth, graceful glide, independent target)
+        let angelX = 85, angelY = 60;
+        let angelTargetX = 85, angelTargetY = 60;
+        let angelFacingRight = false;
+        let angelSpeed = 0.018;
+        let angelTilt = 0;
+        let angelPauseFrames = 0;
+        let angelFrameCounter = 0;
+        let angelLastBubbleTime = 0;
 
         function getNewFishTarget() {
             targetX = 15 + Math.random() * 100;
@@ -3297,6 +3381,25 @@
                 fishSpeed = 0.1; // Fast dart
             } else {
                 fishSpeed = 0.015 + Math.random() * 0.025; // Normal swim
+            }
+        }
+
+        function getNewAngelTarget() {
+            angelTargetX = 10 + Math.random() * 95;
+            const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+            const currentTankLevel = !isNaN(parseFloat(rawTank)) ? parseFloat(rawTank) : 50;
+
+            let waterPx = (currentTankLevel / 100) * 195;
+            // Angelfish prefers mid-to-upper water levels
+            let minH = Math.min(30, Math.max(10, waterPx * 0.25));
+            let maxH = Math.max(minH + 10, Math.min(waterPx - 34, 150));
+            angelTargetY = minH + Math.random() * (maxH - minH);
+
+            // Angelfish has a smooth, steady, organic glide with occasional elegant bursts
+            if (Math.random() < 0.18) {
+                angelSpeed = 0.06;
+            } else {
+                angelSpeed = 0.012 + Math.random() * 0.016;
             }
         }
 
@@ -3349,6 +3452,12 @@
         }
 
         function animateFish() {
+            const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+            const currentTankLevel = !isNaN(parseFloat(rawTank)) ? parseFloat(rawTank) : 50;
+            let waterPx = (currentTankLevel / 100) * 195;
+            const now = Date.now();
+
+            // 1. Classic Goldfish Animation Loop
             const fish = document.getElementById('tankFish');
             if (fish) {
                 if (isNaN(fishX) || !isFinite(fishX)) fishX = 50;
@@ -3384,35 +3493,88 @@
                 }
 
                 // Hard clamp fish position strictly below water level
-                const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
-                const currentTankLevel = !isNaN(parseFloat(rawTank)) ? parseFloat(rawTank) : 50;
-                let waterPx = (currentTankLevel / 100) * 195;
                 if (fishY > waterPx - 16) {
                     fishY = waterPx - 16;
                     targetY = Math.min(targetY, waterPx - 16);
                 }
 
                 // Spawn bubbles behind the fish when active
-                if (!pauseFrames && (Date.now() - lastBubbleTime > (fishSpeed > 0.07 ? 150 : 400))) {
+                if (!pauseFrames && (now - lastBubbleTime > (fishSpeed > 0.07 ? 150 : 400))) {
                     spawnBubble(fishX, fishY);
-                    lastBubbleTime = Date.now();
+                    lastBubbleTime = now;
                 }
 
                 const flip = facingRight ? "scaleX(-1)" : "scaleX(1)";
                 const finalRotation = facingRight ? -fishTilt : fishTilt;
-
-                // Fixed correct size transform without multiplier distortion bugs
-                const transformStyle = `rotate(${finalRotation}deg) ${flip}`;
                 const bounceHeight = fishSpeed > 0.07 ? 2.5 : 1;
 
                 fish.style.left = fishX + 'px';
                 fish.style.bottom = fishY + 'px';
-                fish.style.transform = `${transformStyle} translateY(${Math.sin(Date.now() / 180) * bounceHeight}px)`;
+                fish.style.transform = `rotate(${finalRotation}deg) ${flip} translateY(${Math.sin(now / 180) * bounceHeight}px)`;
             }
+
+            // 2. Organic Angelfish Animation Loop (Graceful fin undulation & cruising)
+            const angelFish = document.getElementById('tankAngelFish');
+            if (angelFish) {
+                if (isNaN(angelX) || !isFinite(angelX)) angelX = 85;
+                if (isNaN(angelY) || !isFinite(angelY)) angelY = 60;
+                if (isNaN(angelTargetX) || !isFinite(angelTargetX)) angelTargetX = 85;
+                if (isNaN(angelTargetY) || !isFinite(angelTargetY)) angelTargetY = 60;
+
+                if (angelPauseFrames > 0) {
+                    angelPauseFrames--;
+                } else {
+                    const adx = angelTargetX - angelX;
+                    const ady = angelTargetY - angelY;
+                    const adist = Math.hypot(adx, ady);
+
+                    angelFrameCounter++;
+                    if (adist < 4 || angelFrameCounter > 450) {
+                        angelFrameCounter = 0;
+                        if (Math.random() < 0.28) {
+                            angelPauseFrames = 80 + Math.floor(Math.random() * 140); // Natural hovering in water
+                        } else {
+                            getNewAngelTarget();
+                        }
+                    } else {
+                        angelX += adx * angelSpeed;
+                        angelY += ady * angelSpeed;
+
+                        if (adx > 0.4) angelFacingRight = true;
+                        else if (adx < -0.4) angelFacingRight = false;
+
+                        // Angelfish has a gentle, dampened vertical tilt
+                        let targetTilt = Math.max(-18, Math.min(18, ady * 0.45));
+                        angelTilt += (targetTilt - angelTilt) * 0.08;
+                    }
+                }
+
+                // Strict clamp below water level for taller angelfish profile
+                if (angelY > waterPx - 28) {
+                    angelY = waterPx - 28;
+                    angelTargetY = Math.min(angelTargetY, waterPx - 28);
+                }
+
+                if (!angelPauseFrames && (now - angelLastBubbleTime > (angelSpeed > 0.04 ? 200 : 600))) {
+                    spawnBubble(angelX + 4, angelY + 6);
+                    angelLastBubbleTime = now;
+                }
+
+                // Smooth sinusoidal water buoyancy (slower, organic wave)
+                const angelSinBounce = Math.sin(now / 320) * 1.8;
+                // Since default SVG head points left: scaleX(-1) turns head right, scaleX(1) faces left
+                const angelFlip = angelFacingRight ? "scaleX(-1)" : "scaleX(1)";
+                const angelFinalRotation = angelFacingRight ? -angelTilt : angelTilt;
+
+                angelFish.style.left = angelX + 'px';
+                angelFish.style.bottom = angelY + 'px';
+                angelFish.style.transform = `rotate(${angelFinalRotation}deg) ${angelFlip} translateY(${angelSinBounce}px)`;
+            }
+
             requestAnimationFrame(animateFish);
         }
 
-        // Bind Tap-to-Dart interactivity directly on the fish SVG element
+        // Bind Tap-to-Dart interactivity directly on both fish SVG elements
         document.addEventListener("DOMContentLoaded", () => {
             const fish = document.getElementById('tankFish');
             if (fish) {
@@ -3435,9 +3597,32 @@
                     }
                 });
             }
+
+            const angelFish = document.getElementById('tankAngelFish');
+            if (angelFish) {
+                angelFish.style.cursor = 'pointer';
+                angelFish.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+
+                    angelSpeed = 0.12;
+                    angelPauseFrames = 0;
+
+                    angelTargetX = angelFacingRight ? 15 : 95;
+                    const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+                    angelTargetY = Math.max(25, (rawTank / 100) * 135);
+
+                    if (typeof setRoboMood === 'function') {
+                        setRoboMood('poked', 600);
+                    }
+                    if (typeof vibe === 'function') {
+                        vibe([20, 40, 20]);
+                    }
+                });
+            }
         });
 
         getNewFishTarget();
+        getNewAngelTarget();
         requestAnimationFrame(animateFish);
     </script>
 </body>
