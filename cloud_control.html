@@ -342,26 +342,13 @@
 
         .tank-bubble {
             position: absolute;
-            width: 5px;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.8);
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             pointer-events: none;
             z-index: 3;
-            animation: floatBubble 1.2s ease-out forwards;
-        }
-
-        @keyframes floatBubble {
-            0% {
-                transform: translateY(0) scale(0.6);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: translateY(-35px) scale(1.2);
-                opacity: 0;
-            }
         }
 
         /* Dual SVG Wave Layers (Hidden When Pump is OFF) */
@@ -3316,12 +3303,49 @@
         function spawnBubble(x, y) {
             const tankInner = document.querySelector('.tank-inner');
             if (!tankInner) return;
+
+            const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+            const currentTankLevel = !isNaN(parseFloat(rawTank)) ? parseFloat(rawTank) : 50;
+            const waterPx = (currentTankLevel / 100) * 195;
+
+            // Do not spawn a bubble if the fish is already at or above the water surface
+            if ((y + 10) >= waterPx) return;
+
             const bubble = document.createElement('div');
             bubble.className = 'tank-bubble';
+
+            let startBottom = y + 8;
+            let maxTravel = Math.min(30, waterPx - startBottom - 2);
+            if (maxTravel < 5) return;
+
             bubble.style.left = (x + 12) + 'px';
-            bubble.style.bottom = (y + 5) + 'px';
+            bubble.style.bottom = startBottom + 'px';
             tankInner.appendChild(bubble);
-            setTimeout(() => bubble.remove(), 1200);
+
+            const startTime = Date.now();
+            const duration = 900;
+
+            const animateBubble = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = elapsed / duration;
+
+                if (progress >= 1 || !bubble.parentElement) {
+                    if (bubble.parentElement) bubble.remove();
+                    return;
+                }
+
+                let currentBottom = startBottom + (progress * maxTravel);
+                if (currentBottom >= waterPx) {
+                    bubble.remove();
+                    return;
+                }
+
+                bubble.style.bottom = currentBottom + 'px';
+                bubble.style.opacity = (1 - progress).toFixed(2);
+                requestAnimationFrame(animateBubble);
+            };
+
+            requestAnimationFrame(animateBubble);
         }
 
         function animateFish() {
@@ -3357,6 +3381,15 @@
                         let targetTilt = Math.max(-25, Math.min(25, dy * 0.6));
                         fishTilt += (targetTilt - fishTilt) * 0.15;
                     }
+                }
+
+                // Hard clamp fish position strictly below water level
+                const rawTank = latestTelemetry && latestTelemetry.tank !== undefined ? latestTelemetry.tank : 50;
+                const currentTankLevel = !isNaN(parseFloat(rawTank)) ? parseFloat(rawTank) : 50;
+                let waterPx = (currentTankLevel / 100) * 195;
+                if (fishY > waterPx - 16) {
+                    fishY = waterPx - 16;
+                    targetY = Math.min(targetY, waterPx - 16);
                 }
 
                 // Spawn bubbles behind the fish when active
