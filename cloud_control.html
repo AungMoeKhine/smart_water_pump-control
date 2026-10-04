@@ -2609,19 +2609,23 @@
             else if (d.info && (d.info.includes("COOLING") || d.info.includes("အအေးခံ"))) {
                 screen.classList.add('cooldown');
             }
-            // 3. RoboEyes Happy Mood (WAKES UP when motor runs, even during DND schedule)
+            // 3. Tank FULL: Return directly to calm cyan idle gaze
+            else if (d.tStr === "FULL" || d.tank >= (d.fullTank || 100)) {
+                // Intentionally unstyled: leaves screen.className as 'roboeyes-screen' (calm cyan idle gaze)
+            }
+            // 4. RoboEyes Happy Mood (WAKES UP when motor runs and tank not yet full)
             else if (d.pStat === "ON") {
                 screen.classList.add('happy');
             }
-            // 4. RoboEyes Sleepy Mood (Goes back to sleep when motor stops during DND)
+            // 5. RoboEyes Sleepy Mood (Goes back to sleep when motor stops during DND)
             else if (d.dndAct == 1) {
                 screen.classList.add('sleepy');
             }
-            // 5. RoboEyes Worried Mood (Low Water Level < lowTank)
-            else if (d.tank <= (d.lowTank || 30)) {
+            // 6. RoboEyes Worried Mood (Low Water Level confirmed)
+            else if (d.tStr === "LOW" || d.tank <= (d.lowTank || 30)) {
                 screen.classList.add('worried');
             }
-            // 6. RoboEyes Default Idle Mode: Natural Blink & Wandering Gaze
+            // 7. RoboEyes Default Idle Mode: Natural Blink & Wandering Gaze
         }
 
         function updateUI(d) {
