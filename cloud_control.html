@@ -1198,6 +1198,39 @@
             flex-shrink: 0;
         }
 
+        /* --- COMPACT LOG CATEGORY FILTER BUTTONS --- */
+        .log-filter-btn {
+            background: #171c26;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #c0c6cf;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 4px 7px;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            line-height: 1.15;
+            letter-spacing: -0.2px;
+        }
+
+        .log-filter-btn:hover {
+            background: #222a38;
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.22);
+        }
+
+        .log-filter-btn.active {
+            background: #263244 !important;
+            border-color: #00d2ff !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 6px rgba(0, 210, 255, 0.35);
+        }
+
         /* --- FLUSH-LEFT LOG CONSOLE --- */
         #logBox {
             background: #05070a;
@@ -1851,6 +1884,13 @@
                         </label>
                     </div>
                     <div id="eventHistoryWrap">
+                        <div id="logFilterBar" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px; margin:6px auto 4px auto; width:100%; box-sizing:border-box;">
+                            <button type="button" class="log-filter-btn active" data-filter="all" onclick="setLogCategory('all')">All Logs</button>
+                            <button type="button" class="log-filter-btn" data-filter="sensor" onclick="setLogCategory('sensor')">💧 Sensor</button>
+                            <button type="button" class="log-filter-btn" data-filter="volt" onclick="setLogCategory('volt')">⚡ Voltage</button>
+                            <button type="button" class="log-filter-btn" data-filter="dryrun" onclick="setLogCategory('dryrun')">🏜️ Dry Run</button>
+                            <button type="button" class="log-filter-btn" data-filter="sys" onclick="setLogCategory('sys')">⚙️ System</button>
+                        </div>
                         <div id="logBox">Waiting for logs...</div>
                     </div>
                 </div>
@@ -2383,6 +2423,10 @@
             }
             if (document.getElementById('appLang')) document.getElementById('appLang').value = sysLang;
             updateKeychainUI();
+            document.querySelectorAll('.log-filter-btn').forEach(btn => {
+                if (btn.dataset.filter === selectedLogCategory) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
         });
 
         document.addEventListener("visibilitychange", () => {
@@ -2398,6 +2442,49 @@
         let lastWebAlert = "";
         let logHistory = [], lastLogSnapshot = "", currentLogDevice = "";
         const MAX_LOG_LINES = 1000;
+        let selectedLogCategory = localStorage.getItem("cloudLogCategory") || "all";
+
+        function setLogCategory(cat) {
+            vibe();
+            selectedLogCategory = cat;
+            localStorage.setItem("cloudLogCategory", cat);
+            document.querySelectorAll('.log-filter-btn').forEach(btn => {
+                if (btn.dataset.filter === cat) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            renderFilteredLogs();
+        }
+
+        function filterLogLine(line, cat) {
+            if (cat === "all") return true;
+            const l = line.toUpperCase();
+            if (cat === "sensor") {
+                return l.includes("SENSOR") || l.includes("TANK") || l.includes("LEVEL") || l.includes("FULL") || l.includes("LOW") || l.includes("CALIB") || l.includes("JSN") || l.includes("ULTRASONIC") || l.includes("SETTLING");
+            }
+            if (cat === "volt") {
+                return l.includes("VOLT:") || l.includes("VOLTAGE") || l.includes("AC LINE") || l.includes("ZMPT") || l.includes("HIGH ") || l.includes("LOW ") || l.includes("GUARDS") || l.includes("VSTAT");
+            }
+            if (cat === "dryrun") {
+                return l.includes("DRY_RUN") || l.includes("DRY RUN") || l.includes("DRYRUN") || l.includes("NO FLOW") || l.includes("LOCKOUT") || l.includes("FLOW");
+            }
+            if (cat === "sys") {
+                return l.includes("SYS:") || l.includes("SYSTEM") || l.includes("BOOT") || l.includes("RESET") || l.includes("WIFI") || l.includes("MQTT") || l.includes("CONFIG") || l.includes("NVS") || l.includes("PUMP:") || l.includes("ALARM") || l.includes("ERR");
+            }
+            return true;
+        }
+
+        function renderFilteredLogs() {
+            const logBox = document.getElementById('logBox');
+            if (!logBox) return;
+            if (!logHistory.length) {
+                logBox.innerText = "Waiting for logs...";
+                return;
+            }
+            const filtered = logHistory.filter(line => filterLogLine(line, selectedLogCategory));
+            const isAtBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 30;
+            logBox.innerText = filtered.length ? filtered.join("\n") : `--- No ${selectedLogCategory.toUpperCase()} logs found ---`;
+            if (isAtBottom) logBox.scrollTop = logBox.scrollHeight;
+        }
         const uH = document.getElementById('uH'); for (let i = 12; i <= 84; i += 6) {let opt = document.createElement('option'); opt.value = i; opt.innerText = (i / 12).toFixed(1) + " ft"; uH.appendChild(opt);}
         const lowTank = document.getElementById('lowTank'); for (let i = 20; i <= 70; i += 5) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " %"; lowTank.appendChild(opt);}
         const fullTank = document.getElementById('fullTank'); for (let i = 80; i <= 100; i += 5) {let opt = document.createElement('option'); opt.value = i; opt.innerText = i + " %"; fullTank.appendChild(opt);}
@@ -2669,12 +2756,10 @@
             }
             document.getElementById('tankVal').innerText = tS; document.getElementById('dispIp').innerText = d.ip || "---"; document.getElementById('dispCid').innerText = d.id || "---"; document.getElementById('volt').innerText = (d.volt || "--") + " V";
             if (d.logs) {
-                const logBox = document.getElementById('logBox');
-                const mergedLogs = mergeLogHistory(d.logs);
-                if (logBox.innerText !== mergedLogs) {
-                    const isAtBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 30;
-                    logBox.innerText = mergedLogs;
-                    if (isAtBottom) logBox.scrollTop = logBox.scrollHeight;
+                const prevCount = logHistory.length;
+                mergeLogHistory(d.logs);
+                if (logHistory.length !== prevCount || lastLogSnapshot) {
+                    renderFilteredLogs();
                 }
             }
             // Symmetrical Bento Pill Updates
